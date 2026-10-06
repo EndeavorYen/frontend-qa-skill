@@ -38,20 +38,21 @@ US$     ≈ turns × 0.046
 
 固定的 20 turns 包含偵察、寫報告和工具回報。
 
-Critic 關卡（見 [critic.md](critic.md)）另外加：
+Critic 關卡（見 [critic.md](critic.md)）另外加。步驟 1 還不知道會有幾筆 finding，先用格數預估，步驟 4 再用實際筆數重算，寫進估算和實際的對照：
 
 ```
-Critic turns ≈ P0、P1 筆數 × 6 + P2 筆數 × 3 + P3 筆數 × 0.5
+步驟 1 預估：Critic turns ≈ 格數 × 0.4
+步驟 4 實際：Critic turns ≈ P0、P1 筆數 × 6 + P2 筆數 × 3 + P3 筆數 × 0.5
 ```
 
-用子代理時，這些 turns 在子代理裡，主 session 的對話長度不會增加。係數是推估，還沒有實測。
+用子代理時，這些 turns 在子代理裡，主 session 的對話長度不會增加；自查時算在主 session。係數是推估，還沒有實測。
 
 估算結果寫進 `report.md`，格式如下：
 
 ```markdown
 - 深度 3；面項：新手、亂點、設計師、小螢幕鍵盤、惡劣環境、狀態、體檢、工具軌
 - 覆蓋地圖：10 列 × 6 輪 = 60 格；體檢 6 個畫面
-- 估算：約 113 turns、19 分鐘、US$5.2
+- 估算：約 113 turns、19 分鐘、US$5.2（另外 Critic 約 24 turns）
 ```
 
 ### 校準紀錄

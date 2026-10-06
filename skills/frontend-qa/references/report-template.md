@@ -82,7 +82,7 @@ P3 問題可以省略「預期」和「重現次數」，但截圖不能省。�
 
 ## Critic
 - 方式：子代理 / 主 session 自查
-- 判定：成立 n、部分成立 n、不成立 n、待確認 n（詳見 `critic-verdicts.md`）
+- Critic 的判定：成立 n、部分成立 n、不成立 n、待確認 n；待確認經主 session 處理後：成立 n、移出報告 n（詳見 `critic-verdicts.md`）
 
 ## 摘要
 - 嚴重度：P0 ×n、P1 ×n、P2 ×n、P3 ×n（增量模式時分兩欄：這次新發現 / 仍存在的已知問題）
