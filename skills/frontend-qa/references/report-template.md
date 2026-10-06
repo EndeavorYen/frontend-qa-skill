@@ -45,7 +45,7 @@
 - 相關：F3（同一個 footer 在 S5 也擋住內容）
 ```
 
-P3 問題可以省略「預期」和「重現次數」，但截圖不能省。「重現腳本」只有 P0、P1 需要，見 [repro.md](repro.md)。
+P3 問題可以省略「預期」和「重現次數」，但截圖不能省。「重現腳本」只有 P0、P1 需要，寫法見 [repro.md](repro.md#驗證腳本)，例如 `repro/F7.spec.ts`（未執行：沒有 Playwright）。
 
 ## unattributed.md
 

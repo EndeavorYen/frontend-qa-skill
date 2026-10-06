@@ -5,11 +5,12 @@
 **跑 QA 的 agent 不可以讀這個目錄**，理由和答案卷相同。
 
 ```bash
+REPO=$(pwd)                                            # 在 repo 根目錄執行
 node evals/seeded-app/server.mjs &                     # http://localhost:4173
-npm i -D @playwright/test                              # 在暫存目錄安裝，不加進 repo；再用 NODE_PATH 指到那裡的 node_modules
-BASE_URL=http://localhost:4173 npx playwright test -c evals/repro
+cd "$(mktemp -d)"                                      # Playwright 裝在暫存目錄，不加進 repo
+npm i @playwright/test && npx playwright install chromium
+BASE_URL=http://localhost:4173 npx playwright test -c "$REPO/evals/repro"
 ```
-
 在原版 seeded-app 上，5 份都應該因為斷言失敗。只修好其中一個 bug 時，只有對應的那一份通過。
 
 | 檔案 | 答案卷 | 斷言（修好後應成立） |
