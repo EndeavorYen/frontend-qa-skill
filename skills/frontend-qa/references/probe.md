@@ -54,7 +54,17 @@
 
 **`allowSubmit: true` 只能在步驟 0 允許建立資料時才設。** 送出類檢查會真的送出表單，而且連點檢查可能建立兩筆資料。沒有設的表單只做頁面檢查。探測腳本不會按刪除，也不會碰付款、寄信這類按鈕；不要把這類表單放進 `forms`。
 
-可選欄位：`feedbackMs`（送出後等多久才判斷有沒有回饋，預設 5000）、`errorWords`、`loadingWords`（判斷錯誤訊息和載入中的關鍵字，預設中英文都有）。
+可選欄位：
+
+| 欄位 | 預設 | 內容 |
+|---|---|---|
+| `forms[].method` | 所有寫入方法 | API 500 情境要攔截的 HTTP 方法，例如 `PUT`。預設攔截 GET、HEAD、OPTIONS 以外的全部方法，所以不會真的寫到後端 |
+| `feedbackMs` | 5000 | 送出後等多久才判斷有沒有回饋 |
+| `settleMs` | 600 | 每次載入後至少等多久 |
+| `commandTimeoutMs` | 15000 | 單一 CDP 指令的逾時，超過就記一筆 `probe-error`，繼續下一項 |
+| `errorWords`、`loadingWords` | 中英文常見字詞 | 判斷錯誤訊息和載入中的正規表示式 |
+| `isolate` | `true` | 在隔離的 browser context 中執行；設成 `false` 會共用使用者瀏覽器的 cookie 和登入狀態 |
+| `cdpPort` | — | 沒有設定環境變數 `CDP_PORT` 時才用 |
 
 ## 執行
 
@@ -62,7 +72,11 @@
 CDP_PORT=<port> node <skill 目錄>/scripts/probe.mjs .frontend-qa/<run>/probe.json --out .frontend-qa/<run>/probe-result.json
 ```
 
-stdout 只有一行摘要（各檢查的筆數），完整結果在 `probe-result.json`。腳本會自己開一個分頁，跑完就關掉，斷網和 mock 都會還原。
+stdout 只有一行摘要（各檢查的筆數），完整結果在 `probe-result.json`。
+
+- 腳本預設開一個隔離的 browser context（獨立的 cookie 和儲存空間），在裡面開分頁，跑完就關掉。所以它不會沿用使用者已經登入的狀態，需要登入的網站一定要寫 `login`；也不會登出或改動使用者其他分頁的登入狀態
+- 斷網和 mock 都會還原。頁面跳出 `alert`、`confirm` 時，腳本記下文字當成回饋，一律按取消
+- 某一項出錯時只記一筆 `probe-error`，其他項目照樣跑完；登入失敗時會直接停止，因為之後的頁面都會變成在檢查登入頁
 
 ## 檢查項目
 
@@ -72,7 +86,7 @@ stdout 只有一行摘要（各檢查的筆數），完整結果在 `probe-resul
 | `failed-request` | 同上，收集 4xx、5xx 和失敗的請求 |
 | `horizontal-overflow` | 頁面寬度大於視窗寬度；`longField` 填入 300 個字元的無空格字串後也會檢查一次 |
 | `small-target` | 可點的元素寬或高小於 44px |
-| `low-contrast` | 文字和背景的對比低於 4.5:1（大字低於 3:1） |
+| `low-contrast` | 文字和背景的對比低於 4.5:1（大字低於 3:1）。背景是圖片、漸層或半透明時算不準，文字色不是 `rgb()` 格式時略過 |
 | `not-keyboard-reachable` | 游標是手指、但不是連結或按鈕，也沒有 `tabindex` 的元素 |
 | `no-accessible-name` | 控制項沒有文字、`aria-label` 或 label；只有符號（例如 emoji）的可點元素也算 |
 | `stuck-loading` | 列表 API 回 500，或離線後重新進入列表，等 `feedbackMs` 之後還顯示「載入中」，而且沒有錯誤訊息 |
@@ -91,7 +105,7 @@ stdout 只有一行摘要（各檢查的筆數），完整結果在 `probe-resul
 
 ## 測試輪不用重做的部分
 
-探測做過的檢查，測試輪不必再做一次，時間花在需要判斷的部分：
+探測只檢查設定檔列出的頁面、在設定的尺寸下、剛載入時的狀態。這個範圍內做過的檢查，測試輪不必再做一次。範圍以外的仍然要做：沒列進設定檔的頁面和尺寸（例如深度 4 的 `320x568`），以及操作之後才出現的狀態（打開的對話框、選單、錯誤訊息、展開的列表）。
 
 | 測試輪 | 探測已經做過 | 測試輪仍然要做 |
 |---|---|---|
