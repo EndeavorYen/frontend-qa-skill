@@ -45,14 +45,17 @@ state/
 ```js
 (() => {
   const own = (e) => [...e.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join(' ');
+  // 網址裡會隨資料變的片段（數字、UUID、slug）換成 :id，和「URL 樣式」用同一套規則
+  const pattern = (href) => href.split('/').map((seg) => (/\d|^[0-9a-f]{8}-|^[a-z0-9]+(-[a-z0-9]+)+$/i.test(seg) ? ':id' : seg)).join('/');
   const name = (e) => {
     if (e.matches('a[href]')) return ''; // 連結文字常常是資料（客戶名、標題），只看 href 的樣式
     if (e.matches('label')) return own(e); // label 裡的 select 選項可能來自資料，只取 label 自己的文字
+    if (e.matches('select')) return e.getAttribute('aria-label') || e.name || ''; // select 的 innerText 是所有選項
     return e.getAttribute('aria-label') || e.innerText || e.placeholder || e.name || '';
   };
   const parts = [...document.querySelectorAll('h1,h2,h3,label,button,a[href],input,select,textarea,[role=button],th,dt')]
     .filter((e) => e.getClientRects().length > 0)
-    .map((e) => (e.tagName.toLowerCase() + ':' + (e.getAttribute('type') || '') + ':' + name(e).trim().replace(/\s+/g, ' ').slice(0, 40) + ':' + (e.getAttribute('href') || '').replace(/[0-9a-f]{8}-[0-9a-f-]{27,}/gi, ':id')).replace(/\d+/g, '#'));
+    .map((e) => e.tagName.toLowerCase() + ':' + (e.getAttribute('type') || '') + ':' + name(e).trim().replace(/\s+/g, ' ').slice(0, 40).replace(/\d+/g, '#') + ':' + pattern(e.getAttribute('href') || ''));
   const list = [...new Set(parts)].sort();
   let h = 5381;
   for (const c of list.join('|')) h = ((h << 5) + h + c.charCodeAt(0)) >>> 0;
@@ -60,8 +63,10 @@ state/
 })()
 ```
 
-- 連結只看 href 的樣式，數字和 UUID 都換掉，重複的項目只留一個，所以資料筆數、編號、名稱不同，不會被當成改動
+- 連結只看 href 的樣式（數字、UUID、slug 都換成 `:id`），下拉選單只看名稱不看選項，文字中的數字換成 `#`，重複的項目只留一個。所以資料筆數、編號、連結文字、選項不同，不會被當成改動
 - `hash` 寫進 `screens.md`，`list` 寫進 `fingerprints.json`。兩次的 `hash` 不同時，比對 `list` 就知道多了或少了哪些元素，寫在覆蓋地圖的備註
+- **標題常常含資料**：詳情頁的標題常常是紀錄名稱（例如「Acme 公司」）。兩次指紋的差異只有 `h1`～`h3` 的文字、而且這個畫面的 URL 樣式含 `:id` 時，當成沒改動
+- slug 規則會把含連字號的路由名稱（例如 `order-history`）也換成 `:id`，這類路由的改名偵測不到
 - **限制**：指紋只看畫面結構。只改了行為、沒有增減元素的改動（例如按鈕點下去的邏輯變了），指紋不會變。所以使用者給了 git 範圍（例如「這次改了 main..feature」）時，一定要拿來輔助判斷：指紋沒變、但相關檔案有改的畫面，也當成有改動。沒有 git 範圍時，在 `report.md` 寫明「只依畫面結構判斷改動，純行為改動可能漏掉」
 
 ## 增量模式的流程
@@ -86,7 +91,7 @@ state/
    - 有改動：所有開啟的測試輪、`體檢` 和「複驗」欄都是 `☐`
    - 新增：所有開啟的測試輪和 `體檢` 都是 `☐`；「複驗」欄標 `➖ 新畫面`
    - 沒改動：測試輪欄位和 `體檢` 都標 `➖ 增量：未改動`；「複驗」欄是 `☐`。體檢分數沿用上次，在 `ux-review.md` 標「沿用 <執行目錄>」
-   - 流程列：經過任何有改動或新增的畫面，照有改動處理；否則照沒改動處理
+   - 流程列：`體檢` 一律標 `➖ 流程列不做體檢`。經過任何有改動或新增的畫面，測試輪和「複驗」都是 `☐`；否則測試輪標 `➖ 增量：未改動`、「複驗」是 `☐`。流程列的複驗是從頭走一次流程，確認可以完成
    - 移除：不列進覆蓋地圖，它的已知問題標 `無法複驗：畫面已移除`
 
    覆蓋率統計時，「複驗」欄另外計算（✅ / ➖ 各幾格），不併入測試輪的格數。
@@ -96,8 +101,9 @@ state/
 ### 沒改動畫面的「複驗」
 
 每個沒改動的畫面做這幾件事，做完把「複驗」欄改成 `✅`：
-- 打開畫面，清空 console 後重新載入，讀 `console --errors` 和失敗的請求。有新的錯誤，就照一般規則寫成 finding，並把這個畫面改列為「有改動」，補跑測試輪
+- 打開畫面，清空 console 後重新載入，讀 `console --errors` 和失敗的請求。有新的錯誤，就照一般規則寫成 finding，並把這個畫面改列為「有改動」：測試輪和 `體檢` 改回 `☐`，拿掉 `ux-review.md` 的「沿用」標記，補跑測試輪和體檢
 - 這個畫面上每個 `仍存在` 的已知問題，照重現摘要做一次，更新狀態：還能重現就是 `仍存在`，不能重現就是 `已修`
+- 已知問題的證據規則和新問題一樣：每個都存一張這次的截圖（`shots/K-<編號>.png`，`/` 換成 `-`），P0、P1 要從乾淨狀態重現兩次
 
 有改動的畫面，測試輪跑完後也做一樣的複驗，而且 `已修` 的已知問題也要重現一次，確認沒有再壞掉（再壞掉就改回 `仍存在`）。做完把「複驗」欄改成 `✅`。這些畫面上新發現的問題，照一般規則寫進這次的 `findings.md`。
 
@@ -107,7 +113,8 @@ state/
 
 - 測試輪又抓到某個已知問題（同畫面、同現象）時，在 `findings.md` 那一筆標上 `= <已知問題編號>`，報告不要重複列，改更新那筆已知問題的「最後確認」
 - 摘要的嚴重度統計分成兩欄：「這次新發現」和「仍存在的已知問題」
-- 「最嚴重的 5 個問題」從這次新發現和仍存在的已知問題合併後排序，不能因為是已知問題就不列
+- 「最嚴重的 5 個問題」從這次新發現和仍存在的已知問題合併後排序，不能因為是已知問題就不列。已知問題的證據寫這次的截圖路徑和 `known-findings.md` 的編號
+- 完整清單在「這次新發現」之後，另外列一節「仍存在的已知問題」，每筆附這次的截圖
 
 ### 結束前更新狀態檔
 

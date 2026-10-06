@@ -11,13 +11,15 @@ const variant = process.env.VARIANT
   : {};
 // 啟動時就確認每個要替換的內容都剛好出現一次；否則直接結束，不要讓 agent 看到壞掉的 app
 for (const [name, edits] of Object.entries(variant)) {
-  const text = await readFile(join(root, name), 'utf8');
-  for (const [from] of edits) {
+  let text = await readFile(join(root, name), 'utf8');
+  // 照實際替換的順序逐一套用，前一個替換改到後一個目標時也抓得到
+  for (const [from, to] of edits) {
     const count = text.split(from).length - 1;
     if (count !== 1) {
       console.error(`variant ${process.env.VARIANT}: ${name} 中要替換的內容出現 ${count} 次（應該是 1 次）`);
       process.exit(1);
     }
+    text = text.replace(from, () => to);
   }
 }
 const types = {
