@@ -61,7 +61,7 @@
 | `forms[].method` | 所有寫入方法 | API 500 情境要攔截的 HTTP 方法，例如 `PUT`。預設攔截 GET、HEAD、OPTIONS 以外的全部方法，所以不會真的寫到後端 |
 | `feedbackMs` | 5000 | 送出後等多久才判斷有沒有回饋 |
 | `settleMs` | 600 | 每次載入後至少等多久 |
-| `commandTimeoutMs` | 15000 | 單一 CDP 指令的逾時，超過就記一筆 `probe-error`，繼續下一項 |
+| `commandTimeoutMs` | 15000 | 單一 CDP 指令的逾時，超過就記一筆 `probe-error`，繼續下一項。建立連線和登入階段逾時、或 CDP 連線中斷時，直接停止並寫出目前的結果 |
 | `errorWords`、`loadingWords` | 中英文常見字詞 | 判斷錯誤訊息和載入中的正規表示式 |
 | `isolate` | `true` | 在隔離的 browser context 中執行；設成 `false` 會共用使用者瀏覽器的 cookie 和登入狀態 |
 | `cdpPort` | — | 沒有設定環境變數 `CDP_PORT` 時才用 |
@@ -75,7 +75,7 @@ CDP_PORT=<port> node <skill 目錄>/scripts/probe.mjs .frontend-qa/<run>/probe.j
 stdout 只有一行摘要（各檢查的筆數），完整結果在 `probe-result.json`。
 
 - 腳本預設開一個隔離的 browser context（獨立的 cookie 和儲存空間），在裡面開分頁，跑完就關掉。所以它不會沿用使用者已經登入的狀態，需要登入的網站一定要寫 `login`；也不會登出或改動使用者其他分頁的登入狀態
-- 斷網和 mock 都會還原。頁面跳出 `alert`、`confirm` 時，腳本記下文字當成回饋，一律按取消
+- 斷網和 mock 都會還原。頁面跳出 `alert` 時，腳本記下文字當成回饋；跳出 `confirm` 時一律按取消，那一項記成 `skipped`（送出前要求確認的表單，送出類檢查要由測試輪手動做）
 - 某一項出錯時只記一筆 `probe-error`，其他項目照樣跑完；登入失敗時會直接停止，因為之後的頁面都會變成在檢查登入頁
 
 ## 檢查項目

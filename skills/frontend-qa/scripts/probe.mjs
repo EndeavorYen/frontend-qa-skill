@@ -53,11 +53,13 @@ const writeOut = () => {
 
 // ---------- CDP（連 browser 端點，再 attach 到自己開的分頁） ----------
 let ws;
+let dead = false;
 let msgId = 0;
 let sessionId;
 const pending = new Map();
 const send = (method, params = {}, { browser = false } = {}) =>
   new Promise((resolve, reject) => {
+    if (dead || ws.readyState !== WebSocket.OPEN) return reject(new Error('CDP 連線中斷'));
     const id = ++msgId;
     const timer = setTimeout(() => {
       pending.delete(id);
@@ -96,8 +98,9 @@ const onEvent = ({ method, params }) => {
     events.failed.push(`${params.errorText} ${req ? req.url : ''}`.trim());
   } else if (method === 'Page.javascriptDialogOpening') {
     // alert / confirm 會卡住頁面；記下文字當成回饋證據，一律按取消，不會誤確認刪除這類動作
-    events.dialogs.push(`${params.type}: ${params.message}`.slice(0, 200));
-    send('Page.handleJavaScriptDialog', { accept: false }).catch(() => {});
+    // beforeunload 要按確定，否則會擋住腳本自己的導覽
+    if (params.type !== 'beforeunload') events.dialogs.push({ type: params.type, message: params.message.slice(0, 200) });
+    send('Page.handleJavaScriptDialog', { accept: params.type === 'beforeunload' }).catch(() => {});
   } else if (method === 'Fetch.requestPaused') {
     const { requestId, request } = params;
     const rule = mocks.find((m) => request.url.includes(m.match) && (m.method === 'ANY' || (m.method === 'WRITE' ? isWrite(request.method) : m.method === request.method)));
@@ -137,7 +140,8 @@ const go = async (url) => {
   await sleep(100);
   inflight.clear();
   reset();
-  await send('Page.navigate', { url: abs(url) });
+  const nav = await send('Page.navigate', { url: abs(url) });
+  if (nav.errorText) throw new Error(`無法載入 ${url}：${nav.errorText}`);
   await settle();
 };
 const setMocks = async (list) => {
@@ -153,6 +157,7 @@ const step = async (label, url, fn) => {
   try {
     await fn();
   } catch (err) {
+    if (dead) throw err; // 連線斷了，後面的檢查都不可能成功，直接中止
     add('probe-error', url, `${label}：${String(err.message || err).split('\n')[0]}`);
   }
 };
@@ -160,7 +165,7 @@ const step = async (label, url, fn) => {
 // ---------- 頁面內的檢查 ----------
 const PAGE_AUDIT = `(() => {
   const visible = (e) => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none' && +s.opacity !== 0; };
-  const byIds = (e) => (e.getAttribute('aria-labelledby') || '').split(/\\s+/).map((id) => document.getElementById(id)?.innerText || '').join(' ');
+  const byIds = (e) => (e.getAttribute('aria-labelledby') || '').split(/\\s+/).map((id) => document.getElementById(id)?.innerText || '').join(' ').trim();
   const label = (e) => (e.getAttribute('aria-label') || byIds(e) || e.innerText || e.value || e.getAttribute('title') || e.getAttribute('alt') || e.getAttribute('placeholder') || (e.labels && e.labels[0] ? e.labels[0].innerText : '') || '').trim().replace(/\\s+/g, ' ').slice(0, 30);
   const desc = (e) => { const cls = typeof e.className === 'string' && e.className.trim() ? '.' + e.className.trim().split(/\\s+/).join('.') : ''; return e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + cls; };
   const parse = (c) => { const m = c.match(/[\\d.]+/g); return m ? m.map(Number) : [0, 0, 0, 0]; };
@@ -249,10 +254,10 @@ const feedbackAfterSubmit = async (form, scenario, apply, undo) => {
   await fillForm(form.fill);
   const before = await textNow();
   const urlBefore = await evaluate('location.href');
-  await apply();
   let after = '';
   let urlAfter = '';
   try {
+    await apply();
     reset();
     await clickTimes(form.submit, 1);
     await sleep(feedbackMs);
@@ -261,7 +266,8 @@ const feedbackAfterSubmit = async (form, scenario, apply, undo) => {
   } finally {
     await undo();
   }
-  const dialogs = events.dialogs.join('；');
+  if (events.dialogs.some((d) => d.type === 'confirm')) return add('skipped', form.url, `${scenario}：送出前要求確認，腳本按了取消，無法判斷`, { scenario });
+  const dialogs = events.dialogs.map((d) => d.message).join('；');
   const added = newLines(before, after);
   if (dialogs) {
     if (!ERROR_WORDS.test(dialogs)) add('no-error-message', form.url, `${scenario}送出後跳出對話框，但沒有錯誤訊息：「${dialogs}」`, { scenario });
@@ -273,6 +279,8 @@ const feedbackAfterSubmit = async (form, scenario, apply, undo) => {
 };
 
 // ---------- 執行 ----------
+// 被外部中止時也寫出目前為止的結果
+for (const sig of ['SIGINT', 'SIGTERM']) process.once(sig, () => { add('probe-error', '', `被 ${sig} 中止`); writeOut(); process.exit(1); });
 let browserContextId;
 let targetId;
 try {
@@ -293,6 +301,7 @@ try {
     }
   });
   ws.addEventListener('close', () => {
+    dead = true;
     for (const { reject } of pending.values()) reject(new Error('CDP 連線中斷'));
     pending.clear();
   });
@@ -312,7 +321,7 @@ try {
     await settle();
     // 登入表單還在就當作登入失敗，後面的頁面檢查都會變成在檢查登入頁，所以直接停止
     const stillThere = await evaluate(`!!document.querySelector(${JSON.stringify(Object.keys(config.login.fill)[0])})`);
-    if (stillThere) throw new Error(`登入後登入表單仍在畫面上，判定登入失敗：${events.dialogs.join('；') || (await textNow()).slice(0, 80)}`);
+    if (stillThere) throw new Error(`登入後登入表單仍在畫面上，判定登入失敗：${events.dialogs.map((d) => d.message).join('；') || (await textNow()).slice(0, 80)}`);
   }
 
   for (const url of config.pages || []) await auditPage(url, 'page');
@@ -330,9 +339,9 @@ try {
       await step(`列表 ${scenario}`, list.url, async () => {
         await go(list.url);
         const before = await textNow();
-        await apply();
         let text = '';
         try {
+          await apply();
           reset();
           if (how === 'reload') await send('Page.reload', { ignoreCache: true });
           else await evaluate(`(async () => { location.hash = '#/__probe__'; await new Promise((r) => setTimeout(r, 300)); location.hash = ${JSON.stringify('#' + hash)}; })()`);
@@ -347,7 +356,7 @@ try {
         }
         // 只看情境套用後新出現的文字，避免導覽列或資料內容裡的字詞造成誤判
         const added = newLines(before, text);
-        const feedback = added + ' ' + events.dialogs.join(' ');
+        const feedback = added + ' ' + events.dialogs.map((d) => d.message).join(' ');
         if (LOADING_WORDS.test(text) && !ERROR_WORDS.test(feedback))
           add('stuck-loading', list.url, `${scenario}：${feedbackMs}ms 後仍顯示「${(text.match(LOADING_WORDS) || [''])[0]}」，沒有錯誤訊息`, { scenario });
         else if (!ERROR_WORDS.test(feedback)) add('no-error-message', list.url, `${scenario}：${feedbackMs}ms 後畫面沒有錯誤訊息`, { scenario });
@@ -367,6 +376,7 @@ try {
       reset();
       await clickTimes(form.submit, 2);
       await sleep(Math.max(2500, settleMs));
+      if (events.dialogs.some((d) => d.type === 'confirm')) return add('skipped', form.url, '連點送出：送出前要求確認，腳本按了取消，無法判斷');
       const n = writes(form.api).length;
       if (n > 1) add('double-submit', form.url, `連點兩下送出，發出 ${n} 個寫入請求（${form.api}）`);
     });
@@ -391,12 +401,12 @@ try {
 } catch (err) {
   add('probe-error', '', String(err.message || err).split('\n')[0]);
 } finally {
-  if (sessionId) {
+  if (sessionId && !dead) {
     await setOffline(false).catch(() => {});
     await send('Fetch.disable').catch(() => {});
   }
-  if (targetId) await send('Target.closeTarget', { targetId }, { browser: true }).catch(() => {});
-  if (browserContextId) await send('Target.disposeBrowserContext', { browserContextId }, { browser: true }).catch(() => {});
+  if (targetId && !dead) await send('Target.closeTarget', { targetId }, { browser: true }).catch(() => {});
+  if (browserContextId && !dead) await send('Target.disposeBrowserContext', { browserContextId }, { browser: true }).catch(() => {});
   writeOut();
   ws?.close();
 }
