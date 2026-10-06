@@ -17,6 +17,7 @@ description: "前端 QA：扮演挑剔、會亂按的使用者操作真實 UI，
 - **工具軌**：驅動工具（chrome-cdp-ex）自己的問題與摩擦，寫在 `tool-track.md`。
 - **歸因**：遇到預期外結果時，先判斷問題出在產品還是工具，再決定要記到哪一軌。
 - **未歸因**：判斷不出來的項目，寫在 `unattributed.md`，兩軌都不報。
+- **分 session**：每個測試輪和體檢各用一個新的子 session 依序執行，主 session 負責偵察、合併和報告。要先取得使用者同意，詳見 [sessions.md](references/sessions.md)。
 - **證據**：截圖路徑、從乾淨狀態開始的重現步驟、預期與實際結果、相關的 console 或網路錯誤。
 
 ## 執行目錄
@@ -51,10 +52,11 @@ coverage.md  findings.md  ux-review.md  tool-track.md  unattributed.md  report.m
 - **面項**：沒指定就用該深度的預設組合（見 [depth.md](references/depth.md#預設面項)）。使用者指定的面項會覆蓋預設，例如「深度 2，加開設計師」或「只測亂點和惡劣環境」
 - 視窗尺寸：依深度的預設
 - 工具軌：用 chrome-cdp-ex 驅動時預設開啟；使用者說不要就關閉
+- 執行模式：單一 session 或分 session。分 session 要先取得同意，問法和無人值守時的規則見 [sessions.md](references/sessions.md#取得同意)
 
 工具軌開啟時，要記錄工具版本，做法見 [tool-track.md](references/tool-track.md#版本)。
 
-完成條件：執行目錄已建立；`report.md` 開頭寫好範圍、環境、禁止動作、深度、開啟的面項、視窗尺寸，以及工具版本（工具軌開啟時）。
+完成條件：執行目錄已建立；`report.md` 開頭寫好範圍、環境、禁止動作、深度、開啟的面項、視窗尺寸、執行模式，以及工具版本（工具軌開啟時）。
 
 ### 1. 偵察、建立覆蓋地圖、估算成本
 
@@ -76,17 +78,19 @@ coverage.md  findings.md  ux-review.md  tool-track.md  unattributed.md  report.m
 
 每發現一個問題，就照「歸因規則」處理，然後立刻寫進對應的檔案，不要等整輪跑完再補記。
 
+分 session 執行時，每一輪派一個子 session，依序執行，帶入的內容和產出見 [sessions.md](references/sessions.md)。
+
 完成條件：覆蓋地圖中，測試輪的欄位沒有任何 `☐`；每個 `➖` 都附理由，每個 `⛔` 都附工具軌編號。
 
 ### 3. UI/UX 體檢（體檢開啟時才做）
 
-照 [ux-review.md](references/ux-review.md)，替每個畫面在 7 個維度上打 1–5 分，提出改善建議，然後寫進 `ux-review.md`。體檢放在測試輪之後做，因為前面幾輪已經把每個畫面用過一遍了。
+照 [ux-review.md](references/ux-review.md)，替每個畫面在 7 個維度上打 1–5 分，提出改善建議，然後寫進 `ux-review.md`。體檢放在測試輪之後做，因為前面幾輪已經把每個畫面用過一遍了。分 session 執行時，體檢也派一個子 session。
 
 完成條件：覆蓋地圖的 `體檢` 欄沒有 `☐`；每個 3 分以下的分數都有附證據；`ux-review.md` 有最值得做的 5 項改善建議。
 
 ### 4. 產品報告
 
-整理 `findings.md`：合併重複的問題，照 [severity.md](references/severity.md) 標上 P0–P3 和類別，再照 [report-template.md](references/report-template.md#reportmd) 寫出 `report.md`。
+整理 `findings.md`：合併重複的問題（分 session 執行時，各輪只看得到標題，去重規則見 [sessions.md](references/sessions.md#合併與去重)），照 [severity.md](references/severity.md) 標上 P0–P3 和類別，再照 [report-template.md](references/report-template.md#reportmd) 寫出 `report.md`。
 
 完成條件：`report.md` 包含以下內容：嚴重度統計、最嚴重的 5 個問題、UI/UX 體檢摘要（體檢有開時）、按畫面分組的完整清單、覆蓋率（✅ / ➖ / ⛔ 各幾格）、未歸因清單，以及估算和實際成本的對照。每個問題都有證據。
 
