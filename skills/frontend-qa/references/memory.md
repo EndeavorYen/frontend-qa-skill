@@ -18,9 +18,12 @@ state/
 `screens.md`：
 
 ```markdown
-| 代號 | 名稱 | URL | 指紋 | 最後測試 |
+| 代號 | 名稱 | URL 樣式 | 指紋 | 最後測試 |
 |---|---|---|---|---|
 | S1 | 登入 | /#/login | 3fa2c1 | 2026-10-06-myapp |
+| S3 | 專案詳情 | /#/projects/:id | 9b07e4 | 2026-10-06-myapp |
+
+「URL 樣式」是比對畫面用的 key：網址中的數字、UUID、slug 這類會隨資料變的片段換成 `:id`。詳情頁這類畫面，每次抽到的資料不同，但 URL 樣式相同，就是同一個畫面。
 ```
 
 `known-findings.md`：每筆一列，F 編號用第一次發現時那次執行的編號，前面加上執行目錄名稱，避免和這次的編號混淆：
@@ -28,7 +31,7 @@ state/
 ```markdown
 | 編號 | 畫面 | 等級 | 標題 | 重現摘要 | 狀態 | 首次發現 | 最後確認 |
 |---|---|---|---|---|---|---|---|
-| 2026-10-06-myapp/F3 | S2 | P1 | 送出後沒有任何回饋 | 離線時在 S2 送出 | 仍存在 | 2026-10-06-myapp | 2026-10-13-myapp |
+| 2026-10-06-myapp/F3 | S4 | P2 | 匯出的 CSV 檔名是亂碼 | 在 S4 按「匯出」，檔名含中文 | 仍存在 | 2026-10-06-myapp | 2026-10-13-myapp |
 ```
 
 狀態只能是：`仍存在`、`已修`、`不修`（使用者說不修）、`無法複驗`（附原因，例如畫面已移除）。
@@ -41,10 +44,15 @@ state/
 
 ```js
 (() => {
-  const name = (e) => (e.getAttribute('aria-label') || e.innerText || e.placeholder || e.name || '').trim().replace(/\s+/g, ' ').slice(0, 40);
+  const own = (e) => [...e.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join(' ');
+  const name = (e) => {
+    if (e.matches('a[href]')) return ''; // 連結文字常常是資料（客戶名、標題），只看 href 的樣式
+    if (e.matches('label')) return own(e); // label 裡的 select 選項可能來自資料，只取 label 自己的文字
+    return e.getAttribute('aria-label') || e.innerText || e.placeholder || e.name || '';
+  };
   const parts = [...document.querySelectorAll('h1,h2,h3,label,button,a[href],input,select,textarea,[role=button],th,dt')]
     .filter((e) => e.getClientRects().length > 0)
-    .map((e) => (e.tagName.toLowerCase() + ':' + (e.getAttribute('type') || '') + ':' + name(e) + ':' + (e.getAttribute('href') || '')).replace(/\d+/g, '#'));
+    .map((e) => (e.tagName.toLowerCase() + ':' + (e.getAttribute('type') || '') + ':' + name(e).trim().replace(/\s+/g, ' ').slice(0, 40) + ':' + (e.getAttribute('href') || '').replace(/[0-9a-f]{8}-[0-9a-f-]{27,}/gi, ':id')).replace(/\d+/g, '#'));
   const list = [...new Set(parts)].sort();
   let h = 5381;
   for (const c of list.join('|')) h = ((h << 5) + h + c.charCodeAt(0)) >>> 0;
@@ -52,9 +60,9 @@ state/
 })()
 ```
 
-- 數字都換成 `#`，重複的項目只留一個，所以資料筆數或編號不同，不會被當成改動
+- 連結只看 href 的樣式，數字和 UUID 都換掉，重複的項目只留一個，所以資料筆數、編號、名稱不同，不會被當成改動
 - `hash` 寫進 `screens.md`，`list` 寫進 `fingerprints.json`。兩次的 `hash` 不同時，比對 `list` 就知道多了或少了哪些元素，寫在覆蓋地圖的備註
-- 使用者給了 git 範圍（例如「這次改了 main..feature」）時，可以用改動的檔案輔助判斷哪些畫面可能改了，但最後以指紋為準：指紋沒變、檔案有改的畫面，也當成有改動
+- **限制**：指紋只看畫面結構。只改了行為、沒有增減元素的改動（例如按鈕點下去的邏輯變了），指紋不會變。所以使用者給了 git 範圍（例如「這次改了 main..feature」）時，一定要拿來輔助判斷：指紋沒變、但相關檔案有改的畫面，也當成有改動。沒有 git 範圍時，在 `report.md` 寫明「只依畫面結構判斷改動，純行為改動可能漏掉」
 
 ## 增量模式的流程
 
@@ -75,10 +83,13 @@ state/
    - **移除**：`screens.md` 有，但這次找不到
    - **沒改動**：指紋相同
 3. 覆蓋地圖沿用 `screens.md` 的代號；新增的畫面接著編號。在覆蓋地圖最後加一欄「複驗」
-   - 有改動：所有開啟的測試輪和「複驗」欄都是 `☐`
-   - 新增：所有開啟的測試輪都是 `☐`；「複驗」欄標 `➖ 新畫面`
-   - 沒改動：測試輪欄位標 `➖ 增量：未改動`；「複驗」欄是 `☐`
+   - 有改動：所有開啟的測試輪、`體檢` 和「複驗」欄都是 `☐`
+   - 新增：所有開啟的測試輪和 `體檢` 都是 `☐`；「複驗」欄標 `➖ 新畫面`
+   - 沒改動：測試輪欄位和 `體檢` 都標 `➖ 增量：未改動`；「複驗」欄是 `☐`。體檢分數沿用上次，在 `ux-review.md` 標「沿用 <執行目錄>」
+   - 流程列：經過任何有改動或新增的畫面，照有改動處理；否則照沒改動處理
    - 移除：不列進覆蓋地圖，它的已知問題標 `無法複驗：畫面已移除`
+
+   覆蓋率統計時，「複驗」欄另外計算（✅ / ➖ 各幾格），不併入測試輪的格數。
 4. `data-types.md` 的既有資料型態直接沿用，只檢查抽樣的那幾筆是否還存在；不存在的話，重新抽一筆
 5. 估算成本用 [depth.md](depth.md#增量模式) 的增量公式
 
@@ -88,11 +99,15 @@ state/
 - 打開畫面，清空 console 後重新載入，讀 `console --errors` 和失敗的請求。有新的錯誤，就照一般規則寫成 finding，並把這個畫面改列為「有改動」，補跑測試輪
 - 這個畫面上每個 `仍存在` 的已知問題，照重現摘要做一次，更新狀態：還能重現就是 `仍存在`，不能重現就是 `已修`
 
-有改動和新增的畫面，已知問題也要照同樣方式複驗；這些畫面上新發現的問題，照一般規則寫進這次的 `findings.md`。
+有改動的畫面，測試輪跑完後也做一樣的複驗，而且 `已修` 的已知問題也要重現一次，確認沒有再壞掉（再壞掉就改回 `仍存在`）。做完把「複驗」欄改成 `✅`。這些畫面上新發現的問題，照一般規則寫進這次的 `findings.md`。
 
 ### 步驟 4
 
-`report.md` 在「範圍」和「摘要」之間加一節「已知問題狀態」（格式見 [report-template.md](report-template.md#reportmd)），列出每個已知問題這次的狀態，以及「這次新發現」的數量。新發現的問題如果和某個已知問題是同一個（同畫面、同現象），不要重複列，改更新那筆已知問題的「最後確認」。
+`report.md` 在「範圍」和「摘要」之間加一節「已知問題狀態」（格式見 [report-template.md](report-template.md#reportmd)），列出每個已知問題這次的狀態，以及「這次新發現」的數量。
+
+- 測試輪又抓到某個已知問題（同畫面、同現象）時，在 `findings.md` 那一筆標上 `= <已知問題編號>`，報告不要重複列，改更新那筆已知問題的「最後確認」
+- 摘要的嚴重度統計分成兩欄：「這次新發現」和「仍存在的已知問題」
+- 「最嚴重的 5 個問題」從這次新發現和仍存在的已知問題合併後排序，不能因為是已知問題就不列
 
 ### 結束前更新狀態檔
 

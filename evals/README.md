@@ -9,7 +9,7 @@
    node evals/seeded-app/server.mjs        # http://localhost:4173，可用 PORT 換 port
    ```
    資料只存在記憶體中，重新啟動伺服器就會回到初始狀態。每次評測前都要重新啟動。
-2. 開一個**新的** agent session，工作目錄要在這個 repo **以外**，這樣 agent 不知道答案卷放在哪裡。
+2. 開一個**新的** agent session，工作目錄要在這個 repo **以外**，這樣 agent 不知道答案卷放在哪裡。工作目錄要是**全新的空目錄**（例如 `mktemp -d`）：skill 看到 `.frontend-qa/state/` 時，會自動改用只測改動畫面的增量模式，結果就不能和完整執行比較。增量模式的評測方式見答案卷的「改動版」。
 
    **工作目錄只能隔離答案卷，擋不住 app 的原始碼。** `app.js` 和 `style.css` 是透過 HTTP 提供的（`GET /app.js` → 200），agent 可以用瀏覽器的 `eval fetch('/app.js')` 或 view-source 讀到。所以必須在指令中明確禁止，並在第 4 步稽核。給 agent 的指令只能包含以下資訊：
    ```text

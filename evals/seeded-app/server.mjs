@@ -9,6 +9,17 @@ const port = Number(process.env.PORT) || 4173;
 const variant = process.env.VARIANT
   ? (await import(new URL(`./variants/${process.env.VARIANT}.mjs`, import.meta.url))).default
   : {};
+// 啟動時就確認每個要替換的內容都剛好出現一次；否則直接結束，不要讓 agent 看到壞掉的 app
+for (const [name, edits] of Object.entries(variant)) {
+  const text = await readFile(join(root, name), 'utf8');
+  for (const [from] of edits) {
+    const count = text.split(from).length - 1;
+    if (count !== 1) {
+      console.error(`variant ${process.env.VARIANT}: ${name} 中要替換的內容出現 ${count} 次（應該是 1 次）`);
+      process.exit(1);
+    }
+  }
+}
 const types = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -83,10 +94,7 @@ async function serveStatic(res, pathname) {
     const edits = variant[file.slice(root.length).split(sep).join('/')];
     if (edits) {
       let text = content.toString('utf8');
-      for (const [from, to] of edits) {
-        if (!text.includes(from)) throw new Error(`variant ${process.env.VARIANT}: 找不到要替換的內容`);
-        text = text.replace(from, to);
-      }
+      for (const [from, to] of edits) text = text.replace(from, () => to);
       content = Buffer.from(text);
     }
     res.writeHead(200, { 'content-type': types[extname(file)] || 'application/octet-stream' });

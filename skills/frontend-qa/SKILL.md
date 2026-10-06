@@ -77,7 +77,7 @@ coverage.md  findings.md  ux-review.md  tool-track.md  unattributed.md  report.m
 
 接著照 [probe.md](references/probe.md) 寫 `probe.json`，跑探測腳本，把確認過的結果寫進 `findings.md`。環境不符合時（沒有 CDP 或 Node 22）就跳過，並在 `report.md` 寫明原因。
 
-完成條件：`coverage.md` 列出範圍內每個畫面和流程步驟，每格都是 `☐`；`report.md` 寫好估算結果；探測已經跑完並解讀，或已寫明跳過的原因。
+完成條件：`coverage.md` 列出範圍內每個畫面和流程步驟；完整模式每格都是 `☐`，增量模式照 [memory.md](references/memory.md#步驟-1) 的規則填；`report.md` 寫好估算結果；探測已經跑完並解讀，或已寫明跳過的原因。
 
 ### 2. 分輪測試
 
@@ -87,7 +87,7 @@ coverage.md  findings.md  ux-review.md  tool-track.md  unattributed.md  report.m
 
 分 session 執行時，每一輪派一個子 session，依序執行，帶入的內容和產出見 [sessions.md](references/sessions.md)。
 
-完成條件：覆蓋地圖中，測試輪的欄位沒有任何 `☐`；每個 `➖` 都附理由，每個 `⛔` 都附工具軌編號。
+完成條件：覆蓋地圖中，測試輪的欄位沒有任何 `☐`（增量模式時，`複驗` 欄也沒有 `☐`）；每個 `➖` 都附理由，每個 `⛔` 都附工具軌編號。
 
 ### 3. UI/UX 體檢（體檢開啟時才做）
 
