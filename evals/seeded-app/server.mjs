@@ -5,6 +5,23 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('./app/', import.meta.url));
 const port = Number(process.env.PORT) || 4173;
+// VARIANT=<名稱> 時，套用 variants/<名稱>.mjs 的字串替換（例如 settings-v2）
+const variant = process.env.VARIANT
+  ? (await import(new URL(`./variants/${process.env.VARIANT}.mjs`, import.meta.url))).default
+  : {};
+// 啟動時就確認每個要替換的內容都剛好出現一次；否則直接結束，不要讓 agent 看到壞掉的 app
+for (const [name, edits] of Object.entries(variant)) {
+  let text = await readFile(join(root, name), 'utf8');
+  // 照實際替換的順序逐一套用，前一個替換改到後一個目標時也抓得到
+  for (const [from, to] of edits) {
+    const count = text.split(from).length - 1;
+    if (count !== 1) {
+      console.error(`variant ${process.env.VARIANT}: ${name} 中要替換的內容出現 ${count} 次（應該是 1 次）`);
+      process.exit(1);
+    }
+    text = text.replace(from, () => to);
+  }
+}
 const types = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -75,7 +92,13 @@ async function serveStatic(res, pathname) {
   const file = normalize(join(root, pathname === '/' ? 'index.html' : pathname));
   if (!file.startsWith(root.endsWith(sep) ? root : root + sep)) return send(res, 403, { error: 'forbidden' });
   try {
-    const content = await readFile(file);
+    let content = await readFile(file);
+    const edits = variant[file.slice(root.length).split(sep).join('/')];
+    if (edits) {
+      let text = content.toString('utf8');
+      for (const [from, to] of edits) text = text.replace(from, () => to);
+      content = Buffer.from(text);
+    }
     res.writeHead(200, { 'content-type': types[extname(file)] || 'application/octet-stream' });
     res.end(content);
   } catch {
@@ -93,4 +116,4 @@ http
       send(res, 500, { error: String(error) });
     }
   })
-  .listen(port, '127.0.0.1', () => console.log(`seeded-app: http://127.0.0.1:${port}`));
+  .listen(port, '127.0.0.1', () => console.log(`seeded-app: http://127.0.0.1:${port}${process.env.VARIANT ? ` (variant ${process.env.VARIANT})` : ''}`));
