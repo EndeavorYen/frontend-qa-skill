@@ -9,8 +9,12 @@ REPO=$(pwd)                                            # 在 repo 根目錄執�
 node evals/seeded-app/server.mjs &                     # http://localhost:4173
 cd "$(mktemp -d)"                                      # Playwright 裝在暫存目錄，不加進 repo
 npm i @playwright/test && npx playwright install chromium
-BASE_URL=http://localhost:4173 npx playwright test -c "$REPO/evals/repro"
+export NODE_PATH="$PWD/node_modules"                   # spec 在 repo 裡，要靠 NODE_PATH 找到暫存目錄的 @playwright/test
+BASE_URL=http://localhost:4173 QA_PASSWORD=x npx playwright test -c "$REPO/evals/repro"
 ```
+
+需要 `@playwright/test` 1.51 以上（`filter({ visible: true })`）。
+
 在原版 seeded-app 上，5 份都應該因為斷言失敗。只修好其中一個 bug 時，只有對應的那一份通過。
 
 | 檔案 | 答案卷 | 斷言（修好後應成立） |

@@ -6,7 +6,7 @@ test('手機上送出按鈕的中心點沒有被其他元素蓋住', async ({ pa
   await test.step('前置', async () => {
     await login(page);
     await page.goto(BASE + '/#/orders/new');
-    await expect(page.getByRole('heading', { name: '建立訂單' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '建立訂單', exact: true })).toBeVisible();
   });
   await test.step('斷言', async () => {
     const covered = await page.locator('button.btn-primary').evaluate((b) => {

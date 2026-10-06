@@ -5,7 +5,7 @@ test('離線送出時 5 秒內出現看得見的錯誤訊息', async ({ page, co
   await test.step('前置', async () => {
     await login(page);
     await page.goto(BASE + '/#/orders/new');
-    await expect(page.getByRole('heading', { name: '建立訂單' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '建立訂單', exact: true })).toBeVisible();
     await page.locator('[name=customer]').fill('重現客戶');
     await page.locator('[name=item]').fill('重現品項');
     await page.locator('[name=qty]').fill('1');
