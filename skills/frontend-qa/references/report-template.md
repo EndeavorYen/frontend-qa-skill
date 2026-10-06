@@ -41,10 +41,11 @@
 - 實際：「送出」被 footer 蓋住一半，點擊時點到 footer 的連結
 - 證據：`shots/F7-footer-overlap.png`；chrome-cdp-ex 的 `click` 回報 `Kind: covered`
 - 重現次數：2/2
+- 重現腳本：`repro/F7.spec.ts`（目前失敗，符合預期）
 - 相關：F3（同一個 footer 在 S5 也擋住內容）
 ```
 
-P3 問題可以省略「預期」和「重現次數」，但截圖不能省。
+P3 問題可以省略「預期」和「重現次數」，但截圖不能省。「重現腳本」只有 P0、P1 需要，見 [repro.md](repro.md)。
 
 ## unattributed.md
 
