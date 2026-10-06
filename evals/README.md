@@ -9,18 +9,29 @@
    node evals/seeded-app/server.mjs        # http://localhost:4173，可用 PORT 換 port
    ```
    資料只存在記憶體中，重新啟動伺服器就會回到初始狀態。每次評測前都要重新啟動。
-2. 開一個**新的** agent session，工作目錄要在這個 repo **以外**，讓 agent 讀不到答案卷和 `app/` 的原始碼。給它的指令只能包含以下資訊：
+2. 開一個**新的** agent session，工作目錄要在這個 repo **以外**，這樣 agent 不知道答案卷放在哪裡。
+
+   **工作目錄只能隔離答案卷，擋不住 app 的原始碼。** `app.js` 和 `style.css` 是透過 HTTP 提供的（`GET /app.js` → 200），agent 可以用瀏覽器的 `eval fetch('/app.js')` 或 view-source 讀到。所以必須在指令中明確禁止，並在第 4 步稽核。給 agent 的指令只能包含以下資訊：
    ```text
    用 frontend-qa 測 http://localhost:4173。這是本機測試環境，任意帳號密碼都能登入，
    所有操作（包含建立和刪除訂單）都允許。範圍是整個 app。
+   這是黑箱測試：不要讀取 app 的 JS/CSS 原始碼（包含透過 fetch、view-source、
+   讀取 <script> 內容），只能從使用者看得到的畫面、DOM、console 和網路請求判斷。
    ```
+   用 `claude -p` 跑時，加上 `--output-format stream-json --verbose > run.jsonl`，保留完整紀錄給第 4 步使用。
 3. 跑完後，照答案卷的「計分」一節，在 `evals/results/<YYYY-MM-DD>-<label>.md` 填寫計分表。`label` 用來區分比較的對象，例如 `skill-v1`、`no-skill`。
+4. 稽核：確認 agent 沒有讀取原始碼，也沒有對外發出 issue：
+   ```bash
+   grep -cE "fetch\\(\\\\?['\\\"]/?(app\\.js|style\\.css)|view-source|document\\.scripts" run.jsonl
+   grep -cE "gh issue (create|comment)" run.jsonl
+   ```
+   第一個指令的結果不是 0，就要逐筆打開確認。如果確實讀了原始碼，計分檔要註明「非黑箱」，而且不能直接和黑箱的結果比較。第二個指令的結果不是 0，也要確認是真的執行了指令，還是只是寫進檔案的文字。
 
 ## 比較基準
 
 要知道 skill 有沒有幫助，至少要跑兩種條件：
 
-- `no-skill`：同樣的指令，但把「用 frontend-qa」改成「當一個挑剔的白癡使用者，找出所有問題」
+- `no-skill`：同樣的指令（包含黑箱限制），但把「用 frontend-qa」改成「當一個挑剔的白癡使用者，找出所有問題」
 - `skill-<版本>`：使用 skill
 
 只改 skill 或 reference 時，就重跑 `skill-<新版本>`，再和前一版比較 P0+P1 抓到率和總抓到率。

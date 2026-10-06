@@ -93,4 +93,4 @@ http
       send(res, 500, { error: String(error) });
     }
   })
-  .listen(port, () => console.log(`seeded-app: http://localhost:${port}`));
+  .listen(port, '127.0.0.1', () => console.log(`seeded-app: http://127.0.0.1:${port}`));
