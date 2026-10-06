@@ -102,7 +102,7 @@ Chrome 版本用 `eval <t> "navigator.userAgent"` 取得。
 …
 
 ## 背景
-這是在使用 chrome-cdp-ex 進行前端 QA 時發現的。
+這是在使用 chrome-cdp-ex 進行前端品質驗證時發現的。
 ```
 
 摩擦類的 issue，標題前加上 `[proposal]`，內文把「預期」和「實際」改成「目前做法」和「建議」。

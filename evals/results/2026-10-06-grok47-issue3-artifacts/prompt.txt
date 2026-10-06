@@ -1,0 +1,1 @@
+用 frontend-qa 測 http://localhost:4176。這是本機測試環境，任意帳號密碼都能登入，所有操作（包含建立和刪除訂單）都允許。範圍是整個 app。這是黑箱測試：不要讀取 app 的 JS/CSS 原始碼（包含透過 fetch、view-source、讀取 <script> 內容），只能從使用者看得到的畫面、DOM、console 和網路請求判斷。
