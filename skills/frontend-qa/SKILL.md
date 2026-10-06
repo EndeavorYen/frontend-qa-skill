@@ -43,6 +43,7 @@ coverage.md  findings.md  ux-review.md  tool-track.md  unattributed.md  report.m
 - **禁止動作**：預設禁止刪除真實資料、付款、寄信或通知給真人、修改帳號安全設定。只有在非正式環境，而且使用者明確同意時，才放寬
 - **深度**：沒指定就用 3
 - **完整或增量**：`.frontend-qa/state/` 有同一個 app 的紀錄時，預設用增量模式，只重測有改動的畫面，見 [memory.md](references/memory.md#步驟-0)
+- **Critic 關卡**：寫報告前要不要開一個子代理逐條重新驗證問題。要先取得同意，問法和無人值守時的規則見 [critic.md](references/critic.md#取得同意)
 
 | 深度 | 名稱 | 適合 |
 |---|---|---|
@@ -97,9 +98,9 @@ coverage.md  findings.md  ux-review.md  tool-track.md  unattributed.md  report.m
 
 ### 4. 產品報告
 
-整理 `findings.md`：合併重複的問題（分 session 執行時，各輪只看得到標題，去重規則見 [sessions.md](references/sessions.md#合併與去重)），照 [severity.md](references/severity.md) 標上 P0–P3 和類別，再照 [report-template.md](references/report-template.md#reportmd) 寫出 `report.md`。
+先照 [critic.md](references/critic.md) 跑 Critic 關卡，逐條驗證 `findings.md`，刪掉不成立的、改寫部分成立的。接著整理 `findings.md`：合併重複的問題（分 session 執行時，各輪只看得到標題，去重規則見 [sessions.md](references/sessions.md#合併與去重)），照 [severity.md](references/severity.md) 標上 P0–P3 和類別，再照 [report-template.md](references/report-template.md#reportmd) 寫出 `report.md`。
 
-完成條件：`report.md` 包含以下內容：嚴重度統計、已知問題狀態（增量模式時）、最嚴重的 5 個問題、UI/UX 體檢摘要（體檢有開時）、按畫面分組的完整清單、覆蓋率（✅ / ➖ / ⛔ 各幾格）、未歸因清單，以及估算和實際成本的對照。每個問題都有證據；每個 P0、P1 都有重現腳本；沒有執行的，寫明原因。
+完成條件：執行目錄有 `critic.md`，每個 finding 都有判定；`report.md` 包含以下內容：Critic 的方式與判定統計、嚴重度統計、已知問題狀態（增量模式時）、最嚴重的 5 個問題、UI/UX 體檢摘要（體檢有開時）、按畫面分組的完整清單、覆蓋率（✅ / ➖ / ⛔ 各幾格）、未歸因清單，以及估算和實際成本的對照。每個問題都有證據；每個 P0、P1 都有重現腳本；沒有執行的，寫明原因。
 
 ### 5. 工具回報（工具軌開啟時才做）
 
