@@ -139,6 +139,16 @@ coverage.md  findings.md  ux-review.md  tool-track.md  unattributed.md  report.m
 - **只要幾個欄位時**：用 `--format json`，再接 `jq` 取需要的欄位，例如 `netlog <t> --url /api/ --format json | jq -c '.requests[] | [.method, .status, .url]'`。`eval` 只回傳需要的值，長字串先截斷。
 - **寫紀錄檔**：`findings.md`、`tool-track.md`、`coverage.md` 用 Write 建立，之後用 Edit 新增一筆或改一格。不要用 `cat <<EOF` 這類長 heredoc，也不要為了改一格就重寫整個檔案，否則同樣的內容會在對話紀錄裡多留一份。
 
+## 截圖規則
+
+每張讀進對話的截圖都會留在對話紀錄裡，之後每個 turn 都要重讀一次，是成本的主要來源之一。
+
+- 證據截圖只存到 `shots/`，在 finding 寫路徑就好，**不要用 Read 打開**。
+- 要確認畫面狀態，先用 DOM：`perceive`、`text`、`eval`、`styles`。
+- **看圖額度**：整次執行最多讀「畫面數 × 尺寸數」張截圖，每個畫面、每個尺寸最多一張。額度優先留給設計師輪和體檢，見 [personas.md](references/personas.md#設計師) 和 [ux-review.md](references/ux-review.md#7-個維度)。
+- 用 chrome-cdp-ex 的 MCP 工具截圖時，圖片會直接放進工具結果，也算一張。證據截圖改用 CLI（`shot`、`elshot`、`fullshot`），它只會把圖存成檔案。
+- 讀了幾張，寫進 `report.md` 的成本行。
+
 ## 停止條件
 
 只有在步驟 0–6 的完成條件都滿足時才結束。「已經找到夠多問題」或「整體體驗良好」都不能當成停止的理由。
