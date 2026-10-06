@@ -1,0 +1,23 @@
+{
+  "base": "http://localhost:4173",
+  "viewports": ["1440x900", "390x844"],
+  "publicPages": ["/#/login"],
+  "login": {
+    "url": "/#/login",
+    "fill": { "[name=user]": "qa-user", "[name=password]": "qa-pass" },
+    "submit": "form button"
+  },
+  "pages": ["/#/orders", "/#/orders/new", "/#/settings"],
+  "records": ["/#/orders/1", "/#/orders/2", "/#/orders/3"],
+  "lists": [{ "url": "/#/orders", "api": "/api/orders" }],
+  "forms": [
+    {
+      "url": "/#/orders/new",
+      "fill": { "[name=customer]": "探測客戶", "[name=item]": "探測品項", "[name=qty]": "1", "[name=price]": "100" },
+      "submit": "button.btn-primary",
+      "api": "/api/orders",
+      "longField": "[name=customer]",
+      "allowSubmit": true
+    }
+  ]
+}
