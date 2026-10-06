@@ -10,7 +10,8 @@ node evals/seeded-app/server.mjs &                     # http://localhost:4173
 cd "$(mktemp -d)"                                      # Playwright 裝在暫存目錄，不加進 repo
 npm i @playwright/test && npx playwright install chromium
 export NODE_PATH="$PWD/node_modules"                   # spec 在 repo 裡，要靠 NODE_PATH 找到暫存目錄的 @playwright/test
-BASE_URL=http://localhost:4173 QA_PASSWORD=x npx playwright test -c "$REPO/evals/repro"
+export QA_PASSWORD=x                                   # seeded-app 收任何非空密碼，這是假值
+BASE_URL=http://localhost:4173 npx playwright test -c "$REPO/evals/repro"
 ```
 
 需要 `@playwright/test` 1.51 以上（`filter({ visible: true })`）。
