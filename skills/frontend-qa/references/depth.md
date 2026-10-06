@@ -38,6 +38,14 @@ US$     ≈ turns × 0.046
 
 固定的 20 turns 包含偵察、寫報告和工具回報。
 
+Critic 關卡（見 [critic.md](critic.md)）另外加：
+
+```
+Critic turns ≈ P0、P1 筆數 × 6 + P2 筆數 × 3 + P3 筆數 × 0.5
+```
+
+用子代理時，這些 turns 在子代理裡，主 session 的對話長度不會增加。係數是推估，還沒有實測。
+
 估算結果寫進 `report.md`，格式如下：
 
 ```markdown
