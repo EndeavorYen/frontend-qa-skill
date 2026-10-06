@@ -30,6 +30,8 @@ coverage.md  findings.md  ux-review.md  tool-track.md  unattributed.md  report.m
 
 如果目前目錄是 git repo，就把 `.frontend-qa/` 加進 `.git/info/exclude`，讓這些產出不會被 commit。
 
+跨次保留的狀態（畫面清單、指紋、已知問題）放在 `.frontend-qa/state/`，詳見 [memory.md](references/memory.md)。
+
 ## 步驟
 
 ### 0. 範圍、面項與深度
@@ -40,6 +42,7 @@ coverage.md  findings.md  ux-review.md  tool-track.md  unattributed.md  report.m
 - 範圍：整個 app、某個流程，或某幾頁
 - **禁止動作**：預設禁止刪除真實資料、付款、寄信或通知給真人、修改帳號安全設定。只有在非正式環境，而且使用者明確同意時，才放寬
 - **深度**：沒指定就用 3
+- **完整或增量**：`.frontend-qa/state/` 有同一個 app 的紀錄時，預設用增量模式，只重測有改動的畫面，見 [memory.md](references/memory.md#步驟-0)
 
 | 深度 | 名稱 | 適合 |
 |---|---|---|
@@ -59,6 +62,8 @@ coverage.md  findings.md  ux-review.md  tool-track.md  unattributed.md  report.m
 完成條件：執行目錄已建立；`report.md` 開頭寫好範圍、環境、禁止動作、深度、開啟的面項、視窗尺寸、執行模式，以及工具版本（工具軌開啟時）。
 
 ### 1. 偵察、建立覆蓋地圖、估算成本
+
+增量模式時，照 [memory.md](references/memory.md#步驟-1) 計算畫面指紋，把畫面分成有改動、新增、移除、沒改動，沒改動的畫面只做複驗。以下是完整模式的做法。
 
 從導覽列、選單、頁面內連結、sitemap 收集所有畫面，再列出主要任務（例如註冊、建立、編輯、刪除、搜尋、結帳），每個任務拆成流程步驟。同時記下既有資料有哪些型態（見 [state-checklist.md](references/state-checklist.md#既有資料抽樣)）。
 
@@ -94,7 +99,7 @@ coverage.md  findings.md  ux-review.md  tool-track.md  unattributed.md  report.m
 
 整理 `findings.md`：合併重複的問題（分 session 執行時，各輪只看得到標題，去重規則見 [sessions.md](references/sessions.md#合併與去重)），照 [severity.md](references/severity.md) 標上 P0–P3 和類別，再照 [report-template.md](references/report-template.md#reportmd) 寫出 `report.md`。
 
-完成條件：`report.md` 包含以下內容：嚴重度統計、最嚴重的 5 個問題、UI/UX 體檢摘要（體檢有開時）、按畫面分組的完整清單、覆蓋率（✅ / ➖ / ⛔ 各幾格）、未歸因清單，以及估算和實際成本的對照。每個問題都有證據。
+完成條件：`report.md` 包含以下內容：嚴重度統計、已知問題狀態（增量模式時）、最嚴重的 5 個問題、UI/UX 體檢摘要（體檢有開時）、按畫面分組的完整清單、覆蓋率（✅ / ➖ / ⛔ 各幾格）、未歸因清單，以及估算和實際成本的對照。每個問題都有證據。
 
 ### 5. 工具回報（工具軌開啟時才做）
 
@@ -110,6 +115,8 @@ coverage.md  findings.md  ux-review.md  tool-track.md  unattributed.md  report.m
 - 未歸因項目、工具 issue 的連結
 - 估算和實際成本的對照
 - `report.md` 的路徑
+
+交付前照 [memory.md](references/memory.md#結束前更新狀態檔) 更新 `.frontend-qa/state/`。第一次執行也要建立。
 
 ## 歸因規則
 

@@ -5,6 +5,10 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('./app/', import.meta.url));
 const port = Number(process.env.PORT) || 4173;
+// VARIANT=<名稱> 時，套用 variants/<名稱>.mjs 的字串替換（例如 settings-v2）
+const variant = process.env.VARIANT
+  ? (await import(new URL(`./variants/${process.env.VARIANT}.mjs`, import.meta.url))).default
+  : {};
 const types = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -75,7 +79,16 @@ async function serveStatic(res, pathname) {
   const file = normalize(join(root, pathname === '/' ? 'index.html' : pathname));
   if (!file.startsWith(root.endsWith(sep) ? root : root + sep)) return send(res, 403, { error: 'forbidden' });
   try {
-    const content = await readFile(file);
+    let content = await readFile(file);
+    const edits = variant[file.slice(root.length).split(sep).join('/')];
+    if (edits) {
+      let text = content.toString('utf8');
+      for (const [from, to] of edits) {
+        if (!text.includes(from)) throw new Error(`variant ${process.env.VARIANT}: 找不到要替換的內容`);
+        text = text.replace(from, to);
+      }
+      content = Buffer.from(text);
+    }
     res.writeHead(200, { 'content-type': types[extname(file)] || 'application/octet-stream' });
     res.end(content);
   } catch {
@@ -93,4 +106,4 @@ http
       send(res, 500, { error: String(error) });
     }
   })
-  .listen(port, '127.0.0.1', () => console.log(`seeded-app: http://127.0.0.1:${port}`));
+  .listen(port, '127.0.0.1', () => console.log(`seeded-app: http://127.0.0.1:${port}${process.env.VARIANT ? ` (variant ${process.env.VARIANT})` : ''}`));
