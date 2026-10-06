@@ -26,7 +26,7 @@ Chrome 版本用 `eval <t> "navigator.userAgent"` 取得。
 2. **換一條路重試**：
    - 點擊：`click` → `click --js` → `verify-click`
    - 輸入：`fill` → `type` → `eval` 直接設定值並觸發事件
-   - 讀取畫面：`perceive` → `text --auto` → `shot` → `eval` 讀 DOM
+   - 讀取畫面：`perceive` → `text --auto` → `eval` 讀 DOM → `shot`（存檔當證據；只有還有看圖額度時才打開，見 SKILL.md「截圖規則」）
 3. **判斷**：
 
 | 原方法 | 替代方法 | 頁面證據 | 歸到 |
