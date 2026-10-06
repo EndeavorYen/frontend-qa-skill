@@ -70,11 +70,13 @@ coverage.md  findings.md  ux-review.md  tool-track.md  unattributed.md  report.m
 - 無人值守：直接開始。
 - 使用者給了成本上限，而估算超過上限：先提出要縮減哪些面項或畫面。
 
-完成條件：`coverage.md` 列出範圍內每個畫面和流程步驟，每格都是 `☐`；`report.md` 寫好估算結果。
+接著照 [probe.md](references/probe.md) 寫 `probe.json`，跑探測腳本，把確認過的結果寫進 `findings.md`。環境不符合時（沒有 CDP 或 Node 22）就跳過，並在 `report.md` 寫明原因。
+
+完成條件：`coverage.md` 列出範圍內每個畫面和流程步驟，每格都是 `☐`；`report.md` 寫好估算結果；探測已經跑完並解讀，或已寫明跳過的原因。
 
 ### 2. 分輪測試
 
-一次只跑一輪：照 [personas.md](references/personas.md) 的角色和招式，把整張覆蓋地圖那一欄跑完，再換下一輪。`狀態` 這一輪要照 [state-checklist.md](references/state-checklist.md) 做。沒開啟的測試輪就跳過。
+一次只跑一輪：照 [personas.md](references/personas.md) 的角色和招式，把整張覆蓋地圖那一欄跑完，再換下一輪。探測已經做過的檢查不用重做，見 [probe.md](references/probe.md#測試輪不用重做的部分)。`狀態` 這一輪要照 [state-checklist.md](references/state-checklist.md) 做。沒開啟的測試輪就跳過。
 
 每發現一個問題，就照「歸因規則」處理，然後立刻寫進對應的檔案，不要等整輪跑完再補記。
 
