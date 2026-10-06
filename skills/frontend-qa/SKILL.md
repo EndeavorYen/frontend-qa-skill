@@ -126,6 +126,17 @@ coverage.md  findings.md  ux-review.md  tool-track.md  unattributed.md  report.m
 - 「設計上就是這樣，但使用者會卡住」也算問題，要記錄下來。判斷時以使用者的感受為準，不要用程式碼替設計找理由。
 - 只用自己建立的資料測過的狀態，不能在覆蓋地圖上打勾，還要打開既有資料中對應型態的那一筆。
 
+## 輸出精簡規則
+
+每個工具輸出都會留在對話紀錄裡，之後每個 turn 都要重讀。指令語法以 chrome-cdp-ex 的 `references/commands.md` 為準。
+
+- **看頁面**：先用 `perceive <t> -i`（只列可互動元素）或 `perceive <t> -s <區塊> -d 3`。只有需要整棵樹時，才用不帶參數的 `perceive`。
+- **動作之後**：`click`、`fill`、`press` 這類動作指令的結果已經附上畫面變化，不要再跑一次 `perceive`。需要再看時用 `perceive <t> --since-action`。
+- **多步驟檢查**：用 `batch <t> --compact '…'` 或 `flow <t> "…"`，一個 turn 跑完，每步只回一行。
+- **網路與 console**：`netlog` 一定加篩選（`--url <片段>`、`--status 4xx`、`--status failed`、`--type xhr,fetch`）；`console` 用 `--errors`。
+- **只要幾個欄位時**：用 `--format json`，再接 `jq` 取需要的欄位，例如 `netlog <t> --url /api/ --format json | jq -c '.requests[] | [.method, .status, .url]'`。`eval` 只回傳需要的值，長字串先截斷。
+- **寫紀錄檔**：`findings.md`、`tool-track.md`、`coverage.md` 用 Write 建立，之後用 Edit 新增一筆或改一格。不要用 `cat <<EOF` 這類長 heredoc，也不要為了改一格就重寫整個檔案，否則同樣的內容會在對話紀錄裡多留一份。
+
 ## 停止條件
 
 只有在步驟 0–6 的完成條件都滿足時才結束。「已經找到夠多問題」或「整體體驗良好」都不能當成停止的理由。
