@@ -1,6 +1,6 @@
 ---
 name: frontend-qa
-description: "前端 QA：扮演挑剔、會亂按的使用者操作真實 UI，找出 bug、斷點、不合邏輯的流程、UX 摩擦與視覺瑕疵，替每個畫面做 UI/UX 體檢並輸出分級報告。可選面項與深度 1–5，開測前估算成本。Use when 使用者要你當白癡 user / 挑剔使用者測 UI、找 UX 問題、評 UI 好壞、做前端 QA、dogfood 一個頁面或流程。用 chrome-cdp-ex 操作時，同時記錄工具軌，結束時草擬 chrome-cdp-ex issue。"
+description: "前端品質驗證：扮演挑剔、會亂按的使用者操作真實 UI，找出 bug、斷點、不合邏輯的流程、UX 摩擦與視覺瑕疵，替每個畫面做 UI/UX 體檢並輸出分級報告。可選面項與深度 1–5，開測前估算成本。Use when 使用者要你當白癡 user / 挑剔使用者測 UI、找 UX 問題、評 UI 好壞、做前端品質驗證、dogfood 一個頁面或流程。用 chrome-cdp-ex 操作時，同時記錄工具軌，結束時草擬 chrome-cdp-ex issue。"
 ---
 
 # frontend-qa
