@@ -21,7 +21,7 @@
   "publicPages": ["/#/login"],
   "login": {
     "url": "/#/login",
-    "fill": { "[name=email]": "qa@example.com", "[name=password]": "…" },
+    "fill": { "[name=email]": "qa@example.com", "[name=password]": { "env": "QA_PASSWORD" } },
     "submit": "form button"
   },
   "pages": ["/#/projects", "/#/projects/new", "/#/settings"],
@@ -45,13 +45,15 @@
 | `base` | 網站根網址 |
 | `viewports` | 依深度的預設尺寸 |
 | `publicPages` | 登入前檢查的頁面，例如登入頁 |
-| `login` | 登入步驟；不需要登入就省略 |
+| `login` | 登入步驟；不需要登入就省略。密碼寫成 `{ "env": "QA_PASSWORD" }`，不能寫明文 |
 | `pages` | 覆蓋地圖中的每個畫面 |
 | `records` | 既有資料抽樣中每一組抽到的那一筆的詳情頁（見 [state-checklist.md](state-checklist.md#既有資料抽樣)） |
 | `lists` | 會呼叫 API 載入的列表，`api` 是在 netlog 看到的請求網址片段 |
 | `forms` | 會送出資料的表單。`fill` 是 selector 和值，`api` 是送出時的請求網址片段，`longField` 用來測超長輸入 |
 
 **`allowSubmit: true` 只能在步驟 0 允許建立資料時才設。** 送出類檢查會真的送出表單，而且連點檢查可能建立兩筆資料。沒有設的表單只做頁面檢查。探測腳本不會按刪除，也不會碰付款、寄信這類按鈕；不要把這類表單放進 `forms`。
+
+**設定檔不能出現明文密碼**，規則和 [repro.md](repro.md) 相同。密碼欄位寫成 `{ "env": "QA_PASSWORD" }`，這個物件只能有一個 `env` 鍵。`probe.mjs` 讀設定檔時把它換成該環境變數的值。變數不存在或是空字串時，腳本直接停止（exit code 2），stderr 印出要設定的變數名稱，不會連上瀏覽器，也不會帶空密碼登入。解析只發生在記憶體裡，不會把密碼寫回 `probe.json`。密碼欄位若仍是字串，stderr 印出警告（不含密碼內容）並繼續。`QA_PASSWORD` 要事先放在環境變數裡，不要寫在指令上，否則密碼會留在對話紀錄。email 這類非密碼欄位仍直接寫值。
 
 可選欄位：
 
