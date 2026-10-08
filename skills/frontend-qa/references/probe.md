@@ -105,7 +105,7 @@ stdout 只有一行摘要（各檢查的筆數），完整結果在 `probe-resul
 | `vague-error` | 錯誤訊息只有「發生錯誤」 |
 | `destructive-looks-primary` | 破壞性按鈕和主要按鈕外觀相同 |
 
-這 10 個 check 的程式在 [`scripts/anti-patterns.js`](../scripts/anti-patterns.js)，和 [ux-review.md](ux-review.md#反模式檢查) 是同一份。每個命中列的元素寫成 `selector "可見文字"`。跑完探測後，把這次的 `probe.json` 複製到 `.frontend-qa/state/probe.json`。`audit` 看到這份就直接用，見 [modes.md](modes.md#audit)。
+這 10 個 check 的程式只在 [`scripts/anti-patterns.js`](../scripts/anti-patterns.js)。手動重跑見 [ux-review.md](ux-review.md#反模式檢查)。每個命中列的元素寫成 `selector "可見文字"`。跑完探測後，把這次的 `probe.json` 複製到 `.frontend-qa/state/probe.json`。`audit` 看到這份就直接用，見 [modes.md](modes.md#audit)。
 
 ## 解讀結果
 
