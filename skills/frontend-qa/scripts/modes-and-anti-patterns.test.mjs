@@ -1,4 +1,4 @@
-// Issue 26: standalone audit / critique / advise, anti-pattern list, design context.
+// Standalone audit / critique / advise modes, the anti-pattern list, and design context.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
@@ -249,6 +249,8 @@ test('eval anti-patterns fire on a hit page and stay quiet on a clean page', { t
       return res.json();
     });
     const result = await evaluateBoth(version.webSocketDebuggerUrl, source);
+    const hit = Object.fromEntries(CHECKS.map(([key, id]) => [id, result.hit[key]]));
+    console.log(JSON.stringify({ hit }));
     for (const [key] of CHECKS) {
       assert.ok(Array.isArray(result.hit[key]) && result.hit[key].length >= 1, `${key} missed: ${JSON.stringify(result.hit[key])}`);
       assert.ok(result.hit[key].every((item) => /"/.test(item)), `${key} item has no element text`);
@@ -256,7 +258,15 @@ test('eval anti-patterns fire on a hit page and stay quiet on a clean page', { t
     }
   } finally {
     chrome.kill('SIGKILL');
-    rmSync(dataDir, { recursive: true, force: true });
+    for (let attempt = 0; attempt < 20; attempt++) {
+      try {
+        rmSync(dataDir, { recursive: true, force: true });
+        break;
+      } catch (err) {
+        if (err.code !== 'ENOTEMPTY' || attempt === 19) throw err;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+    }
   }
 });
 
