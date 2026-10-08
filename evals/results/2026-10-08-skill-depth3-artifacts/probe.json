@@ -1,0 +1,36 @@
+{
+  "base": "http://localhost:58414",
+  "viewports": ["1440x900", "390x844"],
+  "publicPages": ["/#/login"],
+  "login": {
+    "url": "/#/login",
+    "fill": { "[name=user]": "qa-user", "[name=password]": "<redacted>" },
+    "submit": "form button.btn-primary"
+  },
+  "pages": ["/#/orders", "/#/orders/new", "/#/settings", "/#/orders/1", "/#/orders/2", "/#/orders/3"],
+  "records": ["/#/orders/1", "/#/orders/2", "/#/orders/3"],
+  "lists": [{ "url": "/#/orders", "api": "/api/orders" }],
+  "forms": [
+    {
+      "url": "/#/orders/new",
+      "fill": {
+        "[name=customer]": "QA Probe",
+        "[name=item]": "探測品",
+        "[name=qty]": "2",
+        "[name=price]": "50",
+        "[name=note]": "probe"
+      },
+      "submit": "#order button.btn-primary",
+      "api": "/api/orders",
+      "longField": "[name=customer]",
+      "allowSubmit": true
+    },
+    {
+      "url": "/#/settings",
+      "fill": { "[name=name]": "qa-probe" },
+      "submit": "#settings button.btn-primary",
+      "api": "/api/settings",
+      "allowSubmit": true
+    }
+  ]
+}
