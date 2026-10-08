@@ -139,7 +139,7 @@ v2.21.0 的 `flow` 只有三種斷言，判斷方式和 spec 不是同一個 API
 - spec 能只計數、不需要真的寫入的（例如連點檢查），用 `page.route` 攔截寫入請求，回一個假的成功回應。重播檔要同樣不寫入時，重現過程改用 `mock <t> add <urlPattern> --status <code> --body <text>`，讓它進 `environment`
 - 遵守步驟 0 的禁止動作。正式環境不跑這類重播或腳本
 
-## 驗證
+## 驗證腳本
 
 寫完要在**目前的 app** 上確認：重播本身成功，失敗落在後面的 flow 斷言。先回到乾淨狀態，再重播，再斷言。
 
@@ -188,7 +188,7 @@ cd .frontend-qa/<run>/repro && BASE_URL=<網址> npx --no-install playwright tes
 
 ## 複驗
 
-使用者要確認問題修好了沒有時，不需要重新測試，也不需要 Playwright。每個 P0、P1 用上面「驗證」的同一組指令：會寫入的項目先重設後端，再 `restore`、`replay`、`flow`。連點的 `flow` 必須包含同一個 `eval`。
+使用者要確認問題修好了沒有時，不需要重新測試，也不需要 Playwright。每個 P0、P1 用上面「驗證腳本」的同一組指令：會寫入的項目先重設後端，再 `restore`、`replay`、`flow`。連點的 `flow` 必須包含同一個 `eval`。
 
 - `replay` 成功且 flow 通過：標成「已修」
 - `replay` 成功且 flow 的 `failureKind` 是 `assertion`：標成「仍存在」
