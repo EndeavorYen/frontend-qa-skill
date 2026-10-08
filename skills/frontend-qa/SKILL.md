@@ -68,11 +68,42 @@ test -x "$CDP_DIR/bin/chrome-cdp"
 "$CDP_DIR/bin/chrome-cdp" doctor --format json
 git -C "$CDP_DIR" rev-parse --short HEAD
 git -C "$CDP_DIR" remote get-url origin
+CDP_DIR="$CDP_DIR" node --input-type=module <<'EOF'
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+const min = [2, 21, 0];
+let dir = process.env.CDP_DIR || "";
+let version = "";
+while (dir && dir !== dirname(dir)) {
+  const file = join(dir, "package.json");
+  if (existsSync(file)) {
+    const pkg = JSON.parse(readFileSync(file, "utf8"));
+    if (pkg.name === "pi-chrome-cdp") {
+      version = String(pkg.version || "");
+      break;
+    }
+  }
+  dir = dirname(dir);
+}
+const parts = version.split(".").map((part) => Number.parseInt(part, 10) || 0);
+let cmp = 0;
+for (let i = 0; i < 3; i += 1) {
+  cmp = (parts[i] || 0) - min[i];
+  if (cmp !== 0) break;
+}
+if (!version || cmp < 0) {
+  console.error(version
+    ? `STOP: chrome-cdp-ex ${version} is below 2.21.0. Update to v2.21.0 or newer.`
+    : "STOP: cannot read chrome-cdp-ex version. Need package.json name pi-chrome-cdp.");
+  process.exit(1);
+}
+console.log(version);
+EOF
 ```
 
 - `~/.claude/skills/chrome-cdp-ex` 不存在，或裡面沒有可執行的 `bin/chrome-cdp`：停止。說明需要 chrome-cdp-ex v2.21.0 以上、Node 22，並給出「需求」一節的取得方式和放置位置。
 - `doctor --format json` 跑不起來，或 JSON 裡任一個 `checks[].status` 是 `FAIL`（`readiness` 為 `blocked`）：停止。指出失敗那幾項的 `label`、`detail`、`hint`。Node 低於 22 時，Node 這項就是 `FAIL`。不要改連另一個瀏覽器。
-- 版本：從 `CDP_DIR` 往上找 `"name": "pi-chrome-cdp"` 的 `package.json`，讀 `version`。讀不到，或低於 2.21.0：停止，請使用者更新到 v2.21.0 以上。`git` 兩行只用來記 commit 和 issue repo；tarball 沒有 git 時 commit 寫「未知」，repo 用 `https://github.com/EndeavorYen/chrome-cdp-ex`。
+- 版本：跑上面的 `node` 指令。它從 `CDP_DIR` 往上找 `"name": "pi-chrome-cdp"` 的 `package.json`，讀 `version`。讀不到，或低於 2.21.0：該指令結束碼是 1 並印出 `STOP`，技能就停止，請使用者更新到 v2.21.0 以上。`git` 兩行只用來記 commit 和 issue repo；tarball 沒有 git 時 commit 寫「未知」，repo 用 `https://github.com/EndeavorYen/chrome-cdp-ex`。
 - stdout 若以 `daemon restarted:` 開頭，那一行不是 JSON，解析前先拿掉。
 - `doctor` 的結果寫進 `report.md` 開頭（見 [report-template.md](references/report-template.md#reportmd)）：版本、commit、每個 check 的 `label` 和 `status`、`readiness`。有目標分頁之後，再用 `eval <t> "navigator.userAgent"` 補上 Chrome 版本。
 
@@ -121,13 +152,19 @@ git -C "$CDP_DIR" remote get-url origin
 
 接著照 [probe.md](references/probe.md) 寫 `probe.json`，跑探測腳本，把確認過的結果寫進 `findings.md`。步驟 0 已經確認 chrome-cdp-ex。探測另外需要 `CDP_PORT`（或 `probe.json` 的 `cdpPort`）和至少一個測試輪；不符合就跳過，在 `report.md` 寫明原因，該項檢查改由測試輪用 chrome-cdp-ex 做。
 
-登入並偵察完、開始測試輪之前，在已經登入的那個分頁存乾淨狀態。v2.21.0 的 `checkpoint <t> --format json` 會遮掉 cookie 值和敏感 storage，`restore` 會跳過這些 cookie，登入狀態回不來。要能還原這次登入，必須加 `--unsafe-full`：
+登入並偵察完、開始測試輪之前，在已經登入的那個分頁存乾淨狀態。預設的 `checkpoint <t> --format json` 會遮掉 cookie 值，也會遮掉敏感 storage 的值（key 含 password、token 這類）。非敏感的 storage key 會留下原值，`restore` 用得到。登入狀態放在 `sessionStorage` 或 `localStorage` 的非敏感 key 時，用預設即可，不要加 `--unsafe-full`。登入狀態放在 cookie 時，被遮掉的 cookie 值 `restore` 會跳過，登入回不來，這時才加 `--unsafe-full`：
+
+```bash
+"$CDP_DIR/bin/chrome-cdp" checkpoint <t> --format json > .frontend-qa/<run>/checkpoint.json
+```
+
+登入狀態在 cookie 裡時，才改用下面這行。預設 checkpoint 已經保留非敏感 storage key，這種登入不要加 `--unsafe-full`。
 
 ```bash
 "$CDP_DIR/bin/chrome-cdp" checkpoint <t> --unsafe-full --format json > .frontend-qa/<run>/checkpoint.json
 ```
 
-stdout 若以 `daemon restarted:` 開頭，存檔前拿掉那一行，留下的 JSON 要是 `chrome-cdp-ex.checkpoint.v1`。這個檔含有未遮罩的 cookie 和 storage，只能放在執行目錄：不要複製到 `.frontend-qa/state/`，不要寫進對外的 issue。`checkpoint` 不會還原後端資料。
+stdout 若以 `daemon restarted:` 開頭，存檔前拿掉那一行，留下的 JSON 要是 `chrome-cdp-ex.checkpoint.v1`。這個檔含 cookie 和 storage，只能放在執行目錄：不要複製到 `.frontend-qa/state/`，不要寫進對外的 issue。`checkpoint` 不會還原後端資料。
 
 完成條件：`coverage.md` 列出範圍內每個畫面和流程步驟；完整模式每格都是 `☐`，增量模式照 [memory.md](references/memory.md#步驟-1) 的規則填；`report.md` 寫好估算結果；探測已經跑完並解讀，或已寫明跳過的原因；`checkpoint.json` 已寫入執行目錄。
 

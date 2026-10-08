@@ -26,7 +26,7 @@ P0、P1 第二次從乾淨狀態重現成功之後。F 編號和 `findings.md` �
 "$CDP_DIR/bin/chrome-cdp" export-playwright <t> > .frontend-qa/<run>/repro/F<n>.spec.ts.draft
 ```
 
-`record-actions` 會把密碼欄位寫成 `<redacted>`。`replay` 遇到這個值會跳過該步（reason 是 `redacted input`），不會填空字串，也不會把密碼填回去。所以重播檔必須從 `restore` 之後已登入的狀態開始錄，不包含登入步驟。存檔後確認沒有 `needsInput` 含 `text` 的 fill，而且 `replayable` 不是 false；有的話這份檔不能拿來複驗，改步驟再錄一次。
+`record-actions` 會把密碼欄位寫成 `<redacted>`。這一筆的 `replayable` 是 false，`needsInput` 是 `["text"]`。`replay` 會跳過它，reason 是 `not replayable`，不會填空字串，也不會把密碼填回去。所以重播檔必須從 `restore` 之後已登入的狀態開始錄，不包含登入步驟。存檔後確認沒有 `needsInput` 含 `text` 的 fill，而且 `replayable` 不是 false；有的話這份檔不能拿來複驗，改步驟再錄一次。
 
 `eval`、`eval64`、`call` 不是 action，不會寫進 action log。`record-actions` 的 `actions[].command` 不會有它們，`replay` 也不會重做。連點就是這種情況：`click` 和 `repeat` 都會等頁面穩定，做不出快速連點，只能用 `eval`（見 [personas.md](personas.md#亂點)），所以連點本身不在重播檔裡。
 
@@ -143,12 +143,16 @@ v2.21.0 的 `flow` 只有三種斷言，判斷方式和 spec 不是同一個 API
 
 寫完要在**目前的 app** 上確認：重播本身成功，失敗落在後面的 flow 斷言。先回到乾淨狀態，再重播，再斷言。
 
-`restore` 只還原這個分頁的 URL、cookie 和 storage，不還原後端。會寫入的重現，重播前要先把後端重設回乾淨資料，否則上一輪建立的資料還在，斷言會因為舊資料失敗或通過。seeded app 的做法是重啟 `node evals/seeded-app/server.mjs`（要驗證修好的版本時加上 `VARIANT=fix-b1`），再 `restore`。
+`restore` 只還原這個分頁的 URL、cookie 和 storage，不還原後端，也不重新載入頁面。會寫入的重現，重播前要先把後端重設回乾淨資料，否則上一輪建立的資料還在，斷言會因為舊資料失敗或通過。seeded app 的做法是重啟 `node evals/seeded-app/server.mjs`（要驗證修好的版本時加上 `VARIANT=fix-b1`），再 `restore`。
+
+`restore` 回到同一個 origin 的 hash 網址時，分頁不會重抓前端。重新部署或換了 variant 之後，分頁仍跑舊的 `app.js`，修好的 bug 會被誤判成仍存在。`restore` 之後先 `reload <t>`：cookie 和 storage 還在，文件才換成現在的前端。然後 `perceive <t>`。
 
 觸發步驟都在重播檔裡時：
 
 ```bash
 "$CDP_DIR/bin/chrome-cdp" restore <t> --file .frontend-qa/<run>/checkpoint.json --format json
+"$CDP_DIR/bin/chrome-cdp" reload <t>
+"$CDP_DIR/bin/chrome-cdp" perceive <t>
 "$CDP_DIR/bin/chrome-cdp" replay <t> --file .frontend-qa/<run>/repro/F<n>.actions.json --format json
 "$CDP_DIR/bin/chrome-cdp" flow <t> "assert selector …; assert text …" --format json
 ```
@@ -157,11 +161,13 @@ v2.21.0 的 `flow` 只有三種斷言，判斷方式和 spec 不是同一個 API
 
 ```bash
 "$CDP_DIR/bin/chrome-cdp" restore <t> --file .frontend-qa/<run>/checkpoint.json --format json
+"$CDP_DIR/bin/chrome-cdp" reload <t>
+"$CDP_DIR/bin/chrome-cdp" perceive <t>
 "$CDP_DIR/bin/chrome-cdp" replay <t> --file .frontend-qa/<run>/repro/F<n>.actions.json --format json
 "$CDP_DIR/bin/chrome-cdp" flow <t> "eval (()=>(document.querySelector('<sel>').click(), document.querySelector('<sel>').click()))(); wait network idle; nav <list-url>; wait network idle; assert selector-missing <css>" --format json
 ```
 
-`restore` 之後先 `perceive <t>` 再看畫面；`replay` 用的是 selector，不依賴 `@ref`。上面這些步驟不需要 LLM，也不需要 Playwright。只跑 `replay` 再跑一個不含 `eval` 的斷言，連點的 bug 還在也會通過。
+`replay` 用的是 selector，不依賴 `@ref`。上面這些步驟不需要 LLM，也不需要 Playwright。只跑 `replay` 再跑一個不含 `eval` 的斷言，連點的 bug 還在也會通過。省掉 `reload` 時，前端已經換成修好的版本也會得到 `failureKind` `assertion`。
 
 | 結果 | 怎麼處理 | finding 的「重播」寫法 |
 |---|---|---|
@@ -188,7 +194,7 @@ cd .frontend-qa/<run>/repro && BASE_URL=<網址> npx --no-install playwright tes
 
 ## 複驗
 
-使用者要確認問題修好了沒有時，不需要重新測試，也不需要 Playwright。每個 P0、P1 用上面「驗證腳本」的同一組指令：會寫入的項目先重設後端，再 `restore`、`replay`、`flow`。連點的 `flow` 必須包含同一個 `eval`。
+使用者要確認問題修好了沒有時，不需要重新測試，也不需要 Playwright。每個 P0、P1 用上面「驗證腳本」的同一組指令：會寫入的項目先重設後端，再 `restore`、`reload`、`perceive`、`replay`、`flow`。`reload` 放在 `restore` 和 `perceive` 之間。`restore` 不會重新載入頁面，所以前端重新部署或換了 variant 之後，分頁仍跑舊的程式，修好的 bug 會被誤判成仍存在；`reload` 留下還原後的 session，並載入現在的前端。連點的 `flow` 必須包含同一個 `eval`。
 
 - `replay` 成功且 flow 通過：標成「已修」
 - `replay` 成功且 flow 的 `failureKind` 是 `assertion`：標成「仍存在」
