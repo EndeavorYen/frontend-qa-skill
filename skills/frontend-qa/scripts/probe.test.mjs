@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { anchorPresent, computeFingerprint } from './fingerprint.js';
+import { anchorPresent, computeFingerprint } from './fingerprint.mjs';
 import { buildProbeOutput, normalizePage, notePageLoad, plaintextPasswordFields, resolveEnvRefs } from './probe.mjs';
 
 const script = fileURLToPath(new URL('./probe.mjs', import.meta.url));

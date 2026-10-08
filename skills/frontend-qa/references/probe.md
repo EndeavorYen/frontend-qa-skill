@@ -75,7 +75,7 @@
 CDP_PORT=<port> node <skill 目錄>/scripts/probe.mjs .frontend-qa/<run>/probe.json --out .frontend-qa/<run>/probe-result.json
 ```
 
-stdout 只有一行摘要（各檢查的筆數），完整結果在 `probe-result.json`。`pages` 和 `records` 會多一個 `fingerprints` 物件：鍵是設定檔裡的 url，值是 `{ hash, list }`，在第一個尺寸載入完成後計算，演算法在 [`scripts/fingerprint.js`](../scripts/fingerprint.js)。
+stdout 只有一行摘要（各檢查的筆數），完整結果在 `probe-result.json`。`pages` 和 `records` 會多一個 `fingerprints` 物件：鍵是設定檔裡的 url，值是 `{ hash, list }`，在第一個尺寸載入完成後計算，演算法在 [`scripts/fingerprint.mjs`](../scripts/fingerprint.mjs)。
 
 - 腳本預設開一個隔離的 browser context（獨立的 cookie 和儲存空間），在裡面開分頁，跑完就關掉。所以它不會沿用使用者已經登入的狀態，需要登入的網站一定要寫 `login`；也不會登出或改動使用者其他分頁的登入狀態
 - 斷網和 mock 都會還原。頁面跳出 `alert` 時，腳本記下文字當成回饋；跳出 `confirm` 時一律按取消，那一項記成 `skipped`（送出前要求確認的表單，送出類檢查要由測試輪手動做）

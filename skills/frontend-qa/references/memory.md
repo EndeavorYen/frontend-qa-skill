@@ -82,7 +82,7 @@ state/
 
 ## 畫面指紋
 
-用來判斷畫面有沒有改動。黑箱測試通常拿不到原始碼，所以不能只靠 git diff。演算法在 [`scripts/fingerprint.js`](../scripts/fingerprint.js)，不要把程式貼進對話，也不要逐頁自己執行。`probe.mjs` 對 `pages` 和 `records` 的每一頁，在第一個尺寸載入完成後算一次，寫進 `probe-result.json` 的 `fingerprints["<url>"]`，值是 `{ hash, list }`。`hash` 再抄進 `screens.md`，`list` 抄進 `fingerprints.json`。
+用來判斷畫面有沒有改動。黑箱測試通常拿不到原始碼，所以不能只靠 git diff。演算法在 [`scripts/fingerprint.mjs`](../scripts/fingerprint.mjs)，不要把程式貼進對話，也不要逐頁自己執行。`probe.mjs` 對 `pages` 和 `records` 的每一頁，在第一個尺寸載入完成後算一次，寫進 `probe-result.json` 的 `fingerprints["<url>"]`，值是 `{ hash, list }`。`hash` 再抄進 `screens.md`，`list` 抄進 `fingerprints.json`。
 
 - 連結只看 href 的樣式（數字、UUID、slug 都換成 `:id`），下拉選單只看名稱不看選項，文字中的數字換成 `#`，重複的項目只留一個。所以資料筆數、編號、連結文字、選項不同，不會被當成改動
 - `hash` 寫進 `screens.md`，`list` 寫進 `fingerprints.json`。兩次的 `hash` 不同時，比對 `list` 就知道多了或少了哪些元素，寫在覆蓋地圖的備註
@@ -103,7 +103,7 @@ state/
 ### 步驟 1
 
 1. 先把 `state/probe.json` 複製到這次執行目錄的 `probe.json`。之後只用 Edit 調整個別欄位，不要 Write 整份新檔
-2. 照原本的方式偵察導覽，找出目前所有畫面。這一步只列畫面，不要逐頁執行 `scripts/fingerprint.js`
+2. 照原本的方式偵察導覽，找出目前所有畫面。這一步只列畫面，不要逐頁執行 `scripts/fingerprint.mjs`
 3. 只用 Edit 調整執行目錄的 `probe.json`：新增的畫面加進 `pages`，移除的畫面從 `pages` 刪掉；`records` 裡抽樣的那一筆不存在時，重新抽一筆並替換該筆
 4. 先跑探測（指令見 [probe.md](probe.md#執行)）。用 `probe-result.json` 的 `fingerprints` 和 `screens.md` 分類，不要自己算指紋：
    - **有改動**：同一 URL 的 `hash` 和 `screens.md` 不同。兩次 `list` 的差異只有 `h1`～`h3` 的文字、而且這個畫面的 URL 樣式含 `:id` 時，仍然當成沒改動
@@ -111,7 +111,7 @@ state/
    - **移除**：`screens.md` 有，但這次找不到
    - **沒改動**：`hash` 相同
    - **`anchor-missing`**：先不要當成沒改動。判斷是畫面改版，還是被導到別的畫面（例如登入頁）。改版就更新該頁的 `anchor` 並當成有改動；導向錯誤就寫成 finding。判斷後用 Edit 更新執行目錄的 `probe.json`，並複製成 `state/probe.json`
-   - 探測跑不起來時（沒有 CDP 或 Node 22），在 `report.md` 寫明原因，改讀 `scripts/fingerprint.js` 逐頁計算，再照同樣四類分類
+   - 探測跑不起來時（沒有 CDP 或 Node 22），在 `report.md` 寫明原因，改讀 `scripts/fingerprint.mjs` 逐頁計算，再照同樣四類分類
 5. 有改動的畫面上，探測記了 `找不到欄位` 或 `找不到按鈕` 時，重新偵察那一個表單，只用 Edit 改那一筆，然後再跑一次探測，用新的結果重做第 4 步。只重試這一次
 6. 覆蓋地圖沿用 `screens.md` 的代號；新增的畫面接著編號。在覆蓋地圖最後加一欄「複驗」
    - 有改動：所有開啟的測試輪、`體檢` 和「複驗」欄都是 `☐`

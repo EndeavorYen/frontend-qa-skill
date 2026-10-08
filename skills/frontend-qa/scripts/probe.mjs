@@ -8,7 +8,7 @@
 import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { browserAnchorExpression, browserFingerprintExpression } from './fingerprint.js';
+import { browserAnchorExpression, browserFingerprintExpression } from './fingerprint.mjs';
 
 const ANTI_PATTERNS = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'anti-patterns.js'), 'utf8');
 const ANTI_CHECKS = [

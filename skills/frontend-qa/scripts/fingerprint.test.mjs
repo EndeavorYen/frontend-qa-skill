@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { describe, test } from 'node:test';
-import { anchorPresent, browserAnchorExpression, browserFingerprintExpression, computeFingerprint } from './fingerprint.js';
+import { anchorPresent, browserAnchorExpression, browserFingerprintExpression, computeFingerprint } from './fingerprint.mjs';
 
 const TEXT = 3;
 
