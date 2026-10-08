@@ -24,7 +24,7 @@
     "fill": { "[name=email]": "qa@example.com", "[name=password]": { "env": "QA_PASSWORD" } },
     "submit": "form button"
   },
-  "pages": ["/#/projects", "/#/projects/new", "/#/settings"],
+  "pages": ["/#/projects", { "url": "/#/projects/new", "anchor": "h1:新增專案" }, "/#/settings"],
   "records": ["/#/projects/12", "/#/projects/40"],
   "lists": [{ "url": "/#/projects", "api": "/api/projects" }],
   "forms": [
@@ -46,7 +46,7 @@
 | `viewports` | 依深度的預設尺寸 |
 | `publicPages` | 登入前檢查的頁面，例如登入頁 |
 | `login` | 登入步驟；不需要登入就省略。密碼寫成 `{ "env": "QA_PASSWORD" }`，不能寫明文 |
-| `pages` | 覆蓋地圖中的每個畫面 |
+| `pages` | 覆蓋地圖中的每個畫面。可以是網址字串，或 `{ "url": "/#/orders", "anchor": "h1:訂單列表" }`。`anchor` 是 `標籤:文字`，載入後必須看得到這個文字完全相同的元素 |
 | `records` | 既有資料抽樣中每一組抽到的那一筆的詳情頁（見 [state-checklist.md](state-checklist.md#既有資料抽樣)） |
 | `lists` | 會呼叫 API 載入的列表，`api` 是在 netlog 看到的請求網址片段 |
 | `forms` | 會送出資料的表單。`fill` 是 selector 和值，`api` 是送出時的請求網址片段，`longField` 用來測超長輸入 |
@@ -75,7 +75,7 @@
 CDP_PORT=<port> node <skill 目錄>/scripts/probe.mjs .frontend-qa/<run>/probe.json --out .frontend-qa/<run>/probe-result.json
 ```
 
-stdout 只有一行摘要（各檢查的筆數），完整結果在 `probe-result.json`。
+stdout 只有一行摘要（各檢查的筆數），完整結果在 `probe-result.json`。`pages` 和 `records` 會多一個 `fingerprints` 物件：鍵是設定檔裡的 url，值是 `{ hash, list }`，在第一個尺寸載入完成後計算，演算法在 [`scripts/fingerprint.mjs`](../scripts/fingerprint.mjs)。
 
 - 腳本預設開一個隔離的 browser context（獨立的 cookie 和儲存空間），在裡面開分頁，跑完就關掉。所以它不會沿用使用者已經登入的狀態，需要登入的網站一定要寫 `login`；也不會登出或改動使用者其他分頁的登入狀態
 - 斷網和 mock 都會還原。頁面跳出 `alert` 時，腳本記下文字當成回饋；跳出 `confirm` 時一律按取消，那一項記成 `skipped`（送出前要求確認的表單，送出類檢查要由測試輪手動做）
@@ -96,6 +96,7 @@ stdout 只有一行摘要（各檢查的筆數），完整結果在 `probe-resul
 | `double-submit` | 填好表單，在同一瞬間 `.click()` 兩次，寫入請求超過一個 |
 | `no-feedback` | 離線或 API 回 500 時送出，畫面和網址都沒有任何變化 |
 | `no-error-message` | 同上，畫面有變化，但沒有出現錯誤訊息（例如直接跳到別的頁面） |
+| `anchor-missing` | `pages` 寫了 `anchor` 時，第一個尺寸載入後找不到該標籤與文字。網址沒變，但內容已經不是那個畫面（例如被導回登入頁） |
 | `skipped`、`probe-error` | 略過的檢查和腳本本身的錯誤，不是產品問題 |
 | `multiple-primary-buttons` | 同一區塊有兩顆以上一樣重的實心按鈕。條件見 [anti-patterns.md](anti-patterns.md) |
 | `placeholder-as-label` | 輸入框只用 placeholder，沒有 label |
