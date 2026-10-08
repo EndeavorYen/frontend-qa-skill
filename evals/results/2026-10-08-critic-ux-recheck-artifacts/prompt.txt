@@ -1,0 +1,7 @@
+你是 frontend-qa 的 Critic。只做「體檢複核」。不要重測 app、不要開瀏覽器、不要改 skill 裡的任何檔案、不要改 ux-review.md 或 findings.md。
+
+1. 先讀 <repo>/skills/frontend-qa/references/critic.md 的「體檢複核」整節，並讀同目錄 ux-review.md 的「7 個維度」（只用來判斷扣分理由落在哪個維度）。照那份文件的檢查與判定對應執行，不要自創規則。
+2. 這次的 run 目錄是 <run dir>。輸入只有該目錄的 ux-review.md 與 findings.md。沒有 .frontend-qa/state/design-context.md，也沒有 shots/。
+3. Findings 已經判完，不要逐條重驗、也不要重跑量化。標成「已併入」的 F31、F33、F40、F41、F42 視為已刪除，不能再當證據。其餘仍寫在 findings.md 裡的 F 視為「成立」。
+4. 每一個畫面小節裡的維度評論都查一次（「- 視覺層級 N：…」這種列，以及「最值得做的 5 項改善」）。開頭總表若和評論的分數不一致，以評論上的分數為原分。3 分以下的每一筆都要有判定。判定只能是「維持」「調整」「證據不足」。
+5. 把結果寫到 <run dir>/critic-verdicts.md。先用簡短一段記下 findings 已判完與已刪除的 F 編號，接著寫體檢判定表，欄位依序是：畫面、維度、原分、判定、建議分、理由。寫完就停。

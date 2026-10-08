@@ -47,7 +47,7 @@
    - 照 [ux-review.md](ux-review.md) 打 7 個維度（不是「輕」的單一整體分），並對照 [anti-patterns.md](anti-patterns.md)。「質感」和「文案」的評論要引用設計背景。
 5. 寫 `ux-review.md`。格式不要改，只放這次指定的畫面。
 6. 不寫測試輪欄位，不寫 `coverage.md`。
-7. 步驟 0 同意 Critic 時，只驗證這次寫進 `findings.md` 的項目，照 [critic.md](critic.md)。不要補測其他畫面。沒有同意就自查，規則相同。
+7. 步驟 0 同意 Critic 時，只驗證這次寫進 `findings.md` 的項目，照 [critic.md](critic.md)，接著做體檢複核。不要補測其他畫面。沒有同意就自查，規則相同。
 8. 分 session 時只派一個體檢子 session，帶入的內容見 [sessions.md](sessions.md#主-session-做什麼)。
 
 完成條件：`ux-review.md` 只有指定畫面；每個畫面的評論寫得出這次操作主要任務時看到的結果；7 個維度都有分數；3 分以下有證據；有最值得做的 5 項改善；「質感」和「文案」引用了設計背景。沒有其他畫面的分數，也沒有測試輪紀錄。
