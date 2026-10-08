@@ -54,7 +54,7 @@ coverage.md  findings.md  ux-review.md  audit.md  advise.md  critic-verdicts.md 
 
 `audit.md` 只有 `audit` 會寫，`advise.md` 只有 `advise` 會寫。如果目前目錄是 git repo，就把 `.frontend-qa/` 加進 `.git/info/exclude`，讓這些產出不會被 commit。
 
-跨次保留的狀態（畫面清單、指紋、已知問題）放在 `.frontend-qa/state/`，詳見 [memory.md](references/memory.md)。
+跨次保留的狀態（畫面清單、指紋、已知問題、探測設定）放在 `.frontend-qa/state/`，詳見 [memory.md](references/memory.md)。
 
 ## 步驟
 
@@ -138,7 +138,7 @@ EOF
 
 ### 1. 偵察、建立覆蓋地圖、估算成本
 
-增量模式時，照 [memory.md](references/memory.md#步驟-1) 計算畫面指紋，把畫面分成有改動、新增、移除、沒改動，沒改動的畫面只做複驗。以下是完整模式的做法。
+增量模式時，照 [memory.md](references/memory.md#步驟-1) 計算畫面指紋，把畫面分成有改動、新增、移除、沒改動，沒改動的畫面只做複驗。探測設定從 `state/probe.json` 複製到執行目錄，只用 Edit 調整個別欄位，不要 Write 整份新檔。以下是完整模式的做法。
 
 從導覽列、選單、頁面內連結、sitemap 收集所有畫面，再列出主要任務（例如註冊、建立、編輯、刪除、搜尋、結帳），每個任務拆成流程步驟。同時記下既有資料有哪些型態（見 [state-checklist.md](references/state-checklist.md#既有資料抽樣)）。
 
@@ -150,7 +150,7 @@ EOF
 - 無人值守：直接開始。
 - 使用者給了成本上限，而估算超過上限：先提出要縮減哪些面項或畫面。
 
-接著照 [probe.md](references/probe.md) 寫 `probe.json`，跑探測腳本，把確認過的結果寫進 `findings.md`。步驟 0 已經確認 chrome-cdp-ex。探測另外需要 `CDP_PORT`（或 `probe.json` 的 `cdpPort`）和至少一個測試輪；不符合就跳過，在 `report.md` 寫明原因，該項檢查改由測試輪用 chrome-cdp-ex 做。
+完整模式照 [probe.md](references/probe.md) 寫 `probe.json`；增量模式沿用上面複製來的檔案。接著跑探測腳本，把確認過的結果寫進 `findings.md`。步驟 0 已經確認 chrome-cdp-ex。探測另外需要 `CDP_PORT`（或 `probe.json` 的 `cdpPort`）和至少一個測試輪；不符合就跳過，在 `report.md` 寫明原因，該項檢查改由測試輪用 chrome-cdp-ex 做。密碼用 `{ "env": "QA_PASSWORD" }`，不能寫進設定檔。
 
 登入並偵察完、開始測試輪之前，在已經登入的那個分頁存乾淨狀態。預設的 `checkpoint <t> --format json` 會遮掉 cookie 值，也會遮掉敏感 storage 的值（key 含 password、token 這類）。非敏感的 storage key 會留下原值，`restore` 用得到。登入狀態放在 `sessionStorage` 或 `localStorage` 的非敏感 key 時，用預設即可，不要加 `--unsafe-full`。登入狀態放在 cookie 時，被遮掉的 cookie 值 `restore` 會跳過，登入回不來，這時才加 `--unsafe-full`：
 

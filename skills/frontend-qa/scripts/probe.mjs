@@ -5,9 +5,9 @@
 // 預設在隔離的 browser context 中執行，不會用到、也不會改動使用者其他分頁的 cookie 和登入狀態。
 // 設定檔格式見 ../references/probe.md。
 
-import { readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ANTI_PATTERNS = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'anti-patterns.js'), 'utf8');
 const ANTI_CHECKS = [
@@ -23,6 +23,60 @@ const ANTI_CHECKS = [
   ['destructiveLooksPrimary', 'destructive-looks-primary'],
 ];
 
+// A field is an env reference only when it is exactly { "env": "<NAME>" }.
+export function isEnvRef(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const keys = Object.keys(value);
+  return keys.length === 1 && keys[0] === 'env' && typeof value.env === 'string' && value.env.length > 0;
+}
+
+// Replace { env } fields with the variable value. Missing or empty variables are listed and left unresolved.
+export function resolveEnvRefs(value, env = process.env) {
+  const missing = [];
+  const walk = (node) => {
+    if (Array.isArray(node)) return node.map(walk);
+    if (isEnvRef(node)) {
+      const name = node.env;
+      if (env[name] === undefined || env[name] === '') {
+        missing.push(name);
+        return node;
+      }
+      return env[name];
+    }
+    if (node && typeof node === 'object') {
+      const out = {};
+      for (const [key, child] of Object.entries(node)) out[key] = walk(child);
+      return out;
+    }
+    return node;
+  };
+  const config = walk(value);
+  return { config, missing: [...new Set(missing)] };
+}
+
+// Password keys that are still raw strings. The warning names the field, never the value.
+export function plaintextPasswordFields(value, path = '') {
+  const found = [];
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => found.push(...plaintextPasswordFields(item, `${path}[${index}]`)));
+    return found;
+  }
+  if (!value || typeof value !== 'object') return found;
+  for (const [key, child] of Object.entries(value)) {
+    const here = path ? `${path}.${key}` : key;
+    if (/password/i.test(key) && typeof child === 'string') found.push(here);
+    else found.push(...plaintextPasswordFields(child, here));
+  }
+  return found;
+}
+
+function isMainModule() {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  try { return import.meta.url === pathToFileURL(realpathSync(entry)).href; } catch { return false; }
+}
+
+async function main() {
 const args = process.argv.slice(2);
 let configPath;
 let outPath = 'probe-result.json';
@@ -39,7 +93,16 @@ if (typeof WebSocket === 'undefined') {
   process.exit(2);
 }
 
-const config = JSON.parse(readFileSync(configPath, 'utf8'));
+const parsed = JSON.parse(readFileSync(configPath, 'utf8'));
+const plaintext = plaintextPasswordFields(parsed);
+if (plaintext.length) {
+  console.error(`警告：設定檔有明文密碼（${plaintext.join('、')}）。請改成 { "env": "QA_PASSWORD" }，不要把密碼寫進設定檔。`);
+}
+const { config, missing } = resolveEnvRefs(parsed);
+if (missing.length) {
+  console.error(`環境變數 ${missing.join('、')} 沒有設定。請先設定後再跑探測，不會帶空密碼登入。`);
+  process.exit(2);
+}
 const port = process.env.CDP_PORT || config.cdpPort;
 if (!port) {
   console.error('請設定 CDP_PORT');
@@ -435,3 +498,6 @@ try {
   ws?.close();
 }
 process.exit(0);
+}
+
+if (isMainModule()) await main();
