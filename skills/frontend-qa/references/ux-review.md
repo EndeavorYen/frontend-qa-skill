@@ -122,7 +122,7 @@ B64=$(base64 < <skill 目錄>/scripts/anti-patterns.js | tr -d '\n')
 eval <t> --b64 "$B64"
 ```
 
-回傳是一個物件。鍵是 camelCase（例如 `multiplePrimaryButtons`），值是元素字串陣列，格式 `selector "可見文字"`。對照下表的 check 名稱。`document.characterSet` 是 UTF-8 時，`warning` 是 `null`。不是 UTF-8 時，`warning` 是一段說明，而且 `genericDialogActions`、`emptyStateNoAction`、`vagueError`、`destructiveLooksPrimary` 是空陣列：文字比對已略過，不是沒有命中。探測會把這段說明記成 `text-checks-skipped`。
+回傳是一個物件。鍵是 camelCase（例如 `multiplePrimaryButtons`），值是元素字串陣列，格式 `selector "可見文字"`。對照下表的 check 名稱。`document.characterSet` 是 UTF-8 時，`warning` 是 `null`。不是 UTF-8 時，`warning` 是一段說明：CJK 樣式略過，英文樣式仍檢查。`genericDialogActions`、`emptyStateNoAction`、`vagueError`、`destructiveLooksPrimary` 若是空陣列，只代表英文樣式沒中，不是 CJK 文案沒問題。探測會把這段說明記成 `text-checks-skipped`。
 
 | check | 門檻 | 對應維度 |
 |---|---|---|

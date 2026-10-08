@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { anchorPresent, computeFingerprint } from './fingerprint.mjs';
-import { buildProbeOutput, normalizePage, notePageLoad, plaintextPasswordFields, resolveEnvRefs } from './probe.mjs';
+import { buildProbeOutput, isFaviconUrl, normalizePage, noteFailedRequest, notePageLoad, plaintextPasswordFields, resolveEnvRefs } from './probe.mjs';
 
 const script = fileURLToPath(new URL('./probe.mjs', import.meta.url));
 
@@ -156,6 +156,47 @@ describe('probe-result fingerprints', () => {
 
   test('rejects a page entry that is neither a url nor { url, anchor }', () => {
     assert.throws(() => normalizePage({ anchor: 'h1:訂單列表' }), /url/);
+  });
+});
+
+describe('failed-request favicon filter', () => {
+  test('drops only favicon URLs and keeps other 404s', () => {
+    assert.equal(isFaviconUrl('http://127.0.0.1:4196/favicon.ico'), true);
+    assert.equal(isFaviconUrl('http://127.0.0.1:4196/favicon.ico?x=1'), true);
+    assert.equal(isFaviconUrl('http://127.0.0.1:4196/assets/Favicon.ICO#hash'), true);
+    assert.equal(isFaviconUrl('http://127.0.0.1:4196/api/missing'), false);
+    assert.equal(isFaviconUrl('http://127.0.0.1:4196/favicon.ico.bak'), false);
+    assert.equal(isFaviconUrl('http://127.0.0.1:4196/app.js?file=favicon.ico'), false);
+
+    const events = { failed: [] };
+    noteFailedRequest(events, 'http://127.0.0.1:4196/favicon.ico', '404 http://127.0.0.1:4196/favicon.ico');
+    noteFailedRequest(events, 'http://127.0.0.1:4196/favicon.ico?x=1', '404 http://127.0.0.1:4196/favicon.ico?x=1');
+    noteFailedRequest(events, 'http://127.0.0.1:4196/api/missing', '404 http://127.0.0.1:4196/api/missing');
+    noteFailedRequest(events, 'http://127.0.0.1:4196/orders/9', 'net::ERR_FAILED http://127.0.0.1:4196/orders/9');
+    assert.deepEqual(events.failed, [
+      '404 http://127.0.0.1:4196/api/missing',
+      'net::ERR_FAILED http://127.0.0.1:4196/orders/9',
+    ]);
+  });
+});
+
+describe('probe config nits', () => {
+  test('seeded app config stores the password as an env reference', () => {
+    const config = JSON.parse(readFileSync(new URL('../../../evals/probe/seeded-app.json', import.meta.url), 'utf8'));
+    assert.deepEqual(config.login.fill['[name=password]'], { env: 'QA_PASSWORD' });
+    assert.equal(plaintextPasswordFields(config).length, 0);
+  });
+
+  test('audit tells the agent to set QA_PASSWORD before the probe', () => {
+    const modes = readFileSync(new URL('../references/modes.md', import.meta.url), 'utf8');
+    const audit = modes.split('## critique')[0];
+    assert.match(audit, /QA_PASSWORD/);
+    assert.match(audit, /\{ "env": "QA_PASSWORD" \}/);
+  });
+
+  test('probe.mjs does not import unused path resolve', () => {
+    const source = readFileSync(script, 'utf8');
+    assert.doesNotMatch(source, /import \{[^}]*\bresolve\b[^}]*\} from 'node:path'/);
   });
 });
 

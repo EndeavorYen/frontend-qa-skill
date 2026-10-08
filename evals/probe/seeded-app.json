@@ -4,7 +4,7 @@
   "publicPages": ["/#/login"],
   "login": {
     "url": "/#/login",
-    "fill": { "[name=user]": "qa-user", "[name=password]": "qa-pass" },
+    "fill": { "[name=user]": "qa-user", "[name=password]": { "env": "QA_PASSWORD" } },
     "submit": "form button"
   },
   "pages": ["/#/orders", "/#/orders/new", "/#/settings"],

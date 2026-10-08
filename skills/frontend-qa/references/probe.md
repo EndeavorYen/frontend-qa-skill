@@ -108,9 +108,9 @@ stdout 只有一行摘要（各檢查的筆數），完整結果在 `probe-resul
 | `empty-state-no-action` | 空狀態只有「無資料」，沒有下一步 |
 | `vague-error` | 錯誤訊息只有「發生錯誤」 |
 | `destructive-looks-primary` | 破壞性按鈕和主要按鈕外觀相同 |
-| `text-checks-skipped` | 頁面不是 UTF-8。不是產品缺陷。`generic-dialog-actions`、`empty-state-no-action`、`vague-error`、`destructive-looks-primary` 沒有跑，空結果不能當成沒有命中 |
+| `text-checks-skipped` | 頁面不是 UTF-8。不是產品缺陷。這四個 check 的 CJK 樣式沒有跑，英文樣式仍有跑。空結果只代表英文樣式沒中，不能當成 CJK 文案沒問題 |
 
-這 10 個 check 的程式只在 [`scripts/anti-patterns.js`](../scripts/anti-patterns.js)。手動重跑見 [ux-review.md](ux-review.md#反模式檢查)。每個命中列的元素寫成 `selector "可見文字"`。頁面的 `document.characterSet` 不是 UTF-8 時，腳本回傳 `warning`，探測記一筆 `text-checks-skipped`。跑完探測後，把這次的 `probe.json` 複製到 `.frontend-qa/state/probe.json`。`audit` 看到這份就直接用，見 [modes.md](modes.md#audit)。
+這 10 個 check 的程式只在 [`scripts/anti-patterns.js`](../scripts/anti-patterns.js)。手動重跑見 [ux-review.md](ux-review.md#反模式檢查)。每個命中列的元素寫成 `selector "可見文字"`。頁面的 `document.characterSet` 不是 UTF-8 時，腳本回傳 `warning`，探測記一筆 `text-checks-skipped`。CJK 樣式略過，英文樣式仍檢查。跑完探測後，把這次的 `probe.json` 複製到 `.frontend-qa/state/probe.json`。`audit` 看到這份就直接用，見 [modes.md](modes.md#audit)。
 
 ## 解讀結果
 
