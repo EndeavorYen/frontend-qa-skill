@@ -44,7 +44,7 @@
 
 - 新發現的問題寫進 `findings.md`，編號接在現有最大的 F 編號之後
 - 把 `coverage.md` 中自己那一欄的 `☐` 改成 `✅`、`➖ <理由>` 或 `⛔ <工具軌編號>`，不要動其他欄
-- 工具問題寫進 `tool-track.md`，判斷不出來的寫進 `unattributed.md`
+- 工具問題寫進 `tool-track.md`，判斷不出來的寫進 `unattributed.md`。`unattributed.md` 的每一筆都要有證據，至少一種：`shots/` 的截圖路徑、重現腳本，或 `probe-result.json` 的那一筆（見 [report-template.md](report-template.md#unattributedmd)）
 - 體檢子 session 寫 `ux-review.md`，並更新覆蓋地圖的 `體檢` 欄。體檢的依據必須是實際操作（見 [ux-review.md](ux-review.md)），所以體檢子 session 要先讀 `findings.md` 的完整條目和 `shots/`，再把每個畫面的主要任務自己操作一遍，才開始評分
 - 結束時只回報一行：`<輪名>：新增 F<a>–F<b>，☐ 剩 <n> 格，用了 <n> turns、<n> 分鐘`（拿不到用量時寫「未知」）
 

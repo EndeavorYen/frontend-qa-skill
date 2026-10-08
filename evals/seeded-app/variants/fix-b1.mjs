@@ -1,5 +1,5 @@
-// Fix B1 only: ignore a second submit while one is in flight, and clear the
-// flag after success or failure so a later retry is not dropped.
+// 只修 B1：送出期間忽略第二次送出，並在成功或失敗後清掉旗標，讓之後的重試不會被丟掉。
+// 用來驗證重現腳本「修好一個、只有那一份通過」。
 export default {
   'app.js': [
     [

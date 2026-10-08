@@ -100,7 +100,7 @@ stdout 只有一行摘要（各檢查的筆數），完整結果在 `probe-resul
 - 每一筆結果都要判斷是不是真的問題，再寫進 `findings.md`。證據寫 `probe-result.json` 中的那一筆，以及畫面代號。例如 `small-target` 會列出所有小於 44px 的元素，要合併成一筆，不要一個元素一筆
 - 同一個問題出現在多個尺寸或多個頁面時，合併成一筆
 - P0、P1 照證據規則，仍然要用 chrome-cdp-ex 從乾淨狀態重現兩次
-- `probe-error` 記到工具軌或 `unattributed.md`，對應的檢查改回測試輪手動做
+- `probe-error` 記到工具軌或 `unattributed.md`。寫進 `unattributed.md` 的每一筆都要有證據，至少一種：`shots/` 的截圖路徑、重現腳本，或 `probe-result.json` 的那一筆（見 [report-template.md](report-template.md#unattributedmd)）。對應的檢查改回測試輪手動做
 - 在覆蓋地圖的備註寫「探測：<check 名稱>」，表示這一格已經有哪些檢查做過了
 
 ## 測試輪不用重做的部分
