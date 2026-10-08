@@ -37,7 +37,7 @@
 
 **重做失敗不等於不成立**：重做沒出現時，先照歸因規則判斷是不是工具的問題（換一種操作方式再試）。P0、P1 主 session 已經從乾淨狀態重現過 2 次，Critic 重做失敗、或因為有副作用而沒有重做時，都不能判 `不成立`，最多判 `待確認`，交回主 session 再驗一次。
 
-**失敗要給下一步**：重做失敗、驅動指令報錯，或這一條沒有做完時，理由要寫明原因，並給一條可以直接複製執行的下一步指令，三選一：`CDP_PORT=<port> node skills/frontend-qa/scripts/probe.mjs <probe.json> --out <probe-result.json>`、重現指令（`BASE_URL=<網址> npx playwright test -c <repo>/evals/repro`，見 `evals/repro/README.md`；或 [repro.md](repro.md#驗證腳本) 的 `cd .frontend-qa/<run>/repro && BASE_URL=<網址> npx --no-install playwright test --reporter=line`）、或剛剛失敗的那一條驅動指令原樣。
+**失敗要給下一步**：重做失敗、驅動指令報錯，或這一條沒有做完時，理由要寫明原因，並給一條可以直接複製執行的下一步指令，三選一：`CDP_PORT=<port> node skills/frontend-qa/scripts/probe.mjs <probe.json> --out <probe-result.json>`、被測目標自己的重現指令（`cd .frontend-qa/<run>/repro && BASE_URL=<網址> npx --no-install playwright test --reporter=line`，見 [repro.md](repro.md#驗證腳本)）、或剛剛失敗的那一條驅動指令原樣。`BASE_URL=<網址> npx playwright test -c <repo>/evals/repro` 只適用於 seeded-app 評測（見 `evals/repro/README.md`），不要拿去跑別的網站。
 
 Critic 重做時遇到的工具問題，寫在判定的理由裡，主 session 收到後照歸因規則補進 `tool-track.md`。
 

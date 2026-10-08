@@ -100,7 +100,7 @@ coverage.md  findings.md  ux-review.md  critic-verdicts.md  tool-track.md  unatt
 
 先照 [critic.md](references/critic.md) 跑 Critic 關卡，逐條驗證 `findings.md`，刪掉不成立的、改寫部分成立的。接著整理 `findings.md`：合併重複的問題（分 session 執行時，各輪只看得到標題，去重規則見 [sessions.md](references/sessions.md#合併與去重)），照 [severity.md](references/severity.md) 標上 P0–P3 和類別，再照 [report-template.md](references/report-template.md#reportmd) 寫出 `report.md`。
 
-完成條件：執行目錄有 `critic-verdicts.md`，每個 finding 都有判定，`待確認` 都已經由主 session 處理完；`ux-review.md` 中 3 分以下的分數，引用的 F 編號都還在 `findings.md` 裡；`report.md` 包含以下內容：Critic 的方式與判定統計、嚴重度統計、已知問題狀態（增量模式時）、最嚴重的 5 個問題、UI/UX 體檢摘要（體檢有開時）、按畫面分組的完整清單、覆蓋率（✅ / ➖ / ⛔ 各幾格）、未歸因清單，以及估算和實際成本的對照。每個問題都有證據；每個 P0、P1 都有重現腳本；沒有執行的，寫明原因。每個「不是問題」的結論（`critic-verdicts.md` 的 `不成立`、`unattributed.md` 的每一筆、查過但沒寫進 `findings.md` 的檢查）都附上截圖路徑、重現腳本或探測結果至少一種。每一筆失敗都寫了原因，並附一條可執行的下一步指令。
+完成條件：執行目錄有 `critic-verdicts.md`，每個 finding 都有判定，`待確認` 都已經由主 session 處理完；`ux-review.md` 中 3 分以下的分數，引用的 F 編號都還在 `findings.md` 裡；`report.md` 包含以下內容：Critic 的方式與判定統計、嚴重度統計、已知問題狀態（增量模式時）、最嚴重的 5 個問題、UI/UX 體檢摘要（體檢有開時）、按畫面分組的完整清單、覆蓋率（✅ / ➖ / ⛔ 各幾格）、未歸因清單，以及估算和實際成本的對照。每個問題都有證據；每個 P0、P1 都有重現腳本；沒有執行的，寫明原因。每個「不是問題」的結論（`critic-verdicts.md` 的 `不成立`、`unattributed.md` 的每一筆、清掉的檢查）都附上截圖路徑、重現腳本或探測結果至少一種。清掉的檢查寫在該列唯一的「備註」欄，格式見 [report-template.md](references/report-template.md#coveragemd)。普通的 `✅` 不必附路徑。每一筆失敗都寫了原因，並附一條可執行的下一步指令。
 
 ### 5. 工具回報（工具軌開啟時才做）
 
@@ -131,7 +131,8 @@ coverage.md  findings.md  ux-review.md  critic-verdicts.md  tool-track.md  unatt
 ## 證據規則
 
 - 每個產品問題都要有證據；拿不出證據的，就不算一個問題。每個問題都要有 `shots/` 的截圖（P3 也一樣）；P0、P1 還要有重現腳本。
-- 「不是問題」的結論也要有證據，至少一種：`shots/` 的截圖路徑、Playwright 重現腳本，或 `probe-result.json` 的那一筆。這包含 `critic-verdicts.md` 的 `不成立`、`unattributed.md` 的每一筆，以及查過但沒有寫成問題的檢查（證據寫在 `coverage.md` 該格的備註）。沒有證據就不能保留，也不能拿掉這個結論。
+- 「不是問題」的結論也要有證據，至少一種：`shots/` 的截圖路徑、Playwright 重現腳本，或 `probe-result.json` 的那一筆。這包含 `critic-verdicts.md` 的 `不成立`，以及 `unattributed.md` 的每一筆。沒有證據就不能保留，也不能拿掉這個結論。
+- 覆蓋地圖的 `✅` 只代表那一輪跑完，不必每格附路徑。要附證據的是「清掉的檢查」：曾經懷疑是問題，查完決定不寫進 `findings.md`。每一列只有一個「備註」欄，證據寫在那一欄，不另開欄：`證據：<輪次>→<路徑>`，同一列多筆用 `；` 隔開，例如 `證據：亂點→shots/S1-double-click.png`。路徑種類和上面一樣。若改成每一格 `✅` 都要一條路徑，一張完整地圖會多出幾十筆，而且常常要多拍截圖，會吃掉看圖額度，卻不會改變「這一輪跑完」這個決定，所以不做。
 - P0 和 P1 必須從乾淨狀態重現兩次。深度 5 時，P2 也要重現兩次。
 - P0 和 P1 重現成功後，照 [repro.md](references/repro.md) 寫一份 Playwright 重現腳本，斷言寫修好之後應該成立的事。
 - 重現步驟要寫成別人照著做就能做出來的程度：起始 URL、登入身分、每一步的操作和輸入值。
@@ -143,7 +144,7 @@ coverage.md  findings.md  ux-review.md  critic-verdicts.md  tool-track.md  unatt
 任何失敗（驅動指令報錯、重現沒有出現、探測中斷、Critic 沒有做完）都要寫明原因，並給一條可以直接複製執行的下一步指令，三選一：
 
 - 探測：`CDP_PORT=<port> node skills/frontend-qa/scripts/probe.mjs <probe.json> --out <probe-result.json>`
-- 重現：`BASE_URL=<網址> npx playwright test -c <repo>/evals/repro`（見 `evals/repro/README.md`），或該筆 finding 的 `cd .frontend-qa/<run>/repro && BASE_URL=<網址> npx --no-install playwright test --reporter=line`（見 [repro.md](references/repro.md#驗證腳本)）
+- 重現：被測目標用該次執行自己的腳本，`cd .frontend-qa/<run>/repro && BASE_URL=<網址> npx --no-install playwright test --reporter=line`（見 [repro.md](references/repro.md#驗證腳本)）。`BASE_URL=<網址> npx playwright test -c <repo>/evals/repro` 只適用於 seeded-app 評測（見 `evals/repro/README.md`），不要拿去跑別的網站。
 - 剛剛失敗的那一條驅動指令，原樣再寫一次
 
 ## 輸出精簡規則
