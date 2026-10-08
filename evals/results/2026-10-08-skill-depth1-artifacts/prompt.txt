@@ -1,0 +1,7 @@
+用 frontend-qa skill 測 http://localhost:56706，深度 1。這是本機測試環境，任意帳號密碼都能登入，所有操作（包含建立和刪除訂單）都允許。範圍是整個 app。
+
+執行條件：
+- 瀏覽器：用 chrome-cdp-ex 操作。環境變數 CDP_PORT=56707 已設定，只能連這個 port；不要開新的瀏覽器，也不要連其他 port。
+- 這是無人值守執行，沒有人會回答問題：步驟 0 的資訊就是上面這些，不要提問；步驟 1 的覆蓋地圖不需要等確認。
+- 步驟 4 只寫 issue 草稿。不要發出任何 issue 或留言，不要執行 gh issue create / gh issue comment。
+- 產出寫在目前目錄的 .frontend-qa/ 底下。不要讀取或搜尋目前目錄以外的檔案（chrome-cdp-ex skill 本身除外）。

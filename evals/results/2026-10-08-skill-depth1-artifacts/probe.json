@@ -1,0 +1,29 @@
+{
+  "base": "http://localhost:56706",
+  "viewports": ["1440x900"],
+  "publicPages": ["/#/login", "/#/help", "/#/contact"],
+  "login": {
+    "url": "/#/login",
+    "fill": { "[name=user]": "qa-user", "[name=password]": "<redacted>" },
+    "submit": "form button"
+  },
+  "pages": ["/#/orders", "/#/orders/new", "/#/settings", "/#/help", "/#/contact"],
+  "records": ["/#/orders/1", "/#/orders/2", "/#/orders/3"],
+  "lists": [{ "url": "/#/orders", "api": "/api/orders" }],
+  "forms": [
+    {
+      "url": "/#/orders/new",
+      "fill": {
+        "[name=customer]": "QA Probe",
+        "[name=item]": "測試品項",
+        "[name=qty]": "1",
+        "[name=price]": "100",
+        "[name=note]": "probe"
+      },
+      "submit": "form#order button.btn-primary",
+      "api": "/api/orders",
+      "longField": "[name=customer]",
+      "allowSubmit": true
+    }
+  ]
+}

@@ -1,0 +1,232 @@
+{
+ "probe": "frontend-qa.probe.v1",
+ "base": "http://localhost:56706",
+ "seconds": 37,
+ "summary": {
+  "small-target": 11,
+  "not-keyboard-reachable": 1,
+  "no-accessible-name": 1,
+  "low-contrast": 1,
+  "console-error": 1,
+  "stuck-loading": 2,
+  "double-submit": 1,
+  "no-feedback": 1,
+  "no-error-message": 1
+ },
+ "results": [
+  {
+   "check": "small-target",
+   "url": "/#/login",
+   "viewport": "1440x900",
+   "detail": [
+    "input \"帳號\" 480x41",
+    "input \"密碼\" 480x41",
+    "button.btn.btn-primary \"登入\" 64x41",
+    "a \"說明\" 26x20",
+    "a \"聯絡我們\" 52x20"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/help",
+   "viewport": "1440x900",
+   "detail": [
+    "input \"帳號\" 480x41",
+    "input \"密碼\" 480x41",
+    "button.btn.btn-primary \"登入\" 64x41",
+    "a \"說明\" 26x20",
+    "a \"聯絡我們\" 52x20"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/contact",
+   "viewport": "1440x900",
+   "detail": [
+    "input \"帳號\" 480x41",
+    "input \"密碼\" 480x41",
+    "button.btn.btn-primary \"登入\" 64x41",
+    "a \"說明\" 26x20",
+    "a \"聯絡我們\" 52x20"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/orders",
+   "viewport": "1440x900",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "a.btn.btn-primary \"建立訂單\" 94x41",
+    "button.btn.btn-secondary \"全部\" 64x41",
+    "button.btn.btn-secondary \"待處理\" 79x41",
+    "button.btn.btn-secondary \"已完成\" 79x41",
+    "…共 14 筆"
+   ]
+  },
+  {
+   "check": "not-keyboard-reachable",
+   "url": "/#/orders",
+   "viewport": "1440x900",
+   "detail": [
+    "div.icon-btn \"🗑\""
+   ]
+  },
+  {
+   "check": "no-accessible-name",
+   "url": "/#/orders",
+   "viewport": "1440x900",
+   "detail": [
+    "div.icon-btn \"🗑\""
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/orders/new",
+   "viewport": "1440x900",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "input \"客戶名稱\" 480x41",
+    "input \"品項\" 480x41",
+    "input \"數量 數量必須是正整數\" 480x41",
+    "input \"單價\" 480x41",
+    "…共 12 筆"
+   ]
+  },
+  {
+   "check": "low-contrast",
+   "url": "/#/orders/new",
+   "viewport": "1440x900",
+   "detail": [
+    "span.hint \"數量必須是正整數\" rgb(200, 200, 200) 1.56:1"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/settings",
+   "viewport": "1440x900",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "input \"qa-user\" 480x41",
+    "select \"10 20 50\" 480x38",
+    "input \"on\" 13x13",
+    "button.btn.btn-primary \"儲存\" 64x41",
+    "…共 10 筆"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/help",
+   "viewport": "1440x900",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "a \"說明\" 26x20",
+    "a \"聯絡我們\" 52x20"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/contact",
+   "viewport": "1440x900",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "a \"說明\" 26x20",
+    "a \"聯絡我們\" 52x20"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/orders/1",
+   "viewport": "1440x900",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "a \"← 回列表\" 62x18",
+    "a \"說明\" 26x20",
+    "a \"聯絡我們\" 52x20"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/orders/2",
+   "viewport": "1440x900",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "a \"← 回列表\" 62x18",
+    "a \"說明\" 26x20",
+    "a \"聯絡我們\" 52x20"
+   ]
+  },
+  {
+   "check": "console-error",
+   "url": "/#/orders/3",
+   "viewport": "1440x900",
+   "kind": "record",
+   "detail": [
+    "TypeError: Cannot read properties of undefined (reading 'trim')"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/orders/3",
+   "viewport": "1440x900",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "a \"← 回列表\" 62x18",
+    "a \"說明\" 26x20",
+    "a \"聯絡我們\" 52x20"
+   ]
+  },
+  {
+   "check": "stuck-loading",
+   "url": "/#/orders",
+   "scenario": "API 500",
+   "detail": "API 500：5000ms 後仍顯示「載入中」，沒有錯誤訊息"
+  },
+  {
+   "check": "stuck-loading",
+   "url": "/#/orders",
+   "scenario": "離線",
+   "detail": "離線：5000ms 後仍顯示「載入中」，沒有錯誤訊息"
+  },
+  {
+   "check": "double-submit",
+   "url": "/#/orders/new",
+   "detail": "連點兩下送出，發出 2 個寫入請求（/api/orders）"
+  },
+  {
+   "check": "no-feedback",
+   "url": "/#/orders/new",
+   "scenario": "離線",
+   "detail": "離線送出後 5000ms 內畫面和網址都沒有變化"
+  },
+  {
+   "check": "no-error-message",
+   "url": "/#/orders/new",
+   "scenario": "API 500 ",
+   "detail": "API 500 送出後沒有出現錯誤訊息；新出現的文字：「找不到頁面」；網址：http://localhost:56706/#/orders/undefined"
+  }
+ ]
+}

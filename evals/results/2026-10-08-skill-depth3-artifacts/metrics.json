@@ -1,0 +1,24 @@
+{
+  "model": "grok-4.7-high",
+  "skill_commit": "7c90222d258099d39fb837e17233baed13370301",
+  "skill_path": ".cursor/skills/frontend-qa",
+  "turns_tool_calls_completed": 148,
+  "duration_ms": 1871462,
+  "minutes": 31.191,
+  "usage": {
+    "inputTokens": 651003,
+    "outputTokens": 91382,
+    "cacheReadTokens": 9740288,
+    "cacheWriteTokens": 0
+  },
+  "usd": null,
+  "usd_note": "USD is not available from this runner; tokens are recorded instead.",
+  "estimate": {
+    "turns": 120,
+    "minutes": 20,
+    "usd": 5.5,
+    "critic_turns": 26,
+    "cells": 66,
+    "screens": 5
+  }
+}
