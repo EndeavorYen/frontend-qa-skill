@@ -113,17 +113,15 @@ export function buildProbeOutput({ base, startedAt = Date.now(), results, finger
   };
 }
 
-// Chrome asks for /favicon.ico on the first load of a new profile. That 404 is not an app failure.
-export function isFaviconUrl(url) {
+// A new profile's first load asks for /favicon.ico and often gets 404. Other favicon failures stay.
+export function noteFailedRequest(events, url, text, status) {
+  let pathname = '';
   try {
-    return /\/favicon\.ico$/i.test(new URL(url).pathname);
+    pathname = new URL(url).pathname;
   } catch {
-    return false;
+    pathname = '';
   }
-}
-
-export function noteFailedRequest(events, url, text) {
-  if (isFaviconUrl(url)) return;
+  if (status === 404 && pathname === '/favicon.ico') return;
   events.failed.push(text);
 }
 
@@ -224,7 +222,7 @@ const onEvent = ({ method, params }) => {
     // 重新導向會用同一個 requestId 再發一次事件，不要重複計算
     if (!params.redirectResponse) events.requests.push({ id: params.requestId, method: params.request.method, url: params.request.url });
   } else if (method === 'Network.responseReceived') {
-    if (params.response.status >= 400) noteFailedRequest(events, params.response.url, `${params.response.status} ${params.response.url}`);
+    if (params.response.status >= 400) noteFailedRequest(events, params.response.url, `${params.response.status} ${params.response.url}`, params.response.status);
   } else if (method === 'Network.loadingFinished') {
     inflight.delete(params.requestId);
   } else if (method === 'Network.loadingFailed') {

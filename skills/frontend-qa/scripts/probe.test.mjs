@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { anchorPresent, computeFingerprint } from './fingerprint.mjs';
-import { buildProbeOutput, isFaviconUrl, normalizePage, noteFailedRequest, notePageLoad, plaintextPasswordFields, resolveEnvRefs } from './probe.mjs';
+import { buildProbeOutput, normalizePage, noteFailedRequest, notePageLoad, plaintextPasswordFields, resolveEnvRefs } from './probe.mjs';
 
 const script = fileURLToPath(new URL('./probe.mjs', import.meta.url));
 
@@ -160,22 +160,20 @@ describe('probe-result fingerprints', () => {
 });
 
 describe('failed-request favicon filter', () => {
-  test('drops only favicon URLs and keeps other 404s', () => {
-    assert.equal(isFaviconUrl('http://127.0.0.1:4196/favicon.ico'), true);
-    assert.equal(isFaviconUrl('http://127.0.0.1:4196/favicon.ico?x=1'), true);
-    assert.equal(isFaviconUrl('http://127.0.0.1:4196/assets/Favicon.ICO#hash'), true);
-    assert.equal(isFaviconUrl('http://127.0.0.1:4196/api/missing'), false);
-    assert.equal(isFaviconUrl('http://127.0.0.1:4196/favicon.ico.bak'), false);
-    assert.equal(isFaviconUrl('http://127.0.0.1:4196/app.js?file=favicon.ico'), false);
-
+  test('drops only a root /favicon.ico 404', () => {
     const events = { failed: [] };
-    noteFailedRequest(events, 'http://127.0.0.1:4196/favicon.ico', '404 http://127.0.0.1:4196/favicon.ico');
-    noteFailedRequest(events, 'http://127.0.0.1:4196/favicon.ico?x=1', '404 http://127.0.0.1:4196/favicon.ico?x=1');
-    noteFailedRequest(events, 'http://127.0.0.1:4196/api/missing', '404 http://127.0.0.1:4196/api/missing');
-    noteFailedRequest(events, 'http://127.0.0.1:4196/orders/9', 'net::ERR_FAILED http://127.0.0.1:4196/orders/9');
+    const root = 'http://127.0.0.1:4196/favicon.ico';
+    noteFailedRequest(events, root, `404 ${root}`, 404);
+    noteFailedRequest(events, `${root}?x=1`, `404 ${root}?x=1`, 404);
+    noteFailedRequest(events, root, `500 ${root}`, 500);
+    noteFailedRequest(events, 'http://127.0.0.1:4196/assets/favicon.ico', '404 http://127.0.0.1:4196/assets/favicon.ico', 404);
+    noteFailedRequest(events, 'http://127.0.0.1:4196/api/missing', '404 http://127.0.0.1:4196/api/missing', 404);
+    noteFailedRequest(events, root, `net::ERR_FAILED ${root}`);
     assert.deepEqual(events.failed, [
+      `500 ${root}`,
+      '404 http://127.0.0.1:4196/assets/favicon.ico',
       '404 http://127.0.0.1:4196/api/missing',
-      'net::ERR_FAILED http://127.0.0.1:4196/orders/9',
+      `net::ERR_FAILED ${root}`,
     ]);
   });
 });
