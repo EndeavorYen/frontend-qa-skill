@@ -132,7 +132,7 @@ coverage.md  findings.md  ux-review.md  critic-verdicts.md  tool-track.md  unatt
 
 - 每個產品問題都要有證據；拿不出證據的，就不算一個問題。每個問題都要有 `shots/` 的截圖（P3 也一樣）；P0、P1 還要有重現腳本。
 - 「不是問題」的結論也要有證據，至少一種：`shots/` 的截圖路徑、Playwright 重現腳本，或 `probe-result.json` 的那一筆。這包含 `critic-verdicts.md` 的 `不成立`，以及 `unattributed.md` 的每一筆。沒有證據就不能保留，也不能拿掉這個結論。
-- 覆蓋地圖的 `✅` 只代表那一輪跑完，不必每格附路徑。要附證據的是「清掉的檢查」：曾經懷疑是問題，查完決定不寫進 `findings.md`。每一列只有一個「備註」欄，證據寫在那一欄，不另開欄：`證據：<輪次>→<路徑>`，同一列多筆用 `；` 隔開，例如 `證據：亂點→shots/S1-double-click.png`。路徑種類和上面一樣。若改成每一格 `✅` 都要一條路徑，一張完整地圖會多出幾十筆，而且常常要多拍截圖，會吃掉看圖額度，卻不會改變「這一輪跑完」這個決定，所以不做。
+- 覆蓋地圖的 `✅` 只代表那一輪跑完，不必每格附路徑。要附證據的是「清掉的檢查」：曾經懷疑是問題，查完決定不寫進 `findings.md`。證據只寫在該列的「備註」欄，不寫進輪次欄。格式，以及為什麼不要求每一格 `✅` 都附路徑，見 [report-template.md](references/report-template.md#coveragemd)。
 - P0 和 P1 必須從乾淨狀態重現兩次。深度 5 時，P2 也要重現兩次。
 - P0 和 P1 重現成功後，照 [repro.md](references/repro.md) 寫一份 Playwright 重現腳本，斷言寫修好之後應該成立的事。
 - 重現步驟要寫成別人照著做就能做出來的程度：起始 URL、登入身分、每一步的操作和輸入值。
