@@ -43,11 +43,12 @@
 - 實際：「送出」被 footer 蓋住一半，點擊時點到 footer 的連結
 - 證據：`shots/F7-footer-overlap.png`；chrome-cdp-ex 的 `click` 回報 `Kind: covered`
 - 重現次數：2/2
+- 重播：`repro/F7.actions.json`（replay 通過，flow 斷言失敗，符合預期）
 - 重現腳本：`repro/F7.spec.ts`（目前失敗，符合預期）
 - 相關：F3（同一個 footer 在 S5 也擋住內容）
 ```
 
-P3 問題可以省略「預期」和「重現次數」，但截圖不能省。「重現腳本」只有 P0、P1 需要，寫法見 [repro.md](repro.md#驗證腳本)，例如 `repro/F7.spec.ts`（未執行：沒有 Playwright）。
+P3 問題可以省略「預期」和「重現次數」，但截圖不能省。「重播」和「重現腳本」只有 P0、P1 需要，寫法見 [repro.md](repro.md#驗證)。沒有 Playwright 時，重現腳本寫 `repro/F7.spec.ts`（未執行：沒有 Playwright），重播仍然要跑。
 
 ## unattributed.md
 
@@ -68,6 +69,12 @@ P3 問題可以省略「預期」和「重現次數」，但截圖不能省。�
 
 ```markdown
 # 前端品質驗證報告：<app 名稱 / 範圍>
+
+## 環境檢查
+- chrome-cdp-ex：<package.json version>（commit <短 SHA 或未知>，<origin 或 https://github.com/EndeavorYen/chrome-cdp-ex>）
+- doctor readiness：ready / usable-with-warnings / blocked
+- checks：每項一行，`<label>：<status> — <detail>`
+- Chrome：<navigator.userAgent，有分頁後填>
 
 ## 範圍
 - 日期、環境、URL、測試帳號（只寫身分，不寫密碼）

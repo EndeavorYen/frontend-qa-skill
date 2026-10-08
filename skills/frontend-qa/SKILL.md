@@ -1,11 +1,32 @@
 ---
 name: frontend-qa
-description: "前端品質驗證：扮演挑剔、會亂按的使用者操作真實 UI，找出 bug、斷點、不合邏輯的流程、UX 摩擦與視覺瑕疵，替每個畫面做 UI/UX 體檢並輸出分級報告。可選面項與深度 1–5，開測前估算成本。也可以只做 audit（量化與可自動偵測的反模式）、critique（指定畫面的體檢）或 advise（整理成設計系統建議）。Use when 使用者要你當白癡 user / 挑剔使用者測 UI、找 UX 問題、評 UI 好壞、做前端品質驗證、dogfood 一個頁面或流程，或只要 audit / critique / advise。用 chrome-cdp-ex 操作時，同時記錄工具軌，結束時草擬 chrome-cdp-ex issue。"
+description: "前端品質驗證：扮演挑剔、會亂按的使用者操作真實 UI，找出 bug、斷點、不合邏輯的流程、UX 摩擦與視覺瑕疵，替每個畫面做 UI/UX 體檢並輸出分級報告。可選面項與深度 1–5，開測前估算成本。也可以只做 audit（量化與可自動偵測的反模式）、critique（指定畫面的體檢）或 advise（整理成設計系統建議）。需要 chrome-cdp-ex。Use when 使用者要你當白癡 user / 挑剔使用者測 UI、找 UX 問題、評 UI 好壞、做前端品質驗證、dogfood 一個頁面或流程，或只要 audit / critique / advise。預設記錄工具軌，結束時草擬 chrome-cdp-ex issue。"
 ---
 
 # frontend-qa
 
 目標：站在使用者的角度把 UI 用到壞，評出每個畫面的 UI/UX 好壞，並且讓每個問題都能重現。你只負責回報問題和改善建議，不修改程式碼。
+
+## 需求
+
+驅動瀏覽器只用 [chrome-cdp-ex](https://github.com/EndeavorYen/chrome-cdp-ex) **v2.21.0 以上**，以及 **Node 22**。不使用其他瀏覽器工具。指令語法以該版的 `references/commands.md` 為準；下面寫出的指令名稱和旗標都是 v2.21.0 有的。
+
+chrome-cdp-ex 不上架 npm。取得方式見 [README 的 Quick start](https://github.com/EndeavorYen/chrome-cdp-ex#quick-start)。v2.21.0 的安裝是：
+
+```bash
+curl -L -o pi-chrome-cdp-2.21.0.tgz https://github.com/EndeavorYen/chrome-cdp-ex/releases/download/v2.21.0/pi-chrome-cdp-2.21.0.tgz
+mkdir -p chrome-cdp-ex-v2.21.0
+tar -xzf pi-chrome-cdp-2.21.0.tgz -C chrome-cdp-ex-v2.21.0 --strip-components=1
+```
+
+或 `git clone https://github.com/EndeavorYen/chrome-cdp-ex.git` 後使用 v2.21.0 以上的 checkout。Skill 要放在 `~/.claude/skills/chrome-cdp-ex`，而且這個路徑要能執行 `bin/chrome-cdp`。把 checkout 根目錄（裡面有 `"name": "pi-chrome-cdp"` 的 `package.json`）指過來：
+
+```bash
+mkdir -p ~/.claude/skills
+ln -sfn "$(pwd)" ~/.claude/skills/chrome-cdp-ex
+```
+
+`pwd` 是上面解壓或 clone 出來的目錄。若改為 symlink 到 checkout 裡的 `skills/chrome-cdp-ex`，`readlink -f` 之後仍要能往上找到同一份 `package.json`。只複製 skill 目錄、讀不到版本時，步驟 0 會停止。
 
 ## 名詞
 
@@ -21,14 +42,14 @@ description: "前端品質驗證：扮演挑剔、會亂按的使用者操作真
 - **歸因**：遇到預期外結果時，先判斷問題出在產品還是工具，再決定要記到哪一軌。
 - **未歸因**：判斷不出來的項目，寫在 `unattributed.md`，兩軌都不報。
 - **分 session**：每個測試輪和體檢各用一個新的子 session 依序執行，主 session 負責偵察、合併和報告。要先取得使用者同意，詳見 [sessions.md](references/sessions.md)。
-- **證據**：截圖路徑、從乾淨狀態開始的重現步驟、預期與實際結果、相關的 console 或網路錯誤。
+- **證據**：截圖路徑、從乾淨狀態開始的重現步驟、預期與實際結果、相關的 console 或網路錯誤。乾淨狀態是步驟 1 存下的 `checkpoint.json`，用 `restore` 回到那個分頁狀態。
 
 ## 執行目錄
 
 所有產出都寫在 `.frontend-qa/<YYYY-MM-DD>-<slug>/`：
 
 ```
-coverage.md  findings.md  ux-review.md  audit.md  advise.md  critic-verdicts.md  tool-track.md  unattributed.md  report.md  shots/
+coverage.md  findings.md  ux-review.md  audit.md  advise.md  critic-verdicts.md  tool-track.md  unattributed.md  report.md  shots/  checkpoint.json  repro/
 ```
 
 `audit.md` 只有 `audit` 會寫，`advise.md` 只有 `advise` 會寫。如果目前目錄是 git repo，就把 `.frontend-qa/` 加進 `.git/info/exclude`，讓這些產出不會被 commit。
@@ -39,7 +60,23 @@ coverage.md  findings.md  ux-review.md  audit.md  advise.md  critic-verdicts.md 
 
 ### 0. 範圍、面項與深度
 
-先確認以下項目。使用者已經講過的就直接沿用，沒講的一次問完：
+先做環境檢查。沒有通過就**停止**，告訴使用者缺什麼、怎麼取得，不要改用其他瀏覽器工具繼續。
+
+```bash
+CDP_DIR="$(readlink -f ~/.claude/skills/chrome-cdp-ex 2>/dev/null || true)"
+test -x "$CDP_DIR/bin/chrome-cdp"
+"$CDP_DIR/bin/chrome-cdp" doctor --format json
+git -C "$CDP_DIR" rev-parse --short HEAD
+git -C "$CDP_DIR" remote get-url origin
+```
+
+- `~/.claude/skills/chrome-cdp-ex` 不存在，或裡面沒有可執行的 `bin/chrome-cdp`：停止。說明需要 chrome-cdp-ex v2.21.0 以上、Node 22，並給出「需求」一節的取得方式和放置位置。
+- `doctor --format json` 跑不起來，或 JSON 裡任一個 `checks[].status` 是 `FAIL`（`readiness` 為 `blocked`）：停止。指出失敗那幾項的 `label`、`detail`、`hint`。Node 低於 22 時，Node 這項就是 `FAIL`。不要改連另一個瀏覽器。
+- 版本：從 `CDP_DIR` 往上找 `"name": "pi-chrome-cdp"` 的 `package.json`，讀 `version`。讀不到，或低於 2.21.0：停止，請使用者更新到 v2.21.0 以上。`git` 兩行只用來記 commit 和 issue repo；tarball 沒有 git 時 commit 寫「未知」，repo 用 `https://github.com/EndeavorYen/chrome-cdp-ex`。
+- stdout 若以 `daemon restarted:` 開頭，那一行不是 JSON，解析前先拿掉。
+- `doctor` 的結果寫進 `report.md` 開頭（見 [report-template.md](references/report-template.md#reportmd)）：版本、commit、每個 check 的 `label` 和 `status`、`readiness`。有目標分頁之後，再用 `eval <t> "navigator.userAgent"` 補上 Chrome 版本。
+
+通過之後才確認以下項目。使用者已經講過的就直接沿用，沒講的一次問完：
 
 - 目標 URL 或分頁、測試帳號、環境（正式環境 / staging / 本機）
 - 範圍：整個 app、某個流程，或某幾頁
@@ -59,12 +96,12 @@ coverage.md  findings.md  ux-review.md  audit.md  advise.md  critic-verdicts.md 
 
 - **面項**：沒指定就用該深度的預設組合（見 [depth.md](references/depth.md#預設面項)）。使用者指定的面項會覆蓋預設，例如「深度 2，加開設計師」或「只測亂點和惡劣環境」
 - 視窗尺寸：依深度的預設
-- 工具軌：用 chrome-cdp-ex 驅動時預設開啟；使用者說不要就關閉
+- 工具軌：預設開啟；使用者說不要就關閉。做法見 [tool-track.md](references/tool-track.md)
 - 執行模式：單一 session 或分 session。分 session 要先取得同意，問法和無人值守時的規則見 [sessions.md](references/sessions.md#取得同意)
 
 工具軌開啟時，要記錄工具版本，做法見 [tool-track.md](references/tool-track.md#版本)。
 
-完成條件：執行目錄已建立；`report.md` 開頭寫好範圍、環境、禁止動作、深度、開啟的面項、視窗尺寸、執行模式、入口，以及工具版本（工具軌開啟時）。
+完成條件：環境檢查已通過，否則已經停止並說明取得方式；執行目錄已建立；`report.md` 開頭寫好 `doctor` 結果和 chrome-cdp-ex 版本，以及範圍、環境、禁止動作、深度、開啟的面項、視窗尺寸、執行模式、入口，以及工具版本（工具軌開啟時）。
 
 入口不是 `完整` 時，接下來全部照 [modes.md](references/modes.md)，不要做下面的步驟 1–6。
 
@@ -82,9 +119,17 @@ coverage.md  findings.md  ux-review.md  audit.md  advise.md  critic-verdicts.md 
 - 無人值守：直接開始。
 - 使用者給了成本上限，而估算超過上限：先提出要縮減哪些面項或畫面。
 
-接著照 [probe.md](references/probe.md) 寫 `probe.json`，跑探測腳本，把確認過的結果寫進 `findings.md`。環境不符合時（沒有 CDP 或 Node 22）就跳過，並在 `report.md` 寫明原因。
+接著照 [probe.md](references/probe.md) 寫 `probe.json`，跑探測腳本，把確認過的結果寫進 `findings.md`。步驟 0 已經確認 chrome-cdp-ex。探測另外需要 `CDP_PORT`（或 `probe.json` 的 `cdpPort`）和至少一個測試輪；不符合就跳過，在 `report.md` 寫明原因，該項檢查改由測試輪用 chrome-cdp-ex 做。
 
-完成條件：`coverage.md` 列出範圍內每個畫面和流程步驟；完整模式每格都是 `☐`，增量模式照 [memory.md](references/memory.md#步驟-1) 的規則填；`report.md` 寫好估算結果；探測已經跑完並解讀，或已寫明跳過的原因。
+登入並偵察完、開始測試輪之前，在已經登入的那個分頁存乾淨狀態。v2.21.0 的 `checkpoint <t> --format json` 會遮掉 cookie 值和敏感 storage，`restore` 會跳過這些 cookie，登入狀態回不來。要能還原這次登入，必須加 `--unsafe-full`：
+
+```bash
+"$CDP_DIR/bin/chrome-cdp" checkpoint <t> --unsafe-full --format json > .frontend-qa/<run>/checkpoint.json
+```
+
+stdout 若以 `daemon restarted:` 開頭，存檔前拿掉那一行，留下的 JSON 要是 `chrome-cdp-ex.checkpoint.v1`。這個檔含有未遮罩的 cookie 和 storage，只能放在執行目錄：不要複製到 `.frontend-qa/state/`，不要寫進對外的 issue。`checkpoint` 不會還原後端資料。
+
+完成條件：`coverage.md` 列出範圍內每個畫面和流程步驟；完整模式每格都是 `☐`，增量模式照 [memory.md](references/memory.md#步驟-1) 的規則填；`report.md` 寫好估算結果；探測已經跑完並解讀，或已寫明跳過的原因；`checkpoint.json` 已寫入執行目錄。
 
 ### 2. 分輪測試
 
@@ -108,7 +153,7 @@ coverage.md  findings.md  ux-review.md  audit.md  advise.md  critic-verdicts.md 
 
 先照 [critic.md](references/critic.md) 跑 Critic 關卡，逐條驗證 `findings.md`，刪掉不成立的、改寫部分成立的。接著整理 `findings.md`：合併重複的問題（分 session 執行時，各輪只看得到標題，去重規則見 [sessions.md](references/sessions.md#合併與去重)），照 [severity.md](references/severity.md) 標上 P0–P3 和類別，再照 [report-template.md](references/report-template.md#reportmd) 寫出 `report.md`。
 
-完成條件：執行目錄有 `critic-verdicts.md`，每個 finding 都有判定，`待確認` 都已經由主 session 處理完；`ux-review.md` 中 3 分以下的分數，引用的 F 編號都還在 `findings.md` 裡；`report.md` 包含以下內容：Critic 的方式與判定統計、嚴重度統計、已知問題狀態（增量模式時）、最嚴重的 5 個問題、UI/UX 體檢摘要（體檢有開時）、按畫面分組的完整清單、覆蓋率（✅ / ➖ / ⛔ 各幾格）、未歸因清單，以及估算和實際成本的對照。每個問題都有證據；每個 P0、P1 都有重現腳本；沒有執行的，寫明原因。每個「不是問題」的結論（`critic-verdicts.md` 的 `不成立`、`unattributed.md` 的每一筆、清掉的檢查）都附上截圖路徑、重現腳本或探測結果至少一種。清掉的檢查寫在該列唯一的「備註」欄，格式見 [report-template.md](references/report-template.md#coveragemd)。普通的 `✅` 不必附路徑。每一筆失敗都寫了原因，並附一條可執行的下一步指令。
+完成條件：執行目錄有 `critic-verdicts.md`，每個 finding 都有判定，`待確認` 都已經由主 session 處理完；`ux-review.md` 中 3 分以下的分數，引用的 F 編號都還在 `findings.md` 裡；`report.md` 包含以下內容：Critic 的方式與判定統計、嚴重度統計、已知問題狀態（增量模式時）、最嚴重的 5 個問題、UI/UX 體檢摘要（體檢有開時）、按畫面分組的完整清單、覆蓋率（✅ / ➖ / ⛔ 各幾格）、未歸因清單，以及估算和實際成本的對照。每個問題都有證據；每個 P0、P1 都有 `repro/F<n>.actions.json`，以及照 [repro.md](references/repro.md) 匯出的 Playwright spec；重播沒有跑的，寫明原因。每個「不是問題」的結論（`critic-verdicts.md` 的 `不成立`、`unattributed.md` 的每一筆、清掉的檢查）都附上截圖路徑、重現腳本或探測結果至少一種。清掉的檢查寫在該列唯一的「備註」欄，格式見 [report-template.md](references/report-template.md#coveragemd)。普通的 `✅` 不必附路徑。每一筆失敗都寫了原因，並附一條可執行的下一步指令。
 
 ### 5. 工具回報（工具軌開啟時才做）
 
@@ -141,9 +186,10 @@ coverage.md  findings.md  ux-review.md  audit.md  advise.md  critic-verdicts.md 
 - 每個產品問題都要有證據；拿不出證據的，就不算一個問題。每個問題都要有 `shots/` 的截圖（P3 也一樣）；P0、P1 還要有重現腳本。
 - 「不是問題」的結論也要有證據，至少一種：`shots/` 的截圖路徑、Playwright 重現腳本，或 `probe-result.json` 的那一筆。這包含 `critic-verdicts.md` 的 `不成立`，以及 `unattributed.md` 的每一筆。沒有證據就不能保留，也不能拿掉這個結論。
 - 覆蓋地圖的 `✅` 只代表那一輪跑完，不必每格附路徑。要附證據的是「清掉的檢查」：曾經懷疑是問題，查完決定不寫進 `findings.md`。證據只寫在該列的「備註」欄，不寫進輪次欄。格式，以及為什麼不要求每一格 `✅` 都附路徑，見 [report-template.md](references/report-template.md#coveragemd)。
-- P0 和 P1 必須從乾淨狀態重現兩次。深度 5 時，P2 也要重現兩次。
-- P0 和 P1 重現成功後，照 [repro.md](references/repro.md) 寫一份 Playwright 重現腳本，斷言寫修好之後應該成立的事。
-- 重現步驟要寫成別人照著做就能做出來的程度：起始 URL、登入身分、每一步的操作和輸入值。
+- P0 和 P1 必須從乾淨狀態重現兩次。深度 5 時，P2 也要重現兩次。乾淨狀態的做法：`restore <t> --file .frontend-qa/<run>/checkpoint.json --format json`，再 `perceive <t>`（`restore` 會讓舊的 `@ref` 失效），然後照步驟操作。不要另開瀏覽器，也不要重走登入。
+- `checkpoint` 不會還原後端資料。重現會寫入資料的問題時，規則和 [critic.md](references/critic.md#怎麼驗證) 的「有副作用的 finding」相同。
+- P0 和 P1 第二次重現成功後，照 [repro.md](references/repro.md) 存 `repro/F<n>.actions.json`，並匯出 Playwright spec。重播檔是主要的複驗方式；spec 是交給開發者或 CI 的格式。斷言寫修好之後應該成立的事。
+- 重現步驟要寫成別人照著做就能做出來的程度：起始 URL、登入身分、每一步的操作和輸入值。登入本身不寫進重播檔。
 - 「設計上就是這樣，但使用者會卡住」也算問題，要記錄下來。判斷時以使用者的感受為準，不要用程式碼替設計找理由。
 - 只用自己建立的資料測過的狀態，不能在覆蓋地圖上打勾，還要打開既有資料中對應型態的那一筆。
 

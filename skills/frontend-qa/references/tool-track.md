@@ -1,19 +1,10 @@
 # 工具軌（chrome-cdp-ex）
 
-工具軌記錄驅動工具本身的問題，最後整理成給工具 repo 的 issue。這份文件以 chrome-cdp-ex 為例；換成別的工具時，流程相同，只需要替換指令。
+工具軌記錄 chrome-cdp-ex 本身的問題，最後整理成給 [chrome-cdp-ex](https://github.com/EndeavorYen/chrome-cdp-ex) 的 issue。驅動瀏覽器只用這個工具。需要它新增功能時，照下面的收尾回報開 issue，不要在這個 skill 裡改工具。
 
 ## 版本
 
-步驟 0 時記錄，寫進 `report.md` 和 `tool-track.md` 的開頭：
-
-```bash
-CDP_DIR="$(readlink -f ~/.claude/skills/chrome-cdp-ex)"
-git -C "$CDP_DIR" rev-parse --short HEAD        # 工具版本
-git -C "$CDP_DIR" remote get-url origin          # issue 要發到的 repo
-"$CDP_DIR/bin/chrome-cdp" doctor                 # Node、Chrome、連線狀態
-```
-
-Chrome 版本用 `eval <t> "navigator.userAgent"` 取得。
+版本和 `doctor` 在步驟 0 已經檢查過，見 [SKILL.md](../SKILL.md#0-範圍面項與深度)。工具軌開啟時，把同一組值寫進 `tool-track.md` 開頭：chrome-cdp-ex 版本、`git rev-parse --short HEAD` 的 commit（沒有 git 就寫「未知」）、`git remote get-url origin`（沒有就寫 `https://github.com/EndeavorYen/chrome-cdp-ex`）。Chrome 版本在有目標分頁後用 `eval <t> "navigator.userAgent"` 取得。
 
 ## 歸因
 
@@ -75,7 +66,7 @@ Chrome 版本用 `eval <t> "navigator.userAgent"` 取得。
    ```
    如果已經有人回報過，就把這次的新資訊（版本、重現條件）準備成留言草稿，而不是開新 issue。
 3. **寫草稿**：照下方範本，把草稿寫在 `tool-track.md` 的 `## Issue 草稿` 底下。
-4. **去除敏感資訊**：被測網站的 URL、網域、帳號、頁面內容、截圖，都要換成通用描述（例如「一個有 sticky footer 的表單頁」）。重現步驟盡量改寫成公開網頁或最小 HTML 就能重現的版本。
+4. **去除敏感資訊**：被測網站的 URL、網域、帳號、頁面內容、截圖，都要換成通用描述（例如「一個有 sticky footer 的表單頁」）。重現步驟盡量改寫成公開網頁或最小 HTML 就能重現的版本。`checkpoint.json` 含 cookie 和 storage，不能放進 issue，也不能附在草稿裡。
 5. **使用者確認**：列出所有草稿（標題 + 新開 issue 或留言既有 issue），等使用者逐筆同意。
 6. **發出**：只發出使用者同意的那些，並把連結寫回對應的 T 編號。使用者決定不報的，標為「不報」。
 

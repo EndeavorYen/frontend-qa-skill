@@ -4,12 +4,11 @@
 
 ## 什麼時候跑
 
-步驟 1 的覆蓋地圖完成後、步驟 2 開始前跑一次。需要同時符合：
-- 用 chrome-cdp-ex（或其他 CDP 工具）驅動瀏覽器，而且知道 `CDP_PORT`
-- `node --version` 是 22 以上
+步驟 1 的覆蓋地圖完成後、步驟 2 開始前跑一次。步驟 0 已經確認 chrome-cdp-ex v2.21.0 以上和 Node 22。另外需要同時符合：
+- 知道 `CDP_PORT`，或在 `probe.json` 寫了 `cdpPort`
 - 至少開了一個測試輪，或入口是 `audit`
 
-不符合的話就跳過，照原本的測試輪手動檢查，並在 `report.md` 寫明沒有跑探測及原因。
+不符合的話就跳過，改由測試輪用 chrome-cdp-ex 手動檢查，並在 `report.md` 寫明沒有跑探測及原因。不要改用其他瀏覽器工具。
 
 ## 設定檔
 
@@ -111,7 +110,7 @@ stdout 只有一行摘要（各檢查的筆數），完整結果在 `probe-resul
 
 - 每一筆結果都要判斷是不是真的問題，再寫進 `findings.md`。證據寫 `probe-result.json` 中的那一筆，以及畫面代號。例如 `small-target` 會列出所有小於 44px 的元素，要合併成一筆，不要一個元素一筆
 - 同一個問題出現在多個尺寸或多個頁面時，合併成一筆
-- P0、P1 照證據規則，仍然要用 chrome-cdp-ex 從乾淨狀態重現兩次
+- P0、P1 照證據規則，仍然要用 chrome-cdp-ex 從乾淨狀態重現兩次。做法是 `restore <t> --file .frontend-qa/<run>/checkpoint.json --format json`，再 `perceive <t>`。
 - `probe-error` 記到工具軌或 `unattributed.md`。寫進 `unattributed.md` 的每一筆都要有證據，至少一種：`shots/` 的截圖路徑、重現腳本，或 `probe-result.json` 的那一筆（見 [report-template.md](report-template.md#unattributedmd)）。對應的檢查改回測試輪手動做
 - 在覆蓋地圖的備註寫「探測：<check 名稱>」，表示這一格已經有哪些檢查做過了
 

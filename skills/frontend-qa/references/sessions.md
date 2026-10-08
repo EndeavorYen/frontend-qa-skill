@@ -34,6 +34,7 @@
 
 - 執行目錄的路徑，以及 `coverage.md` 的內容
 - 步驟 0 的目標 URL 和分頁 id、測試帳號（含密碼或登入方式）、環境、範圍、禁止動作、視窗尺寸、深度，以及工具軌是否開啟
+- `checkpoint.json` 的路徑。回到乾淨狀態用 `restore <t> --file <路徑> --format json` 再 `perceive <t>`，不要重新登入，也不要改用其他瀏覽器工具。不要把這個檔的內容貼進 issue 或 `state/`
 - 體檢子 session 另外帶入體檢程度（輕 / 標準 / 深，依 [depth.md](depth.md#預設面項) 或使用者的指定）
 - 這一輪需要的 reference：
   - 測試輪：`personas.md` 開頭的說明和這一輪的段落、`severity.md`、`report-template.md` 的 findings.md 格式；`狀態` 這一輪再加 `state-checklist.md`

@@ -1,6 +1,6 @@
 # 角色與招式
 
-一輪只扮演一個角色。括號裡是 chrome-cdp-ex 的對應指令，`<t>` 代表目標分頁；完整語法以 chrome-cdp-ex 的 `references/commands.md` 為準。
+一輪只扮演一個角色。操作只用 chrome-cdp-ex，不換成其他瀏覽器工具。括號裡是它的指令，`<t>` 代表目標分頁；完整語法以 chrome-cdp-ex v2.21.0 以上的 `references/commands.md` 為準。下面出現的指令（`console --clear`、`eval`、`back`、`reload`、`viewport`、`fullshot`、`responsive-audit`、`styles`、`hover`、`emulate dark`、`emulate light`、`emulate --focus`、`press`、`throttle slow-3g`、`throttle offline`、`throttle off`、`mock add`、`clock freeze`、`clock offset`、`status --vitals`）都是這個版本有的。
 
 每一輪開始前先執行 `console <t> --clear`，這樣之後看到的 console 錯誤都是這一輪產生的。
 

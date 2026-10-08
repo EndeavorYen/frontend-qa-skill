@@ -1,18 +1,36 @@
-# 重現腳本
+# 重現
 
-P0 和 P1 除了文字的重現步驟，還要有一份 Playwright 重現腳本。之後要確認修好了沒有，直接跑腳本就好，不需要再派 agent 重測。
+P0 和 P1 除了文字的重現步驟，還要有兩份檔案。斷言都寫「**修好之後應該成立的事**」：bug 還在會失敗，bug 修好會通過。
 
-腳本的斷言寫「**修好之後應該成立的事**」，所以：
-- bug 還在：腳本失敗
-- bug 修好：腳本通過
+- `repro/F<n>.actions.json`：主要的重播檔。複驗用 chrome-cdp-ex 的 `replay`，不需要 LLM，也不需要安裝 Playwright。
+- `repro/F<n>.spec.ts`：`export-playwright` 匯出後再改過的 spec，交給開發者或 CI。寫法規則見下面「怎麼寫 spec」。
+
+`replay` 只會重做動作，不會判斷 bug 是否還在。重播之後要接一段斷言：`flow <t> "assert selector …; assert text …"`。
 
 ## 什麼時候寫
 
-P0、P1 第二次從乾淨狀態重現成功之後。檔案放在 `.frontend-qa/<run>/repro/F<n>.spec.ts`，F 編號和 `findings.md` 相同。沒有 Playwright 也要寫，只是不能執行。
+P0、P1 第二次從乾淨狀態重現成功之後。F 編號和 `findings.md` 相同。乾淨狀態是 `restore <t> --file .frontend-qa/<run>/checkpoint.json --format json`，然後 `perceive <t>`。
 
-## 怎麼寫
+## 重播檔
 
-1. 重現的時候用 chrome-cdp-ex 操作，結束後跑 `export-playwright <t>`，拿它的輸出當草稿。草稿通常**不能直接用**：
+`record-actions` 沒有「從現在開始錄」的旗標。它匯出這個分頁 daemon 從啟動到現在的整個 action log（schema `chrome-cdp-ex.record-actions.v1`）。要讓檔案只含這一次重現：
+
+1. `restore <t> --file .frontend-qa/<run>/checkpoint.json --format json`，再 `perceive <t>`。這時已經是登入後的乾淨狀態。
+2. 執行 `throttle <t> off` 和 `mock <t> clear`，清掉上一輪留下的設定。`stop` 之後新的 daemon 會套用 `cdp-<targetId>.env.json` 裡還留著的 throttle 和 mock。這次重現本身要用的 mock 或 throttle，留到 `stop` 之後再設。
+3. `stop <t>`。daemon 和它的 action log 會消失，分頁、cookie、網址還在。不要用 `closetab`。
+4. 只做這次重現的步驟，不要做登入。密碼欄位不要出現在這段裡。這次需要的 `mock <t> add …` 或 `throttle <t> …` 放在這些步驟前面，`record-actions` 會把它們放進 `environment`，`replay` 會先做。
+5. 存檔。stdout 若以 `daemon restarted:` 開頭，拿掉那一行再存，否則 `replay` 會報 invalid JSON：
+
+```bash
+"$CDP_DIR/bin/chrome-cdp" record-actions <t> --format json > .frontend-qa/<run>/repro/F<n>.actions.json
+"$CDP_DIR/bin/chrome-cdp" export-playwright <t> > .frontend-qa/<run>/repro/F<n>.spec.ts.draft
+```
+
+`record-actions` 會把密碼欄位寫成 `<redacted>`。`replay` 遇到這個值會跳過該步（reason 是 `redacted input`），不會填空字串，也不會把密碼填回去。所以重播檔必須從 `restore` 之後已登入的狀態開始錄，不包含登入步驟。存檔後確認沒有 `needsInput` 含 `text` 的 fill，而且 `replayable` 不是 false；有的話這份檔不能拿來複驗，改步驟再錄一次。
+
+## 怎麼寫 spec
+
+1. 上面 `export-playwright <t>` 的輸出當草稿（要 JSON 給另一個 agent 時加 `--format json`；寫 spec 用預設的文字輸出）。草稿通常**不能直接用**：
    - 可能少了登入步驟，也可能帶著登入時填的明文密碼。**刪掉草稿中的登入段落**，一律改用共用的 `repro/_login.ts`
    - `eval` 做的操作（例如連點）不會匯出
    - 沒有任何斷言
@@ -30,7 +48,7 @@ P0、P1 第二次從乾淨狀態重現成功之後。檔案放在 `.frontend-qa/
 
 需要 `@playwright/test` 1.51 以上（`filter({ visible: true })`）。
 
-5. 寫斷言，描述修好之後應該看到什麼。優先用「出現了什麼」的正向斷言；用「不見了」「數量是 0」這類否定斷言時，前面一定要有第 3 點的錨點。找文字時加上 `filter({ visible: true })`，因為表單常常預先埋了隱藏的錯誤元素：
+5. 寫斷言，描述修好之後應該看到什麼。優先用「出現了什麼」的正向斷言；用「不見了」「數量是 0」這類否定斷言時，前面一定要有第 3 點的錨點。找文字時加上 `filter({ visible: true })`，因為表單常常預先埋了隱藏的錯誤元素。同一件事要能寫成 `flow` 的斷言，見下一節：
 
 ```ts
 // 失敗時要有看得見的錯誤訊息
@@ -82,23 +100,63 @@ test('依到期日排序後，第一列是最早到期的專案', async ({ page 
 });
 ```
 
+## flow 的斷言
+
+v2.21.0 的 `flow` 只有三種斷言，判斷方式和 spec 不是同一個 API：
+
+| flow | 實際檢查 |
+|---|---|
+| `assert selector <css>` | `document.querySelector` 有匹配，包含隱藏元素 |
+| `assert selector-missing <css>` | 沒有匹配 |
+| `assert text <字串>` | `document.body.innerText` 包含這段字（不是正規表示式，也不是 exact） |
+
+`innerText` 不含 `display: none` 的文字，所以「出現看得見的錯誤訊息」可以寫成 `assert text 失敗`，對得上 spec 的 `getByText(...).filter({ visible: true })`。字串會匹配頁面上任何一處：spec 用 `exact: true` 避免「專案」匹配到「新增專案」時，flow 要寫更長的字串，或改用只在修好後才存在的 selector。
+
+對得上的例子：
+
+```bash
+"$CDP_DIR/bin/chrome-cdp" flow <t> "assert text 失敗" --format json
+"$CDP_DIR/bin/chrome-cdp" flow <t> "assert selector tbody tr:first-child; assert text 2026-01-03" --format json
+"$CDP_DIR/bin/chrome-cdp" flow <t> "assert text report.pdf" --format json
+```
+
+第二個例子的 `assert text` 仍是整頁包含，不是「只有第一列」。日期若也出現在別處，spec 保留 `tbody tr` 第一列的斷言，flow 改寫成修好後才匹配得到的 selector，並在 finding 寫明 flow 檢查的是哪一件事。
+
+請求次數、網址、`exact` 角色名稱，flow 表達不了。spec 保留原來的斷言。flow 改寫成修好之後畫面上看得到的文字或 selector，和 spec 要證明的是同一件事（例如連點修好後畫面上只有一筆新資料，而不是去數請求）。
+
+`flow` 的 `--format json` 在斷言失敗時，該步的 `failureKind` 是 `assertion`，而且指令非 0。
+
 ## 會寫入資料的腳本
 
-腳本會真的操作 app。會建立、修改資料，或觸發付款、寄信的腳本：
-- 第一行註解加上 `// 會寫入：<寫入什麼>`
-- 能只計數、不需要真的寫入的（例如連點檢查），用 `page.route` 攔截寫入請求，回一個假的成功回應
-- 遵守步驟 0 的禁止動作。正式環境不跑這類腳本
+重播檔和 spec 都會真的操作 app。會建立、修改資料，或觸發付款、寄信的項目：
+- spec 的第一行註解加上 `// 會寫入：<寫入什麼>`；重播檔在 finding 的「重播」那一行註明會寫入什麼
+- spec 能只計數、不需要真的寫入的（例如連點檢查），用 `page.route` 攔截寫入請求，回一個假的成功回應。重播檔要同樣不寫入時，重現過程改用 `mock <t> add <urlPattern> --status <code> --body <text>`，讓它進 `environment`
+- 遵守步驟 0 的禁止動作。正式環境不跑這類重播或腳本
 
-## 驗證腳本
+## 驗證
 
-寫完要確認腳本在**目前的 app 上會失敗**，而且失敗在「斷言」那一段，不是「前置」：
+寫完要在**目前的 app** 上確認：重播本身成功，失敗落在後面的 flow 斷言。先回到乾淨狀態，再重播，再斷言：
+
+```bash
+"$CDP_DIR/bin/chrome-cdp" restore <t> --file .frontend-qa/<run>/checkpoint.json --format json
+"$CDP_DIR/bin/chrome-cdp" replay <t> --file .frontend-qa/<run>/repro/F<n>.actions.json --format json
+"$CDP_DIR/bin/chrome-cdp" flow <t> "assert selector …; assert text …" --format json
+```
+
+`restore` 之後先 `perceive <t>` 再看畫面；`replay` 用的是 selector，不依賴 `@ref`。這三步不需要 LLM，也不需要 Playwright。
+
+| 結果 | 怎麼處理 | finding 的「重播」寫法 |
+|---|---|---|
+| `replay` 的 `failed` 是 0、`skipped` 是 0，flow 的 `failureKind` 是 `assertion` | 符合預期 | `repro/F<n>.actions.json`（replay 通過，flow 斷言失敗，符合預期） |
+| flow 通過 | 斷言沒有抓到 bug，改寫 flow 和 spec 的斷言 | — |
+| `replay` 有 `failed` 或 `skipped` | 重播檔或乾淨狀態不對（含密碼被遮蔽），修好再跑 | — |
+
+spec 另外照下面確認。沒有 Playwright 時，複驗仍然用上面的 `replay` 加 flow，spec 標未執行即可。`QA_PASSWORD` 要事先放在環境變數裡，不要直接寫在指令上，否則密碼會留在對話紀錄。spec 不包含登入段落，密碼只活在 `_login.ts` 讀到的環境變數裡。
 
 ```bash
 cd .frontend-qa/<run>/repro && npx --no-install playwright --version   # 要 1.51 以上
 cd .frontend-qa/<run>/repro && BASE_URL=<網址> npx --no-install playwright test --reporter=line
 ```
-
-`QA_PASSWORD` 要事先放在環境變數裡，不要直接寫在指令上，否則密碼會留在對話紀錄。
 
 | 結果 | 怎麼處理 | finding 的「重現腳本」寫法 |
 |---|---|---|
@@ -112,13 +170,26 @@ cd .frontend-qa/<run>/repro && BASE_URL=<網址> npx --no-install playwright tes
 
 ## 複驗
 
-使用者要確認問題修好了沒有時，先確認版本是 1.51 以上，再跑全部腳本，不需要重新測試：
+使用者要確認問題修好了沒有時，不需要重新測試，也不需要 Playwright。每個 P0、P1：
+
+```bash
+"$CDP_DIR/bin/chrome-cdp" restore <t> --file .frontend-qa/<run>/checkpoint.json --format json
+"$CDP_DIR/bin/chrome-cdp" replay <t> --file .frontend-qa/<run>/repro/F<n>.actions.json --format json
+"$CDP_DIR/bin/chrome-cdp" flow <t> "assert selector …; assert text …" --format json
+```
+
+- `replay` 成功且 flow 通過：標成「已修」
+- `replay` 成功且 flow 的 `failureKind` 是 `assertion`：標成「仍存在」
+- `replay` 失敗或被跳過：可能是畫面改版或乾淨狀態已不能還原，交給 agent 照文字重現步驟判斷，必要時更新重播檔
+- 會寫入資料的項目，只在非正式環境跑；正式環境照 [critic.md](critic.md#怎麼驗證) 的「有副作用的 finding」
+
+spec 可以另跑，作為交給 CI 的同一份斷言。沒有 Playwright 時跳過這段，不影響上面的複驗：
 
 ```bash
 cd .frontend-qa/<run>/repro && BASE_URL=<網址> npx --no-install playwright test --reporter=json > result.json
 ```
 
-- 通過：標成「已修」
+- 通過：和 flow 一致才標成「已修」
 - 失敗在「斷言」：標成「仍存在」
 - 失敗在「前置」：可能是畫面改版，交給 agent 照文字重現步驟判斷，必要時更新腳本
 - 第一行有 `// 會寫入` 的腳本，只在非正式環境跑
