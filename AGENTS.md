@@ -6,8 +6,8 @@ This section is the authoritative source for what `frontend-qa` is for. `skills/
 
 The skill catches real front-end bugs. It does not invent bugs, and it does not miss bugs it claims to have checked.
 
-- A product finding in `findings.md` counts only with evidence attached: a screenshot path under `shots/`, a Playwright repro spec (P0 and P1, as `references/repro.md` requires), or a probe result from `scripts/probe.mjs`. No evidence means it is not a finding.
-- A conclusion that something is not a bug — a Critic rejection in `critic-verdicts.md`, an `unattributed.md` entry, or a cleared check — cites the same kinds of evidence. Do not keep or drop a conclusion you cannot point at.
+- A product finding in `findings.md` counts only with evidence attached. The minimum is one of these: a screenshot path under `shots/`, a Playwright repro spec, or a probe result from `skills/frontend-qa/scripts/probe.mjs`. No evidence means it is not a finding. That list is a minimum. The skill's own rules are stricter and still apply: every finding needs a screenshot, including P3, and P0 and P1 also need a Playwright repro spec. See 證據規則 in [`skills/frontend-qa/SKILL.md`](skills/frontend-qa/SKILL.md#證據規則) and [`skills/frontend-qa/references/report-template.md`](skills/frontend-qa/references/report-template.md#findingsmd).
+- A conclusion that something is not a bug — a Critic rejection in `critic-verdicts.md`, an `unattributed.md` entry, or a cleared check — cites at least one of those same kinds of evidence (a screenshot path, a repro spec, or a probe result). Do not keep or drop a conclusion you cannot point at.
 - False positives and false negatives both fail this goal. On the seeded app, score them the way `evals/README.md` and `evals/seeded-app/ANSWER-KEY.md` already do: total catch rate, P0+P1 catch rate, and the false-positive count. Do not claim a detection change worked without those numbers, or without a stated reason the eval does not apply.
 - A coverage cell is `✅` only after that check ran. `➖` and `⛔` include the reason the skill already requires.
 
@@ -17,14 +17,14 @@ Prefer fewer steps, fewer tokens, and faster runs.
 
 - Do not add a workflow step, tool call, or output section that does not change a decision the run already records (finding, coverage cell, UX score, attribution, or cost line).
 - Any change to the workflow, or to an output the skill writes (`coverage.md`, `findings.md`, `ux-review.md`, `critic-verdicts.md`, `tool-track.md`, `unattributed.md`, `report.md`, or probe output), reports before and after for steps, tokens, and time. When an eval covers the change, cite the before numbers from `evals/results/` and put the after numbers in a new file there. Published results record turns, minutes, and US$; they do not record tokens. State the token counts from the run log, or write that the log has no token count.
-- Keep the trimming rules already in `SKILL.md`: filtered page reads, evidence screenshots stored under `shots/` and not read back into the transcript, and `scripts/probe.mjs` for checks that do not need a judgment.
+- Keep the trimming rules already in `skills/frontend-qa/SKILL.md`: filtered page reads, evidence screenshots stored under `shots/` and not read back into the transcript, and `skills/frontend-qa/scripts/probe.mjs` for checks that do not need a judgment.
 
 ### Easy for agents
 
 An agent can execute the skill as written, without guessing.
 
 - Every step in `skills/frontend-qa/SKILL.md` and `skills/frontend-qa/references/` names the file to write, the command to run, and the completion check. An instruction that needs unstated interpretation is a defect.
-- Output formats stay stable. A change to a heading, table column, or filename in the run directory updates `references/report-template.md` and every reference that writes that file in the same change.
+- Output formats stay stable. A change to a heading, table column, or filename in the run directory updates `skills/frontend-qa/references/report-template.md` and every file under `skills/frontend-qa/references/` that writes that file in the same change.
 - On failure, say the cause and give one runnable next-step command (the probe command, the repro command in `evals/repro/README.md`, or the exact driver command that failed).
 
 ### Trade-off order

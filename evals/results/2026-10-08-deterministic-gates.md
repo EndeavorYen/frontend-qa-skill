@@ -41,6 +41,6 @@ BASE_URL=http://localhost:<port> npx playwright test -c evals/repro
 | 原版（`:4190`） | ✘ | ✘ | ✘ | ✘ | ✘ |
 | 只修 B1（`:4191`） | ✓ | ✘ | ✘ | ✘ | ✘ |
 
-原版 5 份都失敗在斷言；只修 B1 時只有 F1 通過（[原版輸出](2026-10-08-deterministic-gates-artifacts/repro-original.txt)、[修 B1 輸出](2026-10-08-deterministic-gates-artifacts/repro-fix-b1.txt)）。
+原版 5 份都失敗在斷言；只修 B1 時只有 F1 通過。連結的兩份 txt 是節錄（只保留 ✘/✓ 行、`Error:` 行和總結），不是 reporter 的完整輸出：[原版輸出節錄](2026-10-08-deterministic-gates-artifacts/repro-original.txt)、[修 B1 輸出節錄](2026-10-08-deterministic-gates-artifacts/repro-fix-b1.txt)。
 
 這 5 份是照 `repro.md` 手寫的範例。#10 剩下的關卡是 agent 在 QA 執行中**自己寫出**的 spec：2026-10-06 grok47-b20-retest 的 findings 有寫 `repro/F1.spec.ts`…`F8.spec.ts`，但標「未執行：沒有 Playwright」，檔案也沒有放進評測產物，所以還不能計分。下一次評測要把 agent 寫的 `repro/` 一起收進產物，再用上面的指令對原版和 `fix-b1` 各跑一次。

@@ -100,7 +100,7 @@ coverage.md  findings.md  ux-review.md  critic-verdicts.md  tool-track.md  unatt
 
 先照 [critic.md](references/critic.md) 跑 Critic 關卡，逐條驗證 `findings.md`，刪掉不成立的、改寫部分成立的。接著整理 `findings.md`：合併重複的問題（分 session 執行時，各輪只看得到標題，去重規則見 [sessions.md](references/sessions.md#合併與去重)），照 [severity.md](references/severity.md) 標上 P0–P3 和類別，再照 [report-template.md](references/report-template.md#reportmd) 寫出 `report.md`。
 
-完成條件：執行目錄有 `critic-verdicts.md`，每個 finding 都有判定，`待確認` 都已經由主 session 處理完；`ux-review.md` 中 3 分以下的分數，引用的 F 編號都還在 `findings.md` 裡；`report.md` 包含以下內容：Critic 的方式與判定統計、嚴重度統計、已知問題狀態（增量模式時）、最嚴重的 5 個問題、UI/UX 體檢摘要（體檢有開時）、按畫面分組的完整清單、覆蓋率（✅ / ➖ / ⛔ 各幾格）、未歸因清單，以及估算和實際成本的對照。每個問題都有證據；每個 P0、P1 都有重現腳本；沒有執行的，寫明原因。
+完成條件：執行目錄有 `critic-verdicts.md`，每個 finding 都有判定，`待確認` 都已經由主 session 處理完；`ux-review.md` 中 3 分以下的分數，引用的 F 編號都還在 `findings.md` 裡；`report.md` 包含以下內容：Critic 的方式與判定統計、嚴重度統計、已知問題狀態（增量模式時）、最嚴重的 5 個問題、UI/UX 體檢摘要（體檢有開時）、按畫面分組的完整清單、覆蓋率（✅ / ➖ / ⛔ 各幾格）、未歸因清單，以及估算和實際成本的對照。每個問題都有證據；每個 P0、P1 都有重現腳本；沒有執行的，寫明原因。每個「不是問題」的結論（`critic-verdicts.md` 的 `不成立`、`unattributed.md` 的每一筆、查過但沒寫進 `findings.md` 的檢查）都附上截圖路徑、重現腳本或探測結果至少一種。每一筆失敗都寫了原因，並附一條可執行的下一步指令。
 
 ### 5. 工具回報（工具軌開啟時才做）
 
@@ -126,16 +126,25 @@ coverage.md  findings.md  ux-review.md  critic-verdicts.md  tool-track.md  unatt
 1. 換一條路重試：用另一種操作方式，或讀 DOM 狀態（截圖只存證，見「截圖規則」）。chrome-cdp-ex 的具體做法見 [tool-track.md](references/tool-track.md#歸因)。
 2. 換路後成功 → 記到工具軌，寫明用了什麼替代方法，然後用替代方法繼續測。
 3. 換路後同樣失敗，而且頁面狀態（DOM、截圖、console）也顯示有問題 → 記到產品軌。
-4. 還是判斷不出來 → 寫進 `unattributed.md`，然後繼續測。
+4. 還是判斷不出來 → 寫進 `unattributed.md`，附上截圖路徑、重現腳本或探測結果至少一種，然後繼續測。若是因為指令失敗才寫的，同一筆再附一條可執行的下一步指令（見「失敗時」）。
 
 ## 證據規則
 
-- 每個產品問題都要有證據；拿不出證據的，就不算一個問題。
+- 每個產品問題都要有證據；拿不出證據的，就不算一個問題。每個問題都要有 `shots/` 的截圖（P3 也一樣）；P0、P1 還要有重現腳本。
+- 「不是問題」的結論也要有證據，至少一種：`shots/` 的截圖路徑、Playwright 重現腳本，或 `probe-result.json` 的那一筆。這包含 `critic-verdicts.md` 的 `不成立`、`unattributed.md` 的每一筆，以及查過但沒有寫成問題的檢查（證據寫在 `coverage.md` 該格的備註）。沒有證據就不能保留，也不能拿掉這個結論。
 - P0 和 P1 必須從乾淨狀態重現兩次。深度 5 時，P2 也要重現兩次。
 - P0 和 P1 重現成功後，照 [repro.md](references/repro.md) 寫一份 Playwright 重現腳本，斷言寫修好之後應該成立的事。
 - 重現步驟要寫成別人照著做就能做出來的程度：起始 URL、登入身分、每一步的操作和輸入值。
 - 「設計上就是這樣，但使用者會卡住」也算問題，要記錄下來。判斷時以使用者的感受為準，不要用程式碼替設計找理由。
 - 只用自己建立的資料測過的狀態，不能在覆蓋地圖上打勾，還要打開既有資料中對應型態的那一筆。
+
+## 失敗時
+
+任何失敗（驅動指令報錯、重現沒有出現、探測中斷、Critic 沒有做完）都要寫明原因，並給一條可以直接複製執行的下一步指令，三選一：
+
+- 探測：`CDP_PORT=<port> node skills/frontend-qa/scripts/probe.mjs <probe.json> --out <probe-result.json>`
+- 重現：`BASE_URL=<網址> npx playwright test -c <repo>/evals/repro`（見 `evals/repro/README.md`），或該筆 finding 的 `cd .frontend-qa/<run>/repro && BASE_URL=<網址> npx --no-install playwright test --reporter=line`（見 [repro.md](references/repro.md#驗證腳本)）
+- 剛剛失敗的那一條驅動指令，原樣再寫一次
 
 ## 輸出精簡規則
 
