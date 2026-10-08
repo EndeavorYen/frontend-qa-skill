@@ -7,7 +7,7 @@
 步驟 1 的覆蓋地圖完成後、步驟 2 開始前跑一次。需要同時符合：
 - 用 chrome-cdp-ex（或其他 CDP 工具）驅動瀏覽器，而且知道 `CDP_PORT`
 - `node --version` 是 22 以上
-- 至少開了一個測試輪
+- 至少開了一個測試輪，或入口是 `audit`
 
 不符合的話就跳過，照原本的測試輪手動檢查，並在 `report.md` 寫明沒有跑探測及原因。
 
@@ -94,6 +94,18 @@ stdout 只有一行摘要（各檢查的筆數），完整結果在 `probe-resul
 | `no-feedback` | 離線或 API 回 500 時送出，畫面和網址都沒有任何變化 |
 | `no-error-message` | 同上，畫面有變化，但沒有出現錯誤訊息（例如直接跳到別的頁面） |
 | `skipped`、`probe-error` | 略過的檢查和腳本本身的錯誤，不是產品問題 |
+| `multiple-primary-buttons` | 同一區塊有兩顆以上一樣重的實心按鈕。條件見 [anti-patterns.md](anti-patterns.md) |
+| `placeholder-as-label` | 輸入框只用 placeholder，沒有 label |
+| `generic-dialog-actions` | 問句對話框的按鈕只有「確定 / 取消」這類泛用詞 |
+| `color-only-status` | 只用顏色點區分狀態，沒有文字 |
+| `gray-on-color` | 灰字放在彩色背景上 |
+| `nested-cards` | 卡片裡又包卡片 |
+| `centered-long-text` | 長段落置中 |
+| `empty-state-no-action` | 空狀態只有「無資料」，沒有下一步 |
+| `vague-error` | 錯誤訊息只有「發生錯誤」 |
+| `destructive-looks-primary` | 破壞性按鈕和主要按鈕外觀相同 |
+
+這 10 個 check 的程式在 [`scripts/anti-patterns.js`](../scripts/anti-patterns.js)，和 [ux-review.md](ux-review.md#反模式檢查) 是同一份。每個命中列的元素寫成 `selector "可見文字"`。跑完探測後，把這次的 `probe.json` 複製到 `.frontend-qa/state/probe.json`。`audit` 看到這份就直接用，見 [modes.md](modes.md#audit)。
 
 ## 解讀結果
 
