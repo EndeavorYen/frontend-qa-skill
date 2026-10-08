@@ -1,0 +1,12 @@
+  ✘  2 evals/repro/F2.spec.ts:5:5 › 手機上送出按鈕的中心點沒有被其他元素蓋住 (440ms)
+  ✓  1 evals/repro/F1.spec.ts:4:5 › 連點送出只會建立一筆訂單 (1.6s)
+  ✘  4 evals/repro/F3.spec.ts:4:5 › 列表 API 回 500 時，5 秒內不再顯示載入中 (5.5s)
+  ✘  3 evals/repro/F20.spec.ts:4:5 › 離線送出時 5 秒內出現看得見的錯誤訊息 (5.6s)
+  ✘  5 evals/repro/F6.spec.ts:4:5 › 儲存的顯示名稱在重新整理後仍然保留 (5.4s)
+    Error: expect(received).toBe(expected) // Object.is equality
+    Error: expect(locator).toBeVisible() failed
+    Error: element(s) not found
+    Error: expect(locator).toHaveCount(expected) failed
+    Error: expect(locator).toHaveValue(expected) failed
+  4 failed
+  1 passed (7.1s)
