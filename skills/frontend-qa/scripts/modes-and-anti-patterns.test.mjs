@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import net from 'node:net';
 import { dirname, join, resolve } from 'node:path';
@@ -40,7 +41,7 @@ const NAMES = [
   '表單送出後沒有任何狀態變化',
 ];
 
-const HIT_HTML = `<!doctype html><html><body style="background:#fff">
+const HIT_HTML = `<!doctype html><html><head><meta charset="utf-8"></head><body style="background:#fff">
   <div id="primaries">
     <button style="background:#2563eb;color:#fff">新增</button>
     <button style="background:#2563eb;color:#fff">匯出</button>
@@ -67,7 +68,7 @@ const HIT_HTML = `<!doctype html><html><body style="background:#fff">
   </div>
 </body></html>`;
 
-const CLEAN_HTML = `<!doctype html><html><body style="background:#fff;color:#111">
+const CLEAN_HTML = `<!doctype html><html><head><meta charset="utf-8"></head><body style="background:#fff;color:#111">
   <div>
     <button style="background:#2563eb;color:#fff">新增專案</button>
     <button style="background:#fff;color:#2563eb;border:1px solid #2563eb">匯出</button>
@@ -254,6 +255,8 @@ test('eval anti-patterns fire on a hit page and stay quiet on a clean page', { t
     const result = await evaluateBoth(version.webSocketDebuggerUrl, source);
     const hit = Object.fromEntries(CHECKS.map(([key, id]) => [id, result.hit[key]]));
     console.log(JSON.stringify({ hit }));
+    assert.equal(result.hit.warning, null);
+    assert.equal(result.clean.warning, null);
     for (const [key] of CHECKS) {
       assert.ok(Array.isArray(result.hit[key]) && result.hit[key].length >= 1, `${key} missed: ${JSON.stringify(result.hit[key])}`);
       assert.ok(result.hit[key].every((item) => /"/.test(item)), `${key} item has no element text`);
@@ -261,6 +264,76 @@ test('eval anti-patterns fire on a hit page and stay quiet on a clean page', { t
     }
   } finally {
     chrome.kill('SIGKILL');
+    for (let attempt = 0; attempt < 20; attempt++) {
+      try {
+        rmSync(dataDir, { recursive: true, force: true });
+        break;
+      } catch (err) {
+        if (err.code !== 'ENOTEMPTY' || attempt === 19) throw err;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+    }
+  }
+});
+
+const LATIN1_HTML = `<!doctype html><html><head><meta charset="windows-1252"></head><body style="background:#fff">
+  <div>
+    <button style="background:#2563eb;color:#fff">Export</button>
+    <button style="background:#2563eb;color:#fff">More</button>
+  </div>
+  <div role="dialog" aria-modal="true" style="display:block;width:320px;padding:12px;background:#fff">
+    <p>Are you sure?</p>
+    <button>OK</button><button>Cancel</button>
+  </div>
+  <div id="empty"><p>no data</p></div>
+  <p id="err">error</p>
+  <div>
+    <button style="background:#2563eb;color:#fff">save</button>
+    <button style="background:#2563eb;color:#fff">delete</button>
+  </div>
+</body></html>`;
+
+test('non-UTF-8 pages warn and skip text checks', { timeout: 30000 }, async () => {
+  const source = read('scripts/anti-patterns.js');
+  assert.match(source, /document\.characterSet/);
+  assert.match(read('scripts/probe.mjs'), /ap\?\.warning/);
+  assert.match(read('scripts/probe.mjs'), /text-checks-skipped/);
+  assert.match(read('references/probe.md'), /text-checks-skipped/);
+  const httpPort = await freePort();
+  const server = createServer((_req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=windows-1252' });
+    res.end(LATIN1_HTML);
+  });
+  await new Promise((resolveListen) => server.listen(httpPort, '127.0.0.1', resolveListen));
+  const cdpPort = await freePort();
+  const dataDir = mkdtempSync(join(tmpdir(), 'qa-chrome-'));
+  const chrome = spawn('google-chrome', [
+    '--headless=new',
+    '--disable-gpu',
+    '--no-sandbox',
+    `--remote-debugging-port=${cdpPort}`,
+    `--user-data-dir=${dataDir}`,
+    'about:blank',
+  ], { stdio: 'ignore' });
+  try {
+    const version = await waitFor(async () => {
+      const res = await fetch(`http://127.0.0.1:${cdpPort}/json/version`);
+      if (!res.ok) throw new Error(String(res.status));
+      return res.json();
+    });
+    const page = await evaluateUrl(version.webSocketDebuggerUrl, source, `http://127.0.0.1:${httpPort}/`);
+    assert.notEqual(String(page.charset).toLowerCase(), 'utf-8');
+    assert.equal(typeof page.result.warning, 'string');
+    assert.match(page.result.warning, new RegExp(page.charset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.match(page.result.warning, /不是 UTF-8/);
+    assert.match(page.result.warning, /已略過文字比對/);
+    for (const key of ['genericDialogActions', 'emptyStateNoAction', 'vagueError', 'destructiveLooksPrimary']) {
+      assert.deepEqual(page.result[key], [], `${key} ran on a non-UTF-8 page`);
+    }
+    assert.ok(page.result.multiplePrimaryButtons.length >= 1, 'non-text checks should still run');
+  } finally {
+    chrome.kill('SIGKILL');
+    await new Promise((resolveClose) => server.close(resolveClose));
     for (let attempt = 0; attempt < 20; attempt++) {
       try {
         rmSync(dataDir, { recursive: true, force: true });
@@ -314,6 +387,50 @@ async function evaluateBoth(wsUrl, source) {
     const clean = await run(CLEAN_HTML);
     await send('Target.closeTarget', { targetId });
     return { hit, clean };
+  } finally {
+    ws.close();
+  }
+}
+
+async function evaluateUrl(wsUrl, source, url) {
+  const ws = new WebSocket(wsUrl);
+  await new Promise((resolveOpen, reject) => {
+    ws.addEventListener('open', resolveOpen, { once: true });
+    ws.addEventListener('error', () => reject(new Error('CDP websocket failed')), { once: true });
+  });
+  let id = 0;
+  const pending = new Map();
+  ws.addEventListener('message', (event) => {
+    const msg = JSON.parse(event.data);
+    if (msg.id && pending.has(msg.id)) {
+      const { resolve, reject } = pending.get(msg.id);
+      pending.delete(msg.id);
+      msg.error ? reject(new Error(msg.error.message)) : resolve(msg.result);
+    }
+  });
+  const send = (method, params = {}, sessionId) => new Promise((resolveSend, rejectSend) => {
+    const msgId = ++id;
+    pending.set(msgId, { resolve: resolveSend, reject: rejectSend });
+    ws.send(JSON.stringify({ id: msgId, method, params, ...(sessionId ? { sessionId } : {}) }));
+  });
+  try {
+    const { targetId } = await send('Target.createTarget', { url });
+    const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true });
+    await send('Page.enable', {}, sessionId);
+    await send('Runtime.enable', {}, sessionId);
+    await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false }, sessionId);
+    await waitFor(async () => {
+      const ready = await send('Runtime.evaluate', { expression: 'document.readyState', returnByValue: true }, sessionId);
+      if (ready.result.value !== 'complete') throw new Error(ready.result.value);
+      return true;
+    });
+    const charsetEval = await send('Runtime.evaluate', { expression: 'document.characterSet', returnByValue: true }, sessionId);
+    const evaluated = await send('Runtime.evaluate', { expression: source, returnByValue: true }, sessionId);
+    if (evaluated.exceptionDetails) {
+      throw new Error(evaluated.exceptionDetails.exception?.description || evaluated.exceptionDetails.text);
+    }
+    await send('Target.closeTarget', { targetId });
+    return { charset: charsetEval.result.value, result: evaluated.result.value };
   } finally {
     ws.close();
   }

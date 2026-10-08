@@ -67,6 +67,8 @@
 
 ## 執行
 
+`<skill 目錄>` 見 [SKILL.md](../SKILL.md#名詞)。
+
 ```bash
 CDP_PORT=<port> node <skill 目錄>/scripts/probe.mjs .frontend-qa/<run>/probe.json --out .frontend-qa/<run>/probe-result.json
 ```
@@ -103,14 +105,15 @@ stdout 只有一行摘要（各檢查的筆數），完整結果在 `probe-resul
 | `empty-state-no-action` | 空狀態只有「無資料」，沒有下一步 |
 | `vague-error` | 錯誤訊息只有「發生錯誤」 |
 | `destructive-looks-primary` | 破壞性按鈕和主要按鈕外觀相同 |
+| `text-checks-skipped` | 頁面不是 UTF-8。不是產品缺陷。`generic-dialog-actions`、`empty-state-no-action`、`vague-error`、`destructive-looks-primary` 沒有跑，空結果不能當成沒有命中 |
 
-這 10 個 check 的程式只在 [`scripts/anti-patterns.js`](../scripts/anti-patterns.js)。手動重跑見 [ux-review.md](ux-review.md#反模式檢查)。每個命中列的元素寫成 `selector "可見文字"`。跑完探測後，把這次的 `probe.json` 複製到 `.frontend-qa/state/probe.json`。`audit` 看到這份就直接用，見 [modes.md](modes.md#audit)。
+這 10 個 check 的程式只在 [`scripts/anti-patterns.js`](../scripts/anti-patterns.js)。手動重跑見 [ux-review.md](ux-review.md#反模式檢查)。每個命中列的元素寫成 `selector "可見文字"`。頁面的 `document.characterSet` 不是 UTF-8 時，腳本回傳 `warning`，探測記一筆 `text-checks-skipped`。跑完探測後，把這次的 `probe.json` 複製到 `.frontend-qa/state/probe.json`。`audit` 看到這份就直接用，見 [modes.md](modes.md#audit)。
 
 ## 解讀結果
 
 - 每一筆結果都要判斷是不是真的問題，再寫進 `findings.md`。證據寫 `probe-result.json` 中的那一筆，以及畫面代號。例如 `small-target` 會列出所有小於 44px 的元素，要合併成一筆，不要一個元素一筆
 - 同一個問題出現在多個尺寸或多個頁面時，合併成一筆
-- P0、P1 照證據規則，仍然要用 chrome-cdp-ex 從乾淨狀態重現兩次。做法是 `restore <t> --file .frontend-qa/<run>/checkpoint.json --format json`，再 `perceive <t>`。
+- P0、P1 照證據規則，仍然要用 chrome-cdp-ex 從乾淨狀態重現兩次。做法是 `restore <t> --file .frontend-qa/<run>/checkpoint.json --format json`，再 `perceive <t>`。測試輪中途 app 自己登出時，`restore` 把 session 寫回 storage，頁面仍停在 `#/login`；先 `reload <t>` 再 `perceive <t>`，頁面才會讀到還原後的 session。
 - `probe-error` 記到工具軌或 `unattributed.md`。寫進 `unattributed.md` 的每一筆都要有證據，至少一種：`shots/` 的截圖路徑、重現腳本，或 `probe-result.json` 的那一筆（見 [report-template.md](report-template.md#unattributedmd)）。對應的檢查改回測試輪手動做
 - 在覆蓋地圖的備註寫「探測：<check 名稱>」，表示這一格已經有哪些檢查做過了
 

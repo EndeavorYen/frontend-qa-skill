@@ -33,7 +33,7 @@
 | P2 | 照重現步驟重做 1 次；沒重現的話，再從乾淨狀態做第 2 次 |
 | P3 | 看截圖和證據判斷；證據不足時才重做 |
 
-乾淨狀態是步驟 1 的 `checkpoint.json`：`restore <t> --file .frontend-qa/<run>/checkpoint.json --format json`，再 `perceive <t>`，然後照步驟操作。`restore` 只還原這個分頁的 URL、cookie 和 storage，不還原後端資料。
+乾淨狀態是步驟 1 的 `checkpoint.json`：`restore <t> --file .frontend-qa/<run>/checkpoint.json --format json`，再 `perceive <t>`，然後照步驟操作。`restore` 只還原這個分頁的 URL、cookie 和 storage，不還原後端資料。測試輪中途 app 自己登出時，`restore` 把 session 寫回 storage，頁面仍停在 `#/login`；先 `reload <t>` 再 `perceive <t>`，頁面才會讀到還原後的 session。
 
 **有副作用的 finding**：重做會寫入資料、扣款、寄信或通知的（例如重複建立、重複扣款），重做前先照步驟 0 的禁止動作判斷：正式環境不重做，改看證據判斷；非正式環境要先知道怎麼回到乾淨狀態（重設資料、換一筆新資料）。只跑 `restore` 不夠，因為後端資料還在。不知道怎麼清掉後端資料的話也改看證據。改看證據的，在理由寫「未重做：有副作用」。
 

@@ -115,12 +115,14 @@
 
 程度為「深」、`audit`、`critique` 時，每個畫面在每個要測的尺寸跑一次 [`scripts/anti-patterns.js`](../scripts/anti-patterns.js)。探測有跑時，同名 check 已經在 `probe-result.json`，不要為了同一個元素重跑。程式只放在那個檔案，不要把內容抄進這份文件。
 
+`<skill 目錄>` 見 [SKILL.md](../SKILL.md#名詞)。
+
 ```bash
 B64=$(base64 < <skill 目錄>/scripts/anti-patterns.js | tr -d '\n')
 eval <t> --b64 "$B64"
 ```
 
-回傳是一個物件。鍵是 camelCase（例如 `multiplePrimaryButtons`），值是元素字串陣列，格式 `selector "可見文字"`。對照下表的 check 名稱。
+回傳是一個物件。鍵是 camelCase（例如 `multiplePrimaryButtons`），值是元素字串陣列，格式 `selector "可見文字"`。對照下表的 check 名稱。`document.characterSet` 是 UTF-8 時，`warning` 是 `null`。不是 UTF-8 時，`warning` 是一段說明，而且 `genericDialogActions`、`emptyStateNoAction`、`vagueError`、`destructiveLooksPrimary` 是空陣列：文字比對已略過，不是沒有命中。探測會把這段說明記成 `text-checks-skipped`。
 
 | check | 門檻 | 對應維度 |
 |---|---|---|

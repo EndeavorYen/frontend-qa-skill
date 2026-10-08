@@ -9,13 +9,13 @@ P0 和 P1 除了文字的重現步驟，還要有兩份檔案。斷言都寫「*
 
 ## 什麼時候寫
 
-P0、P1 第二次從乾淨狀態重現成功之後。F 編號和 `findings.md` 相同。乾淨狀態是 `restore <t> --file .frontend-qa/<run>/checkpoint.json --format json`，然後 `perceive <t>`。
+P0、P1 第二次從乾淨狀態重現成功之後。F 編號和 `findings.md` 相同。乾淨狀態是 `restore <t> --file .frontend-qa/<run>/checkpoint.json --format json`，然後 `perceive <t>`。測試輪中途 app 自己登出時，`restore` 把 session 寫回 storage，頁面仍停在 `#/login`；先 `reload <t>` 再 `perceive <t>`，頁面才會讀到還原後的 session。
 
 ## 重播檔
 
 `record-actions` 沒有「從現在開始錄」的旗標。它匯出這個分頁 daemon 從啟動到現在的整個 action log（schema `chrome-cdp-ex.record-actions.v1`）。要讓檔案只含這一次重現：
 
-1. `restore <t> --file .frontend-qa/<run>/checkpoint.json --format json`，再 `perceive <t>`。這時已經是登入後的乾淨狀態。
+1. `restore <t> --file .frontend-qa/<run>/checkpoint.json --format json`。測試輪中途 app 自己登出、頁面停在 `#/login` 時，先 `reload <t>`。再 `perceive <t>`。這時已經是登入後的乾淨狀態。
 2. 執行 `throttle <t> off` 和 `mock <t> clear`，清掉上一輪留下的設定。`stop` 之後新的 daemon 會套用 `cdp-<targetId>.env.json` 裡還留著的 throttle 和 mock。這次重現本身要用的 mock 或 throttle，留到 `stop` 之後再設。
 3. `stop <t>`。daemon 和它的 action log 會消失，分頁、cookie、網址還在。不要用 `closetab`。
 4. 只做這次重現的步驟，不要做登入。密碼欄位不要出現在這段裡。這次需要的 `mock <t> add …` 或 `throttle <t> …` 放在這些步驟前面，`record-actions` 會把它們放進 `environment`，`replay` 會先做。
@@ -145,7 +145,7 @@ v2.21.0 的 `flow` 只有三種斷言，判斷方式和 spec 不是同一個 API
 
 `restore` 只還原這個分頁的 URL、cookie 和 storage，不還原後端，也不重新載入頁面。會寫入的重現，重播前要先把後端重設回乾淨資料，否則上一輪建立的資料還在，斷言會因為舊資料失敗或通過。seeded app 的做法是重啟 `node evals/seeded-app/server.mjs`（要驗證修好的版本時加上 `VARIANT=fix-b1`），再 `restore`。
 
-`restore` 回到同一個 origin 的 hash 網址時，分頁不會重抓前端。重新部署或換了 variant 之後，分頁仍跑舊的 `app.js`，修好的 bug 會被誤判成仍存在。`restore` 之後先 `reload <t>`：cookie 和 storage 還在，文件才換成現在的前端。然後 `perceive <t>`。
+`restore` 回到同一個 origin 的 hash 網址時，分頁不會重抓前端。重新部署或換了 variant 之後，分頁仍跑舊的 `app.js`，修好的 bug 會被誤判成仍存在。`restore` 之後先 `reload <t>`：cookie 和 storage 還在，文件才換成現在的前端。然後 `perceive <t>`。測試輪中途 app 自己登出時也要這一步：session 已寫回 storage，頁面仍停在 `#/login`，不 `reload` 就不會離開登入頁。
 
 觸發步驟都在重播檔裡時：
 

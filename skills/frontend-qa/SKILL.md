@@ -42,6 +42,7 @@ ln -sfn "$(pwd)" ~/.claude/skills/chrome-cdp-ex
 - **歸因**：遇到預期外結果時，先判斷問題出在產品還是工具，再決定要記到哪一軌。
 - **未歸因**：判斷不出來的項目，寫在 `unattributed.md`，兩軌都不報。
 - **分 session**：每個測試輪和體檢各用一個新的子 session 依序執行，主 session 負責偵察、合併和報告。要先取得使用者同意，詳見 [sessions.md](references/sessions.md)。
+- **skill 目錄**：放著這份 `SKILL.md` 的目錄，可以是 symlink。文件裡的 `<skill 目錄>` 指的就是它。
 - **證據**：截圖路徑、從乾淨狀態開始的重現步驟、預期與實際結果、相關的 console 或網路錯誤。乾淨狀態是步驟 1 存下的 `checkpoint.json`，用 `restore` 回到那個分頁狀態。
 
 ## 執行目錄
@@ -132,7 +133,7 @@ EOF
 
 工具軌開啟時，要記錄工具版本，做法見 [tool-track.md](references/tool-track.md#版本)。
 
-完成條件：環境檢查已通過，否則已經停止並說明取得方式；執行目錄已建立；`report.md` 開頭寫好 `doctor` 結果和 chrome-cdp-ex 版本，以及範圍、環境、禁止動作、深度、開啟的面項、視窗尺寸、執行模式、入口，以及工具版本（工具軌開啟時）。
+完成條件：環境檢查已通過，否則已經停止並說明取得方式；執行目錄已建立；`report.md` 開頭寫好 `doctor` 結果和 chrome-cdp-ex 版本（工具軌開啟時，同一組版本寫進 `tool-track.md`），以及範圍、環境、禁止動作、深度、開啟的面項、視窗尺寸、執行模式、入口。
 
 入口不是 `完整` 時，接下來全部照 [modes.md](references/modes.md)，不要做下面的步驟 1–6。
 
@@ -223,7 +224,7 @@ stdout 若以 `daemon restarted:` 開頭，存檔前拿掉那一行，留下的 
 - 每個產品問題都要有證據；拿不出證據的，就不算一個問題。每個問題都要有 `shots/` 的截圖（P3 也一樣）；P0、P1 還要有重現腳本。
 - 「不是問題」的結論也要有證據，至少一種：`shots/` 的截圖路徑、Playwright 重現腳本，或 `probe-result.json` 的那一筆。這包含 `critic-verdicts.md` 的 `不成立`，以及 `unattributed.md` 的每一筆。沒有證據就不能保留，也不能拿掉這個結論。
 - 覆蓋地圖的 `✅` 只代表那一輪跑完，不必每格附路徑。要附證據的是「清掉的檢查」：曾經懷疑是問題，查完決定不寫進 `findings.md`。證據只寫在該列的「備註」欄，不寫進輪次欄。格式，以及為什麼不要求每一格 `✅` 都附路徑，見 [report-template.md](references/report-template.md#coveragemd)。
-- P0 和 P1 必須從乾淨狀態重現兩次。深度 5 時，P2 也要重現兩次。乾淨狀態的做法：`restore <t> --file .frontend-qa/<run>/checkpoint.json --format json`，再 `perceive <t>`（`restore` 會讓舊的 `@ref` 失效），然後照步驟操作。不要另開瀏覽器，也不要重走登入。
+- P0 和 P1 必須從乾淨狀態重現兩次。深度 5 時，P2 也要重現兩次。乾淨狀態的做法：`restore <t> --file .frontend-qa/<run>/checkpoint.json --format json`，再 `perceive <t>`（`restore` 會讓舊的 `@ref` 失效），然後照步驟操作。不要另開瀏覽器，也不要重走登入。測試輪中途 app 自己登出時，`restore` 把 session 寫回 storage，頁面仍停在 `#/login`；先 `reload <t>` 再 `perceive <t>`，頁面才會讀到還原後的 session。
 - `checkpoint` 不會還原後端資料。重現會寫入資料的問題時，規則和 [critic.md](references/critic.md#怎麼驗證) 的「有副作用的 finding」相同。
 - P0 和 P1 第二次重現成功後，照 [repro.md](references/repro.md) 存 `repro/F<n>.actions.json`，並匯出 Playwright spec。重播檔是主要的複驗方式；spec 是交給開發者或 CI 的格式。斷言寫修好之後應該成立的事。
 - 重現步驟要寫成別人照著做就能做出來的程度：起始 URL、登入身分、每一步的操作和輸入值。登入本身不寫進重播檔。
