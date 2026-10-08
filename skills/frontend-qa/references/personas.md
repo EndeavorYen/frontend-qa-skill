@@ -22,7 +22,7 @@
 **心態**：沒耐心又手殘，一直按、按錯、按到一半就跑掉。
 
 **招式**
-- 連點兩下或三下送出按鈕，檢查是否重複送出或重複建立。chrome-cdp-ex 的 `click` 和 `repeat` 都會等頁面穩定才回傳，做不出快速連點；改用 `eval <t> "(()=>{const b=document.querySelector('<sel>'); b.click(); b.click();})()"`，再用 `netlog` 或列表確認送出了幾次。
+- 連點兩下或三下送出按鈕，檢查是否重複送出或重複建立。chrome-cdp-ex 的 `click` 和 `repeat` 都會等頁面穩定才回傳，做不出快速連點；改用 `eval <t> "(()=>{const b=document.querySelector('<sel>'); b.click(); b.click();})()"`，再用 `netlog` 或列表確認送出了幾次。這段 `eval` 不會進 `record-actions`。重播檔只錄連點之前的步驟，複驗的 `flow` 要再跑一次同一個 `eval`，見 [repro.md](repro.md#重播檔)。
 - 流程做到一半時：按上一頁（`back <t>`）、重新整理（`reload <t>`）、在新分頁開同一個網址。檢查資料是否不見、狀態是否錯亂、是否重複送出。
 - 在每個輸入框依序試：空白、只有空格、500 字以上的長字串、emoji `🙃👨‍👩‍👧`、`<script>`、`' OR 1=1`、全形數字、負數、`0`、貼上含換行或格式的文字。
 - 在載入完成前就點下一步，或在動畫播到一半時點擊。
