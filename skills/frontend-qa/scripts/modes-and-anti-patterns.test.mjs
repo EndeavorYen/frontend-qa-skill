@@ -141,14 +141,17 @@ function headings(md) {
   return found;
 }
 
-test('anti-patterns.js is the eval source and matches the ux-review fence', () => {
+test('anti-patterns.js is the eval source and ux-review points at it', () => {
   const source = read('scripts/anti-patterns.js').trimEnd();
   assert.match(source, /^\/\/ frontend-qa anti-patterns\n\(\(\) => \{/);
   assert.match(source, /\}\)\(\)\s*$/);
   const review = read('references/ux-review.md');
-  const fence = /```js\n(\/\/ frontend-qa anti-patterns[\s\S]*?)\n```/.exec(review);
-  assert.ok(fence, 'ux-review.md is missing the anti-patterns fence');
-  assert.equal(fence[1].trimEnd(), source);
+  assert.doesNotMatch(review, /```js\n\/\/ frontend-qa anti-patterns/);
+  assert.match(review, /scripts\/anti-patterns\.js/);
+  assert.match(review, /eval <t> --b64/);
+  const probeDoc = read('references/probe.md');
+  assert.match(probeDoc, /scripts\/anti-patterns\.js/);
+  assert.doesNotMatch(probeDoc, /是同一份/);
   for (const [key, check] of CHECKS) {
     assert.match(source, new RegExp(key));
     assert.match(review, new RegExp(check));
