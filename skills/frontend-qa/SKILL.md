@@ -189,9 +189,9 @@ stdout 若以 `daemon restarted:` 開頭，存檔前拿掉那一行，留下的 
 
 ### 4. 產品報告
 
-先照 [critic.md](references/critic.md) 跑 Critic 關卡，逐條驗證 `findings.md`，刪掉不成立的、改寫部分成立的。接著整理 `findings.md`：合併重複的問題（分 session 執行時，各輪只看得到標題，去重規則見 [sessions.md](references/sessions.md#合併與去重)），照 [severity.md](references/severity.md) 標上 P0–P3 和類別，再照 [report-template.md](references/report-template.md#reportmd) 寫出 `report.md`。
+先照 [critic.md](references/critic.md) 跑 Critic 關卡，逐條驗證 `findings.md`，刪掉不成立的、改寫部分成立的。有 `ux-review.md` 時，同一個 Critic 接著做體檢複核。然後整理 `findings.md`：合併重複的問題（分 session 執行時，各輪只看得到標題，去重規則見 [sessions.md](references/sessions.md#合併與去重)），照 [severity.md](references/severity.md) 標上 P0–P3 和類別，再照 [report-template.md](references/report-template.md#reportmd) 寫出 `report.md`。
 
-完成條件：執行目錄有 `critic-verdicts.md`，每個 finding 都有判定，`待確認` 都已經由主 session 處理完；`ux-review.md` 中 3 分以下的分數，引用的 F 編號都還在 `findings.md` 裡；`report.md` 包含以下內容：Critic 的方式與判定統計、嚴重度統計、已知問題狀態（增量模式時）、最嚴重的 5 個問題、UI/UX 體檢摘要（體檢有開時）、按畫面分組的完整清單、覆蓋率（✅ / ➖ / ⛔ 各幾格）、未歸因清單，以及估算和實際成本的對照。每個問題都有證據；每個 P0、P1 都有 `repro/F<n>.actions.json`，以及照 [repro.md](references/repro.md) 匯出的 Playwright spec；重播沒有跑的，寫明原因。每個「不是問題」的結論（`critic-verdicts.md` 的 `不成立`、`unattributed.md` 的每一筆、清掉的檢查）都附上截圖路徑、重現腳本或探測結果至少一種。清掉的檢查寫在該列唯一的「備註」欄，格式見 [report-template.md](references/report-template.md#coveragemd)。普通的 `✅` 不必附路徑。每一筆失敗都寫了原因，並附一條可執行的下一步指令。
+完成條件：執行目錄有 `critic-verdicts.md`，每個 finding 都有判定，`待確認` 都已經由主 session 處理完；有 `ux-review.md` 時，`critic-verdicts.md` 有第二張體檢判定表，每個 3 分以下的分數都有判定，`調整` 已改分或寫了不採用的理由，`證據不足` 已補證據或往 3 分靠攏；`ux-review.md` 中 3 分以下的分數，引用的 F 編號都還在 `findings.md` 裡；`report.md` 包含以下內容：Critic 的方式與判定統計（含體檢判定筆數）、嚴重度統計、已知問題狀態（增量模式時）、最嚴重的 5 個問題、UI/UX 體檢摘要（體檢有開時）、按畫面分組的完整清單、覆蓋率（✅ / ➖ / ⛔ 各幾格）、未歸因清單，以及估算和實際成本的對照。每個問題都有證據；每個 P0、P1 都有 `repro/F<n>.actions.json`，以及照 [repro.md](references/repro.md) 匯出的 Playwright spec；重播沒有跑的，寫明原因。每個「不是問題」的結論（`critic-verdicts.md` 的 `不成立`、`unattributed.md` 的每一筆、清掉的檢查）都附上截圖路徑、重現腳本或探測結果至少一種。清掉的檢查寫在該列唯一的「備註」欄，格式見 [report-template.md](references/report-template.md#coveragemd)。普通的 `✅` 不必附路徑。每一筆失敗都寫了原因，並附一條可執行的下一步指令。
 
 ### 5. 工具回報（工具軌開啟時才做）
 

@@ -1,0 +1,12 @@
+{
+  "model": "grok-4.7-high",
+  "tool_calls": 23,
+  "duration_ms": 707462,
+  "tokens": {
+    "inputTokens": 154309,
+    "outputTokens": 50430,
+    "cacheReadTokens": 564992,
+    "cacheWriteTokens": 0
+  },
+  "is_error": false
+}
