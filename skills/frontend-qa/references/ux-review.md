@@ -65,8 +65,16 @@
 規則：
 - 3 分以下一定要附證據：F 編號、截圖，或量化檢查的數字。
 - 不要預設給 4 分。沒有具體理由的話，分數就往 3 靠攏，並寫出「需要什麼才會到 4」。
-- 評分的依據是你在測試輪中實際操作的體驗，不是看一眼截圖的印象。
+- 評分的依據是你在測試輪中實際操作的體驗，不是看一眼截圖的印象。`critique` 沒有測試輪，依據改成那個畫面主要任務的那一次操作。
 - 需要看畫面時，沿用設計師輪看過的那張截圖；設計師輪沒開、或那個尺寸沒看過，才看一張。不要為了體檢重拍、重看（看圖額度見 SKILL.md「截圖規則」）。
+
+### 質感與文案要引用設計背景
+
+評「質感」和「文案」時，評論裡要寫出 `.frontend-qa/state/design-context.md` 的依據：產品類型、目標使用者、品牌形容詞，或參考產品，至少一項。檔案標了「推測」就要在評論寫明是推測。沒有這份檔案就先照 [memory.md](memory.md#設計背景) 建立。
+
+### 對照反模式
+
+標準和深的體檢，以及 `critique`，評分時對照 [anti-patterns.md](anti-patterns.md)。命中的條目寫進所屬維度的評論，並指到元素。不要因為清單裡有這一條就自動降分；分數仍然只照上面的分數錨點。沒有命中就不要提。
 
 ## 量化檢查
 
@@ -102,6 +110,200 @@
 | 橫向溢出 | `true` | 排版節奏 |
 
 文字和背景的對比度用 `styles <t> <sel>` 讀出前景色和背景色後計算。一般文字低於 4.5:1 要記錄下來。
+
+## 反模式檢查
+
+程度為「深」、`audit`、`critique` 時，每個畫面在每個要測的尺寸再跑一次下面的程式（`eval <t>` 的參數就是 [`scripts/anti-patterns.js`](../scripts/anti-patterns.js) 的內容）。探測有跑時，同名 check 已經在 `probe-result.json`，不要為了同一個元素重跑。下面這份和那個檔案相同；兩邊不一致時以檔案為準。
+
+| check | 門檻 | 對應維度 |
+|---|---|---|
+| `multiple-primary-buttons` | 有任何一筆 | 視覺層級 |
+| `placeholder-as-label` | 有任何一筆 | 文案 |
+| `generic-dialog-actions` | 有任何一筆 | 文案 |
+| `color-only-status` | 有任何一筆 | 回饋 |
+| `gray-on-color` | 有任何一筆 | 質感 |
+| `nested-cards` | 有任何一筆 | 視覺層級 |
+| `centered-long-text` | 有任何一筆 | 排版節奏 |
+| `empty-state-no-action` | 有任何一筆 | 文案、效率 |
+| `vague-error` | 有任何一筆 | 文案、回饋 |
+| `destructive-looks-primary` | 有任何一筆 | 視覺層級 |
+
+超過門檻不一定就是錯，但要寫出理由。目視的兩條（toast 很快消失、送出後沒有狀態變化）沒有列在這支程式裡，見 [anti-patterns.md](anti-patterns.md)。
+
+```js
+// frontend-qa anti-patterns
+(() => {
+  const visible = (e) => {
+    if (!e.getClientRects().length) return false;
+    const s = getComputedStyle(e);
+    return s.visibility !== 'hidden' && s.display !== 'none' && Number(s.opacity) !== 0;
+  };
+  const uniq = (list) => [...new Set(list)];
+  const cs = (e) => getComputedStyle(e);
+  const ownText = (e) => [...e.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join(' ').replace(/\s+/g, ' ').trim();
+  const clip = (s, n = 40) => String(s || '').replace(/\s+/g, ' ').trim().slice(0, n);
+  const desc = (e) => {
+    const id = e.id ? '#' + e.id : '';
+    const cls = typeof e.className === 'string' && e.className.trim()
+      ? '.' + e.className.trim().split(/\s+/).slice(0, 2).join('.')
+      : '';
+    return e.tagName.toLowerCase() + id + cls;
+  };
+  const el = (e, extra = '') => desc(e) + ' "' + clip(ownText(e) || e.getAttribute('aria-label') || e.getAttribute('placeholder') || e.value || '', 30) + '"' + (extra ? ' ' + extra : '');
+  const parse = (c) => {
+    const m = String(c).match(/[\d.]+/g);
+    return m ? m.map(Number) : [0, 0, 0, 1];
+  };
+  const sat = (c) => {
+    const [r, g, b] = parse(c);
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    return max === 0 ? 0 : (max - min) / max;
+  };
+  const light = (c) => {
+    const [r, g, b] = parse(c);
+    return (Math.max(r, g, b) + Math.min(r, g, b)) / 2 / 255;
+  };
+  const bgOf = (e) => {
+    for (let n = e; n; n = n.parentElement) {
+      const raw = cs(n).backgroundColor;
+      const c = parse(raw);
+      if (c.length < 4 || c[3] > 0.5) return raw;
+    }
+    return 'rgb(255, 255, 255)';
+  };
+  const filled = (e) => {
+    const raw = cs(e).backgroundColor;
+    const c = parse(raw);
+    return (c.length < 4 || c[3] > 0.5) && sat(raw) > 0.15;
+  };
+
+  const buttons = [...document.querySelectorAll('button,a,[role=button]')].filter(visible);
+  const multiplePrimaryButtons = [];
+  const seenParents = new Set();
+  for (const b of buttons) {
+    const parent = b.parentElement;
+    if (!parent || seenParents.has(parent)) continue;
+    seenParents.add(parent);
+    const sibs = [...parent.children].filter((e) => e.matches('button,a,[role=button]') && visible(e) && filled(e));
+    const groups = new Map();
+    for (const e of sibs) {
+      const key = cs(e).backgroundColor + '|' + cs(e).color;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(e);
+    }
+    for (const group of groups.values()) {
+      if (group.length >= 2) multiplePrimaryButtons.push(group.map((e) => el(e)).join('；'));
+    }
+  }
+
+  const placeholderAsLabel = [...document.querySelectorAll('input,textarea')].filter((e) => {
+    if (!visible(e) || !e.getAttribute('placeholder')) return false;
+    const type = (e.getAttribute('type') || '').toLowerCase();
+    if (['hidden', 'submit', 'button', 'reset', 'checkbox', 'radio', 'file', 'image'].includes(type)) return false;
+    if (e.getAttribute('aria-label') || e.getAttribute('aria-labelledby') || e.getAttribute('title')) return false;
+    if (e.labels && e.labels.length) return false;
+    if (e.closest('label')) return false;
+    if (e.id && document.querySelector('label[for="' + CSS.escape(e.id) + '"]')) return false;
+    return true;
+  }).map((e) => el(e, 'placeholder="' + clip(e.getAttribute('placeholder'), 30) + '"'));
+
+  const genericDialogActions = [...document.querySelectorAll('[role=dialog],dialog,[aria-modal=true]')].filter(visible).filter((d) => {
+    const t = d.innerText || '';
+    if (!/[?？]|嗎/.test(t)) return false;
+    const names = [...d.querySelectorAll('button,[role=button],input[type=button],input[type=submit]')].filter(visible).map((b) => clip(b.innerText || b.value || '', 20));
+    const generic = names.filter((name) => /^(確定|取消|OK|Cancel|Yes|No)$/i.test(name));
+    const named = names.filter(Boolean);
+    return generic.length >= 2 && generic.length === named.length;
+  }).map((d) => el(d));
+
+  const colorOnlyStatus = [];
+  const parents = new Set([...document.querySelectorAll('body *')].map((e) => e.parentElement).filter(Boolean));
+  for (const parent of parents) {
+    const dots = [...parent.children].filter((e) => {
+      if (!visible(e) || ownText(e) || (e.innerText || '').trim()) return false;
+      if (e.querySelector('img,svg,button,a,input')) return false;
+      if (e.getAttribute('aria-label') || e.getAttribute('title')) return false;
+      const r = e.getBoundingClientRect();
+      return r.width > 0 && r.width <= 16 && r.height > 0 && r.height <= 16;
+    });
+    const colors = new Set(dots.map((e) => cs(e).backgroundColor));
+    if (dots.length >= 2 && colors.size >= 2) colorOnlyStatus.push(dots.map((e) => el(e, cs(e).backgroundColor)).join('；'));
+  }
+
+  const grayOnColor = [];
+  for (const e of document.querySelectorAll('body *')) {
+    if (!visible(e) || !ownText(e)) continue;
+    const color = cs(e).color;
+    const bg = bgOf(e);
+    const L = light(color);
+    if (sat(color) < 0.15 && L > 0.25 && L < 0.75 && sat(bg) > 0.35) grayOnColor.push(el(e, color + ' on ' + bg));
+  }
+
+  const skipCard = 'button,a,input,select,textarea,label,span,p,h1,h2,h3,h4,h5,h6,small,strong,em,th,td,li';
+  const cardLike = (e) => {
+    if (!visible(e) || e.matches(skipCard)) return false;
+    const s = cs(e);
+    if ((parseFloat(s.borderRadius) || 0) < 4) return false;
+    const bg = parse(s.backgroundColor);
+    if (bg.length >= 4 && bg[3] <= 0.5) return false;
+    const shadow = s.boxShadow && s.boxShadow !== 'none';
+    const border = ['Top', 'Right', 'Bottom', 'Left'].some((side) => parseFloat(s['border' + side + 'Width']) > 0);
+    if (!shadow && !border) return false;
+    const r = e.getBoundingClientRect();
+    if (r.width > innerWidth * 0.92 && r.height > innerHeight * 0.7) return false;
+    return true;
+  };
+  const nestedCards = [...document.querySelectorAll('body *')].filter(cardLike).filter((e) => {
+    let n = e.parentElement;
+    for (let depth = 0; n && n !== document.body && depth < 8; depth += 1) {
+      if (cardLike(n)) return true;
+      n = n.parentElement;
+    }
+    return false;
+  }).map((e) => el(e));
+
+  const centeredLongText = [...document.querySelectorAll('p,div,li')].filter((e) => {
+    if (!visible(e) || cs(e).textAlign !== 'center') return false;
+    if (e.closest('button,a,h1,h2,h3,h4,th,label')) return false;
+    return [...ownText(e)].length >= 40;
+  }).map((e) => el(e));
+
+  const EMPTY = /無資料|沒有資料|暫無資料|尚無資料|no data|nothing here|no results/i;
+  const emptyStateNoAction = [...document.querySelectorAll('body *')].filter((e) => {
+    if (!visible(e) || !EMPTY.test(ownText(e)) || !e.parentElement) return false;
+    const blob = (e.parentElement.innerText || '').replace(/\s+/g, ' ').trim();
+    if ([...blob].length > 80) return false;
+    return !e.parentElement.querySelector('a,button,[role=button]');
+  }).map((e) => el(e));
+
+  const VAGUE = /^(發生錯誤|發生了一些錯誤|錯誤|something went wrong|an error occurred|error)[。.!！]?$/i;
+  const vagueError = [...document.querySelectorAll('body *')].filter((e) => visible(e) && VAGUE.test(ownText(e))).map((e) => el(e));
+
+  const DESTR = /刪除|移除|作廢|delete|remove|destroy/i;
+  const PRIMARY = /新增|建立|儲存|送出|確認|save|create|submit|add/i;
+  const nameOf = (e) => clip(e.innerText || e.getAttribute('aria-label') || e.value || '', 20);
+  const destructiveLooksPrimary = [];
+  for (const d of buttons.filter((e) => DESTR.test(nameOf(e)) && filled(e))) {
+    const match = buttons.find((p) => PRIMARY.test(nameOf(p)) && filled(p) && cs(p).backgroundColor === cs(d).backgroundColor && cs(p).color === cs(d).color);
+    if (match) destructiveLooksPrimary.push(el(d) + ' = ' + el(match));
+  }
+
+  const cap = (list) => uniq(list).slice(0, 20);
+  return {
+    multiplePrimaryButtons: cap(multiplePrimaryButtons),
+    placeholderAsLabel: cap(placeholderAsLabel),
+    genericDialogActions: cap(genericDialogActions),
+    colorOnlyStatus: cap(colorOnlyStatus),
+    grayOnColor: cap(grayOnColor),
+    nestedCards: cap(nestedCards),
+    centeredLongText: cap(centeredLongText),
+    emptyStateNoAction: cap(emptyStateNoAction),
+    vagueError: cap(vagueError),
+    destructiveLooksPrimary: cap(destructiveLooksPrimary),
+  };
+})()
+```
 
 ## ux-review.md 格式
 

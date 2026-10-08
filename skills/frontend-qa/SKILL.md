@@ -1,6 +1,6 @@
 ---
 name: frontend-qa
-description: "前端品質驗證：扮演挑剔、會亂按的使用者操作真實 UI，找出 bug、斷點、不合邏輯的流程、UX 摩擦與視覺瑕疵，替每個畫面做 UI/UX 體檢並輸出分級報告。可選面項與深度 1–5，開測前估算成本。Use when 使用者要你當白癡 user / 挑剔使用者測 UI、找 UX 問題、評 UI 好壞、做前端品質驗證、dogfood 一個頁面或流程。用 chrome-cdp-ex 操作時，同時記錄工具軌，結束時草擬 chrome-cdp-ex issue。"
+description: "前端品質驗證：扮演挑剔、會亂按的使用者操作真實 UI，找出 bug、斷點、不合邏輯的流程、UX 摩擦與視覺瑕疵，替每個畫面做 UI/UX 體檢並輸出分級報告。可選面項與深度 1–5，開測前估算成本。也可以只做 audit（量化與可自動偵測的反模式）、critique（指定畫面的體檢）或 advise（整理成設計系統建議）。Use when 使用者要你當白癡 user / 挑剔使用者測 UI、找 UX 問題、評 UI 好壞、做前端品質驗證、dogfood 一個頁面或流程，或只要 audit / critique / advise。用 chrome-cdp-ex 操作時，同時記錄工具軌，結束時草擬 chrome-cdp-ex issue。"
 ---
 
 # frontend-qa
@@ -13,6 +13,9 @@ description: "前端品質驗證：扮演挑剔、會亂按的使用者操作真
 - **深度**：1–5 級，決定預設開哪些面項、測多細，以及預估成本。詳見 [depth.md](references/depth.md)。
 - **覆蓋地圖**：一張表。列是畫面或流程步驟；欄是開啟的測試輪，再加上 `體檢`（有開的話）。每格記錄 `☐ 未測`、`✅ 已測`、`➖ 不適用（附理由）` 或 `⛔ 受工具阻擋（附工具軌編號）`。
 - **體檢**：替每個畫面的 UI/UX 打 1–5 分，並提出改善建議。它和「找缺陷」是兩件事：缺陷寫在 `findings.md`，體檢寫在 `ux-review.md`。詳見 [ux-review.md](references/ux-review.md)。
+- **入口**：`完整`（預設，下面的步驟 1–6）、`audit`、`critique`、`advise`。後三個是單獨入口，見 [modes.md](references/modes.md)。
+- **反模式**：常見的設計錯誤。清單在 [anti-patterns.md](references/anti-patterns.md)。
+- **設計背景**：產品類型、目標使用者、品牌形容詞、參考產品，寫在 `.frontend-qa/state/design-context.md`。見 [memory.md](references/memory.md#設計背景)。
 - **產品軌**：被測網站的問題，寫在 `findings.md`。
 - **工具軌**：驅動工具（chrome-cdp-ex）自己的問題與摩擦，寫在 `tool-track.md`。
 - **歸因**：遇到預期外結果時，先判斷問題出在產品還是工具，再決定要記到哪一軌。
@@ -25,10 +28,10 @@ description: "前端品質驗證：扮演挑剔、會亂按的使用者操作真
 所有產出都寫在 `.frontend-qa/<YYYY-MM-DD>-<slug>/`：
 
 ```
-coverage.md  findings.md  ux-review.md  critic-verdicts.md  tool-track.md  unattributed.md  report.md  shots/
+coverage.md  findings.md  ux-review.md  audit.md  advise.md  critic-verdicts.md  tool-track.md  unattributed.md  report.md  shots/
 ```
 
-如果目前目錄是 git repo，就把 `.frontend-qa/` 加進 `.git/info/exclude`，讓這些產出不會被 commit。
+`audit.md` 只有 `audit` 會寫，`advise.md` 只有 `advise` 會寫。如果目前目錄是 git repo，就把 `.frontend-qa/` 加進 `.git/info/exclude`，讓這些產出不會被 commit。
 
 跨次保留的狀態（畫面清單、指紋、已知問題）放在 `.frontend-qa/state/`，詳見 [memory.md](references/memory.md)。
 
@@ -42,7 +45,8 @@ coverage.md  findings.md  ux-review.md  critic-verdicts.md  tool-track.md  unatt
 - 範圍：整個 app、某個流程，或某幾頁
 - **禁止動作**：預設禁止刪除真實資料、付款、寄信或通知給真人、修改帳號安全設定。只有在非正式環境，而且使用者明確同意時，才放寬
 - **深度**：沒指定就用 3
-- **完整或增量**：`.frontend-qa/state/` 有同一個 app 的紀錄時，預設用增量模式，只重測有改動的畫面，見 [memory.md](references/memory.md#步驟-0)
+- **完整或增量**：`.frontend-qa/state/` 有同一個 app 的紀錄時，預設用增量模式，只重測有改動的畫面，見 [memory.md](references/memory.md#步驟-0)。這只在入口是 `完整` 時適用
+- **入口**：沒指定就是 `完整`。`audit [畫面…]`、`critique <畫面…>`、`advise` 的做法見 [modes.md](references/modes.md)。三種都沿用 `.frontend-qa/state/`；有 `state/probe.json` 時，`audit` 直接用它
 - **Critic 關卡**：寫報告前要不要開一個子代理逐條重新驗證問題。要先取得同意，問法和無人值守時的規則見 [critic.md](references/critic.md#取得同意)
 
 | 深度 | 名稱 | 適合 |
@@ -60,7 +64,9 @@ coverage.md  findings.md  ux-review.md  critic-verdicts.md  tool-track.md  unatt
 
 工具軌開啟時，要記錄工具版本，做法見 [tool-track.md](references/tool-track.md#版本)。
 
-完成條件：執行目錄已建立；`report.md` 開頭寫好範圍、環境、禁止動作、深度、開啟的面項、視窗尺寸、執行模式，以及工具版本（工具軌開啟時）。
+完成條件：執行目錄已建立；`report.md` 開頭寫好範圍、環境、禁止動作、深度、開啟的面項、視窗尺寸、執行模式、入口，以及工具版本（工具軌開啟時）。
+
+入口不是 `完整` 時，接下來全部照 [modes.md](references/modes.md)，不要做下面的步驟 1–6。
 
 ### 1. 偵察、建立覆蓋地圖、估算成本
 
@@ -94,7 +100,9 @@ coverage.md  findings.md  ux-review.md  critic-verdicts.md  tool-track.md  unatt
 
 照 [ux-review.md](references/ux-review.md)，替每個畫面在 7 個維度上打 1–5 分，提出改善建議，然後寫進 `ux-review.md`。體檢放在測試輪之後做，因為前面幾輪已經把每個畫面用過一遍了。分 session 執行時，體檢也派一個子 session。
 
-完成條件：覆蓋地圖的 `體檢` 欄沒有 `☐`；每個 3 分以下的分數都有附證據；`ux-review.md` 有最值得做的 5 項改善建議。
+開始評分前，沒有 `.frontend-qa/state/design-context.md` 就照 [memory.md](references/memory.md#設計背景) 建立。標準和深的體檢要對照 [anti-patterns.md](references/anti-patterns.md)。程度為「深」時，除了量化程式，再跑一次 [反模式檢查](references/ux-review.md#反模式檢查)。
+
+完成條件：覆蓋地圖的 `體檢` 欄沒有 `☐`；每個 3 分以下的分數都有附證據；`ux-review.md` 有最值得做的 5 項改善建議；「質感」和「文案」的評論有引用設計背景。
 
 ### 4. 產品報告
 

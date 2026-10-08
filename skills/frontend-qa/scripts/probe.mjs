@@ -6,6 +6,22 @@
 // 設定檔格式見 ../references/probe.md。
 
 import { readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ANTI_PATTERNS = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'anti-patterns.js'), 'utf8');
+const ANTI_CHECKS = [
+  ['multiplePrimaryButtons', 'multiple-primary-buttons'],
+  ['placeholderAsLabel', 'placeholder-as-label'],
+  ['genericDialogActions', 'generic-dialog-actions'],
+  ['colorOnlyStatus', 'color-only-status'],
+  ['grayOnColor', 'gray-on-color'],
+  ['nestedCards', 'nested-cards'],
+  ['centeredLongText', 'centered-long-text'],
+  ['emptyStateNoAction', 'empty-state-no-action'],
+  ['vagueError', 'vague-error'],
+  ['destructiveLooksPrimary', 'destructive-looks-primary'],
+];
 
 const args = process.argv.slice(2);
 let configPath;
@@ -221,6 +237,14 @@ const auditPage = async (url, kind) => {
       if (a.lowContrast.length) add('low-contrast', url, sample(a.lowContrast), at);
       if (a.notKeyboard.length) add('not-keyboard-reachable', url, sample(a.notKeyboard), at);
       if (a.unnamed.length) add('no-accessible-name', url, sample(a.unnamed), at);
+      try {
+        const ap = await evaluate(ANTI_PATTERNS);
+        for (const [key, check] of ANTI_CHECKS) {
+          if (ap?.[key]?.length) add(check, url, sample(ap[key]), at);
+        }
+      } catch (err) {
+        add('probe-error', url, `anti-patterns: ${String(err.message || err).split('\n')[0]}`, at);
+      }
     });
   }
 };

@@ -20,6 +20,8 @@
 
 主 session 負責步驟 0、1、4、5、6，以及依序派出子 session。
 
+入口是 `audit`、`critique`、`advise` 時，不要派出測試輪子 session，改走 [modes.md](modes.md)。`critique` 若使用者同意分 session，只派一個體檢子 session，帶入指定畫面、[ux-review.md](ux-review.md)、[anti-patterns.md](anti-patterns.md) 和 `.frontend-qa/state/design-context.md`。
+
 1. 步驟 1 完成後，覆蓋地圖、`report.md` 的估算都已經寫好
 2. 依開啟的測試輪順序，一次派出一個子 session，等它結束再派下一個。**不要並行**：各輪共用同一個瀏覽器分頁和同一份 app 資料，並行會互相干擾
 3. 每個子 session 結束後，讀它回報的一行摘要，並確認覆蓋地圖那一欄符合步驟 2 的完成條件：沒有 `☐`、每個 `➖` 都附理由、每個 `⛔` 都附工具軌編號。不符合的話，再派一次同一輪，只帶入還沒完成的列；重派一次後仍沒完成，就把剩下的格子標成 `➖ 子 session 未完成`，並在 `report.md` 寫明
