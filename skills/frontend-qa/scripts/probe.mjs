@@ -302,6 +302,7 @@ const auditPage = async (url, kind) => {
       if (a.unnamed.length) add('no-accessible-name', url, sample(a.unnamed), at);
       try {
         const ap = await evaluate(ANTI_PATTERNS);
+        if (ap?.warning) add('text-checks-skipped', url, ap.warning, at);
         for (const [key, check] of ANTI_CHECKS) {
           if (ap?.[key]?.length) add(check, url, sample(ap[key]), at);
         }

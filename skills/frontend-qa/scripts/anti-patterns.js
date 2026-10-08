@@ -44,6 +44,8 @@
     const c = parse(raw);
     return (c.length < 4 || c[3] > 0.5) && sat(raw) > 0.15;
   };
+  const charset = String(document.characterSet || '');
+  const utf8 = /^utf-8$/i.test(charset);
 
   const buttons = [...document.querySelectorAll('button,a,[role=button]')].filter(visible);
   const multiplePrimaryButtons = [];
@@ -75,7 +77,7 @@
     return true;
   }).map((e) => el(e, 'placeholder="' + clip(e.getAttribute('placeholder'), 30) + '"'));
 
-  const genericDialogActions = [...document.querySelectorAll('[role=dialog],dialog,[aria-modal=true]')].filter(visible).filter((d) => {
+  const genericDialogActions = !utf8 ? [] : [...document.querySelectorAll('[role=dialog],dialog,[aria-modal=true]')].filter(visible).filter((d) => {
     const t = d.innerText || '';
     if (!/[?？]|嗎/.test(t)) return false;
     const names = [...d.querySelectorAll('button,[role=button],input[type=button],input[type=submit]')].filter(visible).map((b) => clip(b.innerText || b.value || '', 20));
@@ -137,7 +139,7 @@
   }).map((e) => el(e));
 
   const EMPTY = /無資料|沒有資料|暫無資料|尚無資料|no data|nothing here|no results/i;
-  const emptyStateNoAction = [...document.querySelectorAll('body *')].filter((e) => {
+  const emptyStateNoAction = !utf8 ? [] : [...document.querySelectorAll('body *')].filter((e) => {
     if (!visible(e) || !EMPTY.test(ownText(e)) || !e.parentElement) return false;
     const blob = (e.parentElement.innerText || '').replace(/\s+/g, ' ').trim();
     if ([...blob].length > 80) return false;
@@ -145,15 +147,17 @@
   }).map((e) => el(e));
 
   const VAGUE = /^(發生錯誤|發生了一些錯誤|錯誤|something went wrong|an error occurred|error)[。.!！]?$/i;
-  const vagueError = [...document.querySelectorAll('body *')].filter((e) => visible(e) && VAGUE.test(ownText(e))).map((e) => el(e));
+  const vagueError = !utf8 ? [] : [...document.querySelectorAll('body *')].filter((e) => visible(e) && VAGUE.test(ownText(e))).map((e) => el(e));
 
   const DESTR = /刪除|移除|作廢|delete|remove|destroy/i;
   const PRIMARY = /新增|建立|儲存|送出|確認|save|create|submit|add/i;
   const nameOf = (e) => clip(e.innerText || e.getAttribute('aria-label') || e.value || '', 20);
   const destructiveLooksPrimary = [];
-  for (const d of buttons.filter((e) => DESTR.test(nameOf(e)) && filled(e))) {
-    const match = buttons.find((p) => PRIMARY.test(nameOf(p)) && filled(p) && cs(p).backgroundColor === cs(d).backgroundColor && cs(p).color === cs(d).color);
-    if (match) destructiveLooksPrimary.push(el(d) + ' = ' + el(match));
+  if (utf8) {
+    for (const d of buttons.filter((e) => DESTR.test(nameOf(e)) && filled(e))) {
+      const match = buttons.find((p) => PRIMARY.test(nameOf(p)) && filled(p) && cs(p).backgroundColor === cs(d).backgroundColor && cs(p).color === cs(d).color);
+      if (match) destructiveLooksPrimary.push(el(d) + ' = ' + el(match));
+    }
   }
 
   const cap = (list) => uniq(list).slice(0, 20);
@@ -168,5 +172,6 @@
     emptyStateNoAction: cap(emptyStateNoAction),
     vagueError: cap(vagueError),
     destructiveLooksPrimary: cap(destructiveLooksPrimary),
+    warning: utf8 ? null : '頁面編碼是 ' + charset + '，不是 UTF-8。已略過文字比對：generic-dialog-actions、empty-state-no-action、vague-error、destructive-looks-primary',
   };
 })()

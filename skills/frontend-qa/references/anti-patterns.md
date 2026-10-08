@@ -4,6 +4,8 @@
 
 每一條的「元素」寫成 `selector "可見文字"`，和探測結果同一套。可以用 `eval` 偵測的，程式在 [`scripts/anti-patterns.js`](../scripts/anti-patterns.js)，探測腳本會一併跑。超過條件不一定就是錯，但要寫出理由。不要因為清單裡有這一條就自動降分；分數仍照 [ux-review.md](ux-review.md#分數錨點)。
 
+頁面的 `document.characterSet` 不是 UTF-8 時，文字比對會對不上，程式改回傳 `warning`，並略過 `generic-dialog-actions`、`empty-state-no-action`、`vague-error`、`destructive-looks-primary`。這四個空陣列不是沒有命中。探測另外記一筆 `text-checks-skipped`。
+
 ## 同一區塊有多顆一樣重的主要按鈕
 
 - check：`multiple-primary-buttons`
