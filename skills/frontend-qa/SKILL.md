@@ -139,7 +139,7 @@ EOF
 
 ### 1. 偵察、建立覆蓋地圖、估算成本
 
-增量模式時，照 [memory.md](references/memory.md#步驟-1) 計算畫面指紋，把畫面分成有改動、新增、移除、沒改動，沒改動的畫面只做複驗。探測設定從 `state/probe.json` 複製到執行目錄，只用 Edit 調整個別欄位，不要 Write 整份新檔。以下是完整模式的做法。
+增量模式時，照 [memory.md](references/memory.md#步驟-1)：先複製 `state/probe.json`，只用 Edit 調整個別欄位，然後先跑探測。用 `probe-result.json` 的 `fingerprints` 把畫面分成有改動、新增、移除、沒改動。沒改動且沒有新的 console 或失敗請求的畫面，「複驗」欄標 `✅ 探測`，不要打開，也不要逐頁執行指紋程式。已知問題照 `known-findings.md` 的「複驗方式」判斷。以下是完整模式的做法。
 
 從導覽列、選單、頁面內連結、sitemap 收集所有畫面，再列出主要任務（例如註冊、建立、編輯、刪除、搜尋、結帳），每個任務拆成流程步驟。同時記下既有資料有哪些型態（見 [state-checklist.md](references/state-checklist.md#既有資料抽樣)）。
 

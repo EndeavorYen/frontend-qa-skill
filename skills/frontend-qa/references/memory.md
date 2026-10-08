@@ -13,6 +13,7 @@ state/
   data-types.md      既有資料的型態與抽樣
   known-findings.md  已知問題與狀態
   probe.json         探測設定（密碼是環境變數參考，不是明文；audit 直接用這份）
+  repro/             重現腳本：*.spec.ts、一份 _login.ts、*.actions.json（不含 checkpoint.json）
   runs.md            歷次執行
   design-context.md  設計背景
 ```
@@ -33,12 +34,22 @@ state/
 `known-findings.md`：每筆一列，F 編號用第一次發現時那次執行的編號，前面加上執行目錄名稱，避免和這次的編號混淆：
 
 ```markdown
-| 編號 | 畫面 | 等級 | 標題 | 重現摘要 | 狀態 | 首次發現 | 最後確認 |
-|---|---|---|---|---|---|---|---|
-| 2026-10-06-myapp/F3 | S4 | P2 | 匯出的 CSV 檔名是亂碼 | 在 S4 按「匯出」，檔名含中文 | 仍存在 | 2026-10-06-myapp | 2026-10-13-myapp |
+| 編號 | 畫面 | 等級 | 標題 | 重現摘要 | 複驗方式 | 狀態 | 首次發現 | 最後確認 |
+|---|---|---|---|---|---|---|---|---|
+| 2026-10-06-myapp/F3 | S4 | P2 | 匯出的 CSV 檔名是亂碼 | 在 S4 按「匯出」，檔名含中文 | 手動 | 仍存在 | 2026-10-06-myapp | 2026-10-13-myapp |
+| 2026-10-06-myapp/F1 | S2 | P1 | 送出按鈕小於 44px | 在 S2 量「送出」 | 探測:small-target | 仍存在 | 2026-10-06-myapp | 2026-10-13-myapp |
 ```
 
 狀態只能是：`仍存在`、`已修`、`不修`（使用者說不修）、`無法複驗`（附原因，例如畫面已移除）。
+
+「複驗方式」只能是下面其中一種。新發現寫進這張表時，依這個優先順序選第一個做得到的：`探測:` > `重播:` > `腳本:` > `手動`。
+
+| 值 | 意思 |
+|---|---|
+| `探測:<check>` | 用這次 `probe-result.json` 裡同一畫面、同一 check 判斷還在不在。check 名稱見 [probe.md](probe.md#檢查項目)，例如 `探測:small-target` |
+| `重播:<路徑>` | chrome-cdp-ex `replay --file <路徑>` 重做 `*.actions.json`，再用 `flow` 的 `assert` 判斷修好後應該成立的事。不需要 LLM，也不需要安裝 Playwright。還沒有 actions 檔時不要選這個，改下一個 |
+| `腳本:<路徑>` | 跑 Playwright 重現腳本，路徑例如 `腳本:repro/F4.spec.ts` |
+| `手動` | 沒有上面三種時，由 agent 照重現摘要重做 |
 
 `runs.md`：每次執行一列，記日期、執行目錄、模式、深度、畫面數、改動畫面數、實際 turns 和 US$。入口是 `完整` 時，模式仍寫 `完整` 或 `增量`；單獨入口寫 `audit`、`critique` 或 `advise`。
 
@@ -71,28 +82,7 @@ state/
 
 ## 畫面指紋
 
-用來判斷畫面有沒有改動。黑箱測試通常拿不到原始碼，所以不能只靠 git diff。每個畫面在桌機尺寸、資料載入完成後，執行一次：
-
-```js
-(() => {
-  const own = (e) => [...e.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join(' ');
-  // 網址裡會隨資料變的片段（數字、UUID、slug）換成 :id，和「URL 樣式」用同一套規則
-  const pattern = (href) => href.split('/').map((seg) => (/\d|^[0-9a-f]{8}-|^[a-z0-9]+(-[a-z0-9]+)+$/i.test(seg) ? ':id' : seg)).join('/');
-  const name = (e) => {
-    if (e.matches('a[href]')) return ''; // 連結文字常常是資料（客戶名、標題），只看 href 的樣式
-    if (e.matches('label')) return own(e); // label 裡的 select 選項可能來自資料，只取 label 自己的文字
-    if (e.matches('select')) return e.getAttribute('aria-label') || e.name || ''; // select 的 innerText 是所有選項
-    return e.getAttribute('aria-label') || e.innerText || e.placeholder || e.name || '';
-  };
-  const parts = [...document.querySelectorAll('h1,h2,h3,label,button,a[href],input,select,textarea,[role=button],th,dt')]
-    .filter((e) => e.getClientRects().length > 0)
-    .map((e) => e.tagName.toLowerCase() + ':' + (e.getAttribute('type') || '') + ':' + name(e).trim().replace(/\s+/g, ' ').slice(0, 40).replace(/\d+/g, '#') + ':' + pattern(e.getAttribute('href') || ''));
-  const list = [...new Set(parts)].sort();
-  let h = 5381;
-  for (const c of list.join('|')) h = ((h << 5) + h + c.charCodeAt(0)) >>> 0;
-  return JSON.stringify({ hash: h.toString(16), list });
-})()
-```
+用來判斷畫面有沒有改動。黑箱測試通常拿不到原始碼，所以不能只靠 git diff。演算法在 [`scripts/fingerprint.js`](../scripts/fingerprint.js)，不要把程式貼進對話，也不要逐頁自己執行。`probe.mjs` 對 `pages` 和 `records` 的每一頁，在第一個尺寸載入完成後算一次，寫進 `probe-result.json` 的 `fingerprints["<url>"]`，值是 `{ hash, list }`。`hash` 再抄進 `screens.md`，`list` 抄進 `fingerprints.json`。
 
 - 連結只看 href 的樣式（數字、UUID、slug 都換成 `:id`），下拉選單只看名稱不看選項，文字中的數字換成 `#`，重複的項目只留一個。所以資料筆數、編號、連結文字、選項不同，不會被當成改動
 - `hash` 寫進 `screens.md`，`list` 寫進 `fingerprints.json`。兩次的 `hash` 不同時，比對 `list` 就知道多了或少了哪些元素，寫在覆蓋地圖的備註
@@ -113,35 +103,42 @@ state/
 ### 步驟 1
 
 1. 先把 `state/probe.json` 複製到這次執行目錄的 `probe.json`。之後只用 Edit 調整個別欄位，不要 Write 整份新檔
-2. 照原本的方式偵察導覽，找出目前所有畫面
-3. 每個畫面計算指紋，和 `screens.md` 比對，分成四類：
-   - **有改動**：指紋不同
+2. 照原本的方式偵察導覽，找出目前所有畫面。這一步只列畫面，不要逐頁執行 `scripts/fingerprint.js`
+3. 只用 Edit 調整執行目錄的 `probe.json`：新增的畫面加進 `pages`，移除的畫面從 `pages` 刪掉；`records` 裡抽樣的那一筆不存在時，重新抽一筆並替換該筆
+4. 先跑探測（指令見 [probe.md](probe.md#執行)）。用 `probe-result.json` 的 `fingerprints` 和 `screens.md` 分類，不要自己算指紋：
+   - **有改動**：同一 URL 的 `hash` 和 `screens.md` 不同。兩次 `list` 的差異只有 `h1`～`h3` 的文字、而且這個畫面的 URL 樣式含 `:id` 時，仍然當成沒改動
    - **新增**：`screens.md` 沒有這個畫面
    - **移除**：`screens.md` 有，但這次找不到
-   - **沒改動**：指紋相同
-4. 覆蓋地圖沿用 `screens.md` 的代號；新增的畫面接著編號。在覆蓋地圖最後加一欄「複驗」
+   - **沒改動**：`hash` 相同
+   - **`anchor-missing`**：先不要當成沒改動。判斷是畫面改版，還是被導到別的畫面（例如登入頁）。改版就更新該頁的 `anchor` 並當成有改動；導向錯誤就寫成 finding。判斷後用 Edit 更新執行目錄的 `probe.json`，並複製成 `state/probe.json`
+   - 探測跑不起來時（沒有 CDP 或 Node 22），在 `report.md` 寫明原因，改讀 `scripts/fingerprint.js` 逐頁計算，再照同樣四類分類
+5. 有改動的畫面上，探測記了 `找不到欄位` 或 `找不到按鈕` 時，重新偵察那一個表單，只用 Edit 改那一筆，然後再跑一次探測，用新的結果重做第 4 步。只重試這一次
+6. 覆蓋地圖沿用 `screens.md` 的代號；新增的畫面接著編號。在覆蓋地圖最後加一欄「複驗」
    - 有改動：所有開啟的測試輪、`體檢` 和「複驗」欄都是 `☐`
    - 新增：所有開啟的測試輪和 `體檢` 都是 `☐`；「複驗」欄標 `➖ 新畫面`
-   - 沒改動：測試輪欄位和 `體檢` 都標 `➖ 增量：未改動`；「複驗」欄是 `☐`。體檢分數沿用上次，在 `ux-review.md` 標「沿用 <執行目錄>」
-   - 流程列：`體檢` 一律標 `➖ 流程列不做體檢`。經過任何有改動或新增的畫面，測試輪和「複驗」都是 `☐`；否則測試輪標 `➖ 增量：未改動`、「複驗」是 `☐`。流程列的複驗是從頭走一次流程，確認可以完成
+   - 沒改動，而且沒有新的 `console-error`、`failed-request`：「複驗」欄直接標 `✅ 探測`，測試輪和 `體檢` 標 `➖ 增量：未改動`。不要打開這個畫面，也不要對它執行指紋程式。體檢分數沿用上次，在 `ux-review.md` 標「沿用 <執行目錄>」
+   - 沒改動，但有新的 `console-error` 或 `failed-request`：改列為有改動。測試輪和 `體檢` 維持 `☐`，不要標 `✅ 探測`。新的意思是：這次該 url 的這兩種結果，內容還沒有被這個畫面上的已知問題涵蓋
+   - 流程列：`體檢` 一律標 `➖ 流程列不做體檢`。經過任何有改動或新增的畫面，測試輪和「複驗」都是 `☐`；否則測試輪標 `➖ 增量：未改動`、「複驗」是 `☐`。流程列的複驗是從頭走一次流程，確認可以完成；這不是把流程裡沒改動的畫面再逐頁打開
    - 移除：不列進覆蓋地圖，它的已知問題標 `無法複驗：畫面已移除`
 
    覆蓋率統計時，「複驗」欄另外計算（✅ / ➖ 各幾格），不併入測試輪的格數。
-5. 依偵察結果 Edit 執行目錄的 `probe.json`，不要整份重寫：
-   - 新增的畫面加進 `pages`，移除的畫面從 `pages` 刪掉
-   - `records` 裡抽樣的那一筆不存在時，重新抽一筆並替換該筆
-   - `forms` 的 selector 在畫面上找不到時（只限有改動的畫面），重新偵察那一個表單，只改那一筆
-6. `data-types.md` 的既有資料型態直接沿用，只檢查抽樣的那幾筆是否還存在；不存在的話，重新抽一筆
-7. 估算成本用 [depth.md](depth.md#增量模式) 的增量公式
+7. `data-types.md` 的既有資料型態直接沿用，只檢查抽樣的那幾筆是否還存在；不存在的話，重新抽一筆
+8. 估算成本用 [depth.md](depth.md#增量模式) 的增量公式
 
-### 沒改動畫面的「複驗」
+### 已知問題自動複驗
 
-每個沒改動的畫面做這幾件事，做完把「複驗」欄改成 `✅`：
-- 打開畫面，清空 console 後重新載入，讀 `console --errors` 和失敗的請求。有新的錯誤，就照一般規則寫成 finding，並把這個畫面改列為「有改動」：測試輪和 `體檢` 改回 `☐`，拿掉 `ux-review.md` 的「沿用」標記，補跑測試輪和體檢
-- 這個畫面上每個 `仍存在` 的已知問題，照重現摘要做一次，更新狀態：還能重現就是 `仍存在`，不能重現就是 `已修`
-- 已知問題的證據規則和新問題一樣：每個都存一張這次的截圖（`shots/K-<編號>.png`，`/` 換成 `-`），P0、P1 要從這次的 `checkpoint.json` `restore` 再 `perceive` 之後重現兩次。測試輪中途 app 自己登出時，`restore` 把 session 寫回 storage，頁面仍停在 `#/login`；先 `reload <t>` 再 `perceive <t>`，頁面才會讀到還原後的 session。這次執行要先自己存一份 checkpoint，不要沿用上次執行目錄裡的檔
+每個 `仍存在` 的已知問題，照「複驗方式」判斷，不要照文字重做已經能由探測、重播或腳本決定的項目：
 
-有改動的畫面，測試輪跑完後也做一樣的複驗，而且 `已修` 的已知問題也要重現一次，確認沒有再壞掉（再壞掉就改回 `仍存在`）。做完把「複驗」欄改成 `✅`。這些畫面上新發現的問題，照一般規則寫進這次的 `findings.md`。
+| 複驗方式 | 怎麼做 | 結果 |
+|---|---|---|
+| `探測:<check>` | 在這次 `probe-result.json` 找同一畫面、同一 check。畫面用 `screens.md` 的 URL 對到結果的 `url` | 沒有紀錄就標 `已修`；還有就標 `仍存在`。證據寫 `probe-result.json` 的那一筆，不要為了這個打開畫面 |
+| `重播:<路徑>` | `replay --file <路徑>`，接著 `flow <t> "assert …"`。assert 寫修好之後應該成立的事 | assert 通過標 `已修`，失敗標 `仍存在`。失敗在重播前置（檔案不在、被遮蔽的密碼）時交給 agent 判斷，必要時改成 `手動` |
+| `腳本:<路徑>` | 跑該腳本。跨次時路徑在 `state/repro/`，指令和判定表見 [repro.md](repro.md#複驗) | 照該表：通過是 `已修`，失敗在斷言是 `仍存在`，失敗在前置交給 agent |
+| `手動` | 打開畫面，照重現摘要做一次 | 還能重現是 `仍存在`，不能重現是 `已修`。存 `shots/K-<編號>.png`（`/` 換成 `-`） |
+
+P0、P1 被標成 `已修` 時，仍然照證據規則由 agent 從乾淨狀態確認一次，避免誤判。做法是這次執行目錄的 `checkpoint.json`：`restore` 再 `perceive`。測試輪中途 app 自己登出時，`restore` 把 session 寫回 storage，頁面仍停在 `#/login`；先 `reload <t>` 再 `perceive <t>`，頁面才會讀到還原後的 session。這次執行要先自己存一份 checkpoint，不要沿用上次執行目錄裡的檔。確認失敗就改回 `仍存在`。
+
+有改動的畫面，測試輪跑完後也用這張表複驗已知問題，包含狀態是 `已修` 的：再壞掉就改回 `仍存在`。做完把「複驗」欄改成 `✅`。這些畫面上新發現的問題，照一般規則寫進這次的 `findings.md`，並依優先順序填「複驗方式」。
 
 ### 步驟 4
 
@@ -155,9 +152,10 @@ state/
 ### 結束前更新狀態檔
 
 步驟 6 交付之前：
-- `screens.md`、`fingerprints.json` 換成這次的結果
+- `screens.md` 的指紋和 `fingerprints.json` 換成這次 `probe-result.json` 的 `fingerprints`。沒有跑探測時，才用當時逐頁算出的結果
 - 這次執行目錄有 `probe.json` 時，複製成 `state/probe.json`。檔案裡的密碼必須仍是 `{ "env": "..." }`，不能是明文。之後的 `audit` 直接用這份，見 [modes.md](modes.md#audit)
-- 這次新發現的問題加進 `known-findings.md`，狀態 `仍存在`
+- 把這次的 `repro/` 複製到 `state/repro/`：`*.spec.ts`、共用的一份 `_login.ts`、`*.actions.json`。不要複製 `checkpoint.json`（它含 cookie 和 storage，只能留在執行目錄）
+- 這次新發現的問題加進 `known-findings.md`，狀態 `仍存在`，並填「複驗方式」
 - 已知問題更新狀態和「最後確認」
 - `runs.md` 新增一列
 

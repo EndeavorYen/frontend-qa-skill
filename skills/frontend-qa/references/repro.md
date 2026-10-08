@@ -194,6 +194,8 @@ cd .frontend-qa/<run>/repro && BASE_URL=<網址> npx --no-install playwright tes
 
 ## 複驗
 
+跨次執行時，腳本在 `state/repro/`（見 [memory.md](memory.md#結束前更新狀態檔)）。`_login.ts` 全專案共用一份。`*.actions.json` 一起保留，給 `重播:` 使用。`checkpoint.json` 含 cookie 和 storage，不能複製到 `state/`。
+
 使用者要確認問題修好了沒有時，不需要重新測試，也不需要 Playwright。每個 P0、P1 用上面「驗證腳本」的同一組指令：會寫入的項目先重設後端，再 `restore`、`reload`、`perceive`、`replay`、`flow`。`reload` 放在 `restore` 和 `perceive` 之間。`restore` 不會重新載入頁面，所以前端重新部署或換了 variant 之後，分頁仍跑舊的程式，修好的 bug 會被誤判成仍存在；`reload` 留下還原後的 session，並載入現在的前端。連點的 `flow` 必須包含同一個 `eval`。
 
 - `replay` 成功且 flow 通過：標成「已修」

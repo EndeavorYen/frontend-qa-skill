@@ -8,6 +8,7 @@
 import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { browserAnchorExpression, browserFingerprintExpression } from './fingerprint.js';
 
 const ANTI_PATTERNS = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'anti-patterns.js'), 'utf8');
 const ANTI_CHECKS = [
@@ -70,6 +71,48 @@ export function plaintextPasswordFields(value, path = '') {
   return found;
 }
 
+export function normalizePage(entry) {
+  if (typeof entry === 'string') return { url: entry };
+  if (entry && typeof entry === 'object' && typeof entry.url === 'string') {
+    const page = { url: entry.url };
+    if (typeof entry.anchor === 'string' && entry.anchor) page.anchor = entry.anchor;
+    return page;
+  }
+  throw new Error(`pages 項目必須是網址字串或 { url, anchor }：${JSON.stringify(entry)}`);
+}
+
+// Record the fingerprint taken after the first viewport load, and an anchor-missing row when the anchor is absent.
+export function notePageLoad({ fingerprints, results, url, anchor, fingerprint, anchorFound, viewport }) {
+  if (fingerprint !== undefined) {
+    if (!fingerprint || typeof fingerprint.hash !== 'string' || !Array.isArray(fingerprint.list)) {
+      results.push({ check: 'probe-error', url, detail: '指紋：結果不是 { hash, list }' });
+    } else {
+      fingerprints[url] = { hash: fingerprint.hash, list: [...fingerprint.list] };
+    }
+  }
+  if (anchor && anchorFound === false) {
+    results.push({
+      check: 'anchor-missing',
+      url,
+      viewport,
+      detail: `找不到錨點 ${anchor}，網址沒變但內容可能已不是這個畫面`,
+    });
+  }
+}
+
+export function buildProbeOutput({ base, startedAt = Date.now(), results, fingerprints = {} }) {
+  const summary = {};
+  for (const r of results) summary[r.check] = (summary[r.check] || 0) + 1;
+  return {
+    probe: 'frontend-qa.probe.v1',
+    base,
+    seconds: Math.round((Date.now() - startedAt) / 1000),
+    summary,
+    fingerprints,
+    results,
+  };
+}
+
 function isMainModule() {
   const entry = process.argv[1];
   if (!entry) return false;
@@ -120,14 +163,13 @@ const commandTimeoutMs = config.commandTimeoutMs ?? 15000;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const results = [];
+const fingerprints = {};
 const add = (check, url, detail, extra = {}) => results.push({ check, url, ...extra, detail });
 const startedAt = Date.now();
 const writeOut = () => {
-  const summary = {};
-  for (const r of results) summary[r.check] = (summary[r.check] || 0) + 1;
-  const out = { probe: 'frontend-qa.probe.v1', base, seconds: Math.round((Date.now() - startedAt) / 1000), summary, results };
+  const out = buildProbeOutput({ base, startedAt, results, fingerprints });
   writeFileSync(outPath, JSON.stringify(out, null, 1));
-  console.log(JSON.stringify({ out: outPath, seconds: out.seconds, summary }));
+  console.log(JSON.stringify({ out: outPath, seconds: out.seconds, summary: out.summary }));
 };
 
 // ---------- CDP（連 browser 端點，再 attach 到自己開的分頁） ----------
@@ -286,11 +328,29 @@ const LOADING_WORDS = new RegExp(config.loadingWords || '載入中|讀取中|loa
 const sample = (list, n = 8) => (list.length > n ? [...list.slice(0, n), `…共 ${list.length} 筆`] : list);
 const newLines = (before, after) => after.split('\n').filter((l) => l.trim() && !before.split('\n').includes(l)).join(' ').slice(0, 160);
 
-const auditPage = async (url, kind) => {
-  for (const vp of viewports) {
+const auditPage = async (url, kind, { withFingerprint = false, anchor } = {}) => {
+  for (let i = 0; i < viewports.length; i++) {
+    const vp = viewports[i];
     await step(`檢查 ${vp.name}`, url, async () => {
       await setViewport(vp);
       await go(url);
+      if (i === 0 && withFingerprint) {
+        let fp;
+        try {
+          fp = await evaluate(browserFingerprintExpression());
+        } catch (err) {
+          add('probe-error', url, `指紋：${String(err.message || err).split('\n')[0]}`);
+        }
+        let anchorFound;
+        if (anchor) {
+          try {
+            anchorFound = await evaluate(browserAnchorExpression(anchor));
+          } catch (err) {
+            add('probe-error', url, `錨點：${String(err.message || err).split('\n')[0]}`);
+          }
+        }
+        notePageLoad({ fingerprints, results, url, anchor, fingerprint: fp, anchorFound, viewport: vp.name });
+      }
       const a = await evaluate(PAGE_AUDIT);
       const at = { viewport: vp.name };
       if (events.errors.length) add('console-error', url, sample([...new Set(events.errors)]), { ...at, kind });
@@ -412,8 +472,11 @@ try {
     if (stillThere) throw new Error(`登入後登入表單仍在畫面上，判定登入失敗：${events.dialogs.map((d) => d.message).join('；') || (await textNow()).slice(0, 80)}`);
   }
 
-  for (const url of config.pages || []) await auditPage(url, 'page');
-  for (const url of config.records || []) await auditPage(url, 'record');
+  for (const entry of config.pages || []) {
+    const page = normalizePage(entry);
+    await auditPage(page.url, 'page', { withFingerprint: true, anchor: page.anchor });
+  }
+  for (const url of config.records || []) await auditPage(url, 'record', { withFingerprint: true });
 
   await setViewport(viewports[0]);
   for (const list of config.lists || []) {

@@ -5,7 +5,8 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { plaintextPasswordFields, resolveEnvRefs } from './probe.mjs';
+import { anchorPresent, computeFingerprint } from './fingerprint.js';
+import { buildProbeOutput, normalizePage, notePageLoad, plaintextPasswordFields, resolveEnvRefs } from './probe.mjs';
 
 const script = fileURLToPath(new URL('./probe.mjs', import.meta.url));
 
@@ -87,6 +88,74 @@ describe('plaintextPasswordFields', () => {
       forms: [{ fill: { '[name=password]': { env: 'QA_PASSWORD' } } }],
     });
     assert.deepEqual(fields, ['login.fill.[name=password]']);
+  });
+});
+
+describe('probe-result fingerprints', () => {
+  test('stores a page fingerprint and records a missing anchor', () => {
+    const doc = {
+      querySelectorAll() {
+        return [];
+      },
+    };
+    const fingerprint = computeFingerprint(doc);
+    const page = normalizePage({ url: '/#/orders', anchor: 'h1:訂單列表' });
+    const fingerprints = {};
+    const results = [];
+    notePageLoad({
+      fingerprints,
+      results,
+      url: page.url,
+      kind: 'page',
+      anchor: page.anchor,
+      fingerprint,
+      anchorFound: anchorPresent(doc, page.anchor),
+      viewport: '1440x900',
+    });
+    const out = buildProbeOutput({
+      base: 'http://localhost:3000',
+      startedAt: Date.now(),
+      results,
+      fingerprints,
+    });
+
+    assert.equal(out.probe, 'frontend-qa.probe.v1');
+    assert.equal(out.fingerprints['/#/orders'].hash, fingerprint.hash);
+    assert.deepEqual(out.fingerprints['/#/orders'].list, fingerprint.list);
+    assert.equal(out.summary['anchor-missing'], 1);
+    assert.equal(out.results[0].check, 'anchor-missing');
+    assert.equal(out.results[0].url, '/#/orders');
+    assert.match(out.results[0].detail, /h1:訂單列表/);
+  });
+
+  test('does not record anchor-missing when the anchor is present', () => {
+    const page = normalizePage('/#/settings');
+    assert.equal(page.url, '/#/settings');
+    assert.equal(page.anchor, undefined);
+    const fingerprints = {};
+    const results = [];
+    notePageLoad({
+      fingerprints,
+      results,
+      url: '/#/orders/3',
+      kind: 'record',
+      fingerprint: { hash: 'abc', list: ['h1::詳情:'] },
+      anchorFound: true,
+      viewport: '1440x900',
+    });
+    const out = buildProbeOutput({
+      base: 'http://localhost:3000',
+      startedAt: Date.now(),
+      results,
+      fingerprints,
+    });
+    assert.deepEqual(out.fingerprints['/#/orders/3'], { hash: 'abc', list: ['h1::詳情:'] });
+    assert.equal(out.results.length, 0);
+    assert.equal(out.summary['anchor-missing'], undefined);
+  });
+
+  test('rejects a page entry that is neither a url nor { url, anchor }', () => {
+    assert.throws(() => normalizePage({ anchor: 'h1:訂單列表' }), /url/);
   });
 });
 
