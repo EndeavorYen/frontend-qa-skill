@@ -276,7 +276,11 @@ test('eval anti-patterns fire on a hit page and stay quiet on a clean page', { t
   }
 });
 
-const LATIN1_HTML = `<!doctype html><html><head><meta charset="windows-1252"></head><body style="background:#fff">
+const LATIN1_HTML = Buffer.concat([
+  Buffer.from(`<!doctype html><html><head><meta charset="windows-1252"></head><body style="background:#fff">
+  <!-- `, 'ascii'),
+  Buffer.from([0xe9]),
+  Buffer.from(` -->
   <div>
     <button style="background:#2563eb;color:#fff">Export</button>
     <button style="background:#2563eb;color:#fff">More</button>
@@ -291,14 +295,14 @@ const LATIN1_HTML = `<!doctype html><html><head><meta charset="windows-1252"></h
     <button style="background:#2563eb;color:#fff">save</button>
     <button style="background:#2563eb;color:#fff">delete</button>
   </div>
-</body></html>`;
+</body></html>`, 'ascii'),
+]);
 
-test('non-UTF-8 pages warn and skip text checks', { timeout: 30000 }, async () => {
+test('non-UTF-8 pages skip CJK patterns and still check English', { timeout: 30000 }, async () => {
   const source = read('scripts/anti-patterns.js');
   assert.match(source, /document\.characterSet/);
   assert.match(read('scripts/probe.mjs'), /ap\?\.warning/);
   assert.match(read('scripts/probe.mjs'), /text-checks-skipped/);
-  assert.match(read('references/probe.md'), /text-checks-skipped/);
   const httpPort = await freePort();
   const server = createServer((_req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=windows-1252' });
@@ -322,15 +326,30 @@ test('non-UTF-8 pages warn and skip text checks', { timeout: 30000 }, async () =
       return res.json();
     });
     const page = await evaluateUrl(version.webSocketDebuggerUrl, source, `http://127.0.0.1:${httpPort}/`);
+    console.log(JSON.stringify({
+      charset: page.charset,
+      warning: page.result.warning,
+      genericDialogActions: page.result.genericDialogActions.length,
+      emptyStateNoAction: page.result.emptyStateNoAction.length,
+      vagueError: page.result.vagueError.length,
+      destructiveLooksPrimary: page.result.destructiveLooksPrimary.length,
+      multiplePrimaryButtons: page.result.multiplePrimaryButtons.length,
+    }));
     assert.notEqual(String(page.charset).toLowerCase(), 'utf-8');
     assert.equal(typeof page.result.warning, 'string');
     assert.match(page.result.warning, new RegExp(page.charset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     assert.match(page.result.warning, /不是 UTF-8/);
-    assert.match(page.result.warning, /已略過文字比對/);
-    for (const key of ['genericDialogActions', 'emptyStateNoAction', 'vagueError', 'destructiveLooksPrimary']) {
-      assert.deepEqual(page.result[key], [], `${key} ran on a non-UTF-8 page`);
-    }
+    assert.match(page.result.warning, /CJK/);
+    assert.match(page.result.warning, /英文/);
+    assert.doesNotMatch(page.result.warning, /已略過文字比對：generic-dialog-actions/);
+    assert.ok(page.result.genericDialogActions.length >= 1, JSON.stringify(page.result.genericDialogActions));
+    assert.ok(page.result.emptyStateNoAction.some((item) => /no data/.test(item)), JSON.stringify(page.result.emptyStateNoAction));
+    assert.ok(page.result.vagueError.some((item) => /error/.test(item)), JSON.stringify(page.result.vagueError));
+    assert.ok(page.result.destructiveLooksPrimary.some((item) => /delete/.test(item) && /save/.test(item)), JSON.stringify(page.result.destructiveLooksPrimary));
     assert.ok(page.result.multiplePrimaryButtons.length >= 1, 'non-text checks should still run');
+    assert.match(read('references/probe.md'), /CJK/);
+    assert.match(read('references/anti-patterns.md'), /CJK/);
+    assert.match(read('references/ux-review.md'), /CJK/);
   } finally {
     chrome.kill('SIGKILL');
     await new Promise((resolveClose) => server.close(resolveClose));
@@ -421,7 +440,9 @@ async function evaluateUrl(wsUrl, source, url) {
     await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false }, sessionId);
     await waitFor(async () => {
       const ready = await send('Runtime.evaluate', { expression: 'document.readyState', returnByValue: true }, sessionId);
-      if (ready.result.value !== 'complete') throw new Error(ready.result.value);
+      const href = await send('Runtime.evaluate', { expression: 'location.href', returnByValue: true }, sessionId);
+      if (ready.result.value !== 'complete') throw new Error(String(ready.result.value));
+      if (!String(href.result.value).startsWith(url)) throw new Error(String(href.result.value));
       return true;
     });
     const charsetEval = await send('Runtime.evaluate', { expression: 'document.characterSet', returnByValue: true }, sessionId);

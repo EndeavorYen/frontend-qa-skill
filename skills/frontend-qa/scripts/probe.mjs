@@ -6,7 +6,7 @@
 // 設定檔格式見 ../references/probe.md。
 
 import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { browserAnchorExpression, browserFingerprintExpression } from './fingerprint.mjs';
 
@@ -113,6 +113,18 @@ export function buildProbeOutput({ base, startedAt = Date.now(), results, finger
   };
 }
 
+// A new profile's first load asks for /favicon.ico and often gets 404. Other favicon failures stay.
+export function noteFailedRequest(events, url, text, status) {
+  let pathname = '';
+  try {
+    pathname = new URL(url).pathname;
+  } catch {
+    pathname = '';
+  }
+  if (status === 404 && pathname === '/favicon.ico') return;
+  events.failed.push(text);
+}
+
 function isMainModule() {
   const entry = process.argv[1];
   if (!entry) return false;
@@ -210,13 +222,14 @@ const onEvent = ({ method, params }) => {
     // 重新導向會用同一個 requestId 再發一次事件，不要重複計算
     if (!params.redirectResponse) events.requests.push({ id: params.requestId, method: params.request.method, url: params.request.url });
   } else if (method === 'Network.responseReceived') {
-    if (params.response.status >= 400) events.failed.push(`${params.response.status} ${params.response.url}`);
+    if (params.response.status >= 400) noteFailedRequest(events, params.response.url, `${params.response.status} ${params.response.url}`, params.response.status);
   } else if (method === 'Network.loadingFinished') {
     inflight.delete(params.requestId);
   } else if (method === 'Network.loadingFailed') {
     inflight.delete(params.requestId);
     const req = events.requests.find((r) => r.id === params.requestId);
-    events.failed.push(`${params.errorText} ${req ? req.url : ''}`.trim());
+    const failedUrl = req ? req.url : '';
+    noteFailedRequest(events, failedUrl, `${params.errorText} ${failedUrl}`.trim());
   } else if (method === 'Page.javascriptDialogOpening') {
     // alert / confirm 會卡住頁面；記下文字當成回饋證據，一律按取消，不會誤確認刪除這類動作
     // beforeunload 要按確定，否則會擋住腳本自己的導覽

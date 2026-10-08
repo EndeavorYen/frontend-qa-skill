@@ -25,7 +25,7 @@
    ```bash
    cp .frontend-qa/state/probe.json .frontend-qa/<run>/probe.json
    ```
-   使用者指定的畫面若不在這份設定裡，只改執行目錄裡的複本，把那個 URL 加進 `pages`。沒有 `state/probe.json` 時，照 [probe.md](probe.md) 用畫面上看到的網址、欄位、按鈕新寫一份。不要讀 app 的原始碼。
+   使用者指定的畫面若不在這份設定裡，只改執行目錄裡的複本，把那個 URL 加進 `pages`。沒有 `state/probe.json` 時，照 [probe.md](probe.md) 用畫面上看到的網址、欄位、按鈕新寫一份。不要讀 app 的原始碼。密碼欄位寫成 `{ "env": "QA_PASSWORD" }`，不能寫明文。跑探測之前先設定環境變數 `QA_PASSWORD`（名稱以設定檔裡的 `env` 為準）。沒有設定或是空字串時，探測會停止並印出變數名稱，不會帶空密碼登入。
 3. 跑探測。條件和指令見 [probe.md](probe.md#執行)。`audit` 不受「至少開了一個測試輪」限制。環境不符合就在 `report.md` 寫明原因，改用 chrome-cdp-ex 的 `eval` 對每個畫面、每個尺寸跑 [ux-review.md](ux-review.md#量化檢查) 的量化程式和 [反模式檢查](ux-review.md#反模式檢查)。
 4. 探測有跑時，反模式 check 已經在結果裡。量化檢查（字級、字重、顏色、圓角、44px、橫向溢出）再對每個畫面、每個尺寸跑一次 ux-review.md 的量化程式：`eval <t> "<程式>"`。同一個 check 加同一個元素只留一筆。
 5. 這些 check 只看當下 DOM。對話框、toast、送出後才出現的錯誤，停在畫面初始狀態時不會出現。`audit` 不要為了把它們點出來而改跑測試輪。
