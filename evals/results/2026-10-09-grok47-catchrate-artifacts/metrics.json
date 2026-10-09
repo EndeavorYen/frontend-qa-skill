@@ -1,0 +1,71 @@
+{
+  "model": "grok-4.7-high",
+  "skill_commit": "uncommitted working tree on feature/catch-rate-repro-f03f; parent 103ed37587745f6238330e731da51202ae1c1620 plus five reference edits (personas.md, repro.md, severity.md, state-checklist.md, ux-review.md) in the same commit",
+  "skill_path": "skills/frontend-qa",
+  "protocol": "one full round; no incremental; no sessions",
+  "turns_tool_calls_completed": 126,
+  "tool_calls": {
+    "read": 26,
+    "glob": 2,
+    "shell": 59,
+    "getMcpTools": 1,
+    "updateTodos": 2,
+    "grep": 3,
+    "edit": 33
+  },
+  "screenshot_reads": 9,
+  "duration_ms": 2064022,
+  "minutes": 34.4,
+  "usage": {
+    "inputTokens": 519125,
+    "outputTokens": 94403,
+    "cacheReadTokens": 8900608,
+    "cacheWriteTokens": 0
+  },
+  "usd": null,
+  "usd_note": "result event has no dollar field; do not invent USD",
+  "tool_result_json_chars": 533358,
+  "probe_seconds": 42,
+  "catch": "19/21",
+  "p0_p1": "5/5",
+  "misses": [
+    "B14",
+    "B19"
+  ],
+  "historical_misses_now_caught": {
+    "B2": "F1",
+    "B9": "F21",
+    "B18": "F15"
+  },
+  "playwright": {
+    "note": "Eval agent did not execute specs (playwright not installed in that session). Corrected specs were run separately.",
+    "bugged_4190": {
+      "status": "failed",
+      "failedTests": [
+        "6dd4c6d2aebd609015ad-7c0a0bc1e73ea2d9d6e3",
+        "771a4641e9031a625ea2-0efd94d2895f599b8df8",
+        "ed4ac439e1a43de9ed43-23ec523cb3a81f4c3ffd"
+      ],
+      "titles": [
+        "footer: elementFromPoint center is FOOTER not BUTTON",
+        "double-submit: expected 1 POST, received 2",
+        "offline submit: no visible error"
+      ]
+    },
+    "fixed_b1_4191": {
+      "status": "failed",
+      "failedTests": [
+        "6dd4c6d2aebd609015ad-7c0a0bc1e73ea2d9d6e3",
+        "ed4ac439e1a43de9ed43-23ec523cb3a81f4c3ffd"
+      ],
+      "double_submit_passed": true,
+      "note": "771a4641e9031a625ea2-0efd94d2895f599b8df8 absent; footer and offline still fail because only B1 was fixed"
+    }
+  },
+  "black_box": {
+    "source_pattern_grep_hits": 1,
+    "source_pattern_note": "the one hit is the user prompt prohibition, not a source read",
+    "gh_issue_create_or_comment": 0,
+    "path_reads_app_js_style_css_index_html": 0
+  }
+}

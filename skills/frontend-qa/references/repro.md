@@ -66,14 +66,26 @@ await expect(page.locator('tbody tr').first()).toContainText('2026-01-03');
 // 上傳後檔案出現在附件列表
 await expect(page.getByRole('listitem').filter({ hasText: 'report.pdf' })).toBeVisible();
 
-// 只發出一個寫入請求：先等第一個回應，再多等一段時間看有沒有第二個
+// 只發出一個寫入請求：攔截主要寫入 API、回假成功，只數請求，不看清單上的列數
 const writes: string[] = [];
-page.on('request', (r) => { if (r.method() !== 'GET' && r.url().includes('/api/projects')) writes.push(r.url()); });
-// ……觸發……
+page.on('request', (r) => { if (r.method() === 'POST' && r.url().includes('/api/items')) writes.push(r.url()); });
+await page.route((url) => url.pathname === '/api/items', (route) =>
+  route.request().method() === 'POST'
+    ? route.fulfill({ status: 201, contentType: 'application/json', body: '{"id":1}' })
+    : route.continue());
+// ……觸發兩次送出……
 await expect.poll(() => writes.length).toBeGreaterThan(0);
 await page.waitForTimeout(1000);
 expect(writes.length).toBe(1);
 ```
+
+連點不要用清單上某個固定名稱的列數當斷言。後端記憶體可能還留著上一輪同名資料，修好的版本也會失敗；延遲較長的寫入，若送出後立刻換頁，列數也會數錯。上面這種 `page.route` 只數請求。若一定要數列，每次用沒出現過的名稱，並等到延遲的寫入回應之後再離開表單，且不斷言「恰好一列」去比對舊資料。
+
+輸入驗證（例如數值不合法）要斷言沒有新的寫入請求、也沒有新的一列。頁面上本來就一直看得到的提示不能當通過條件：有 bug 的版本仍會完成寫入，提示卻一直在。
+
+主要按鈕被固定 footer 擋住：視窗設成 `390x844`，不要捲動長列表，也不要對按鈕呼叫 `scrollIntoView`。用 `elementFromPoint` 取按鈕當下的中心（按鈕留在原位），斷言命中的是 `BUTTON`，不是 `FOOTER`。先把按鈕捲進畫面會讓有 bug 的版本也通過。`fullshot` 把固定 footer 畫進長頁中間，不能拿來寫這條斷言。
+
+送出時斷網沒有回饋：`context.setOffline(true)` 後按送出，5 秒內要出現看得見的錯誤文字（失敗、錯誤、無法、離線、請稍後）。這是 P1，要有 spec。
 
 範例：
 
