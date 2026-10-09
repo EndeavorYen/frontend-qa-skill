@@ -1,0 +1,20 @@
+Summary of the F1 / F2 / F6 replay. This file is not raw `npx playwright test --reporter=line` output.
+
+Committed F1.spec.ts has no scrollIntoView. It hits the button's resting center with elementFromPoint and expects BUTTON.
+F2 counts POST requests to the write API and expects exactly 1.
+F6 goes offline at submit and expects a visible error within 5 seconds.
+Password stayed in QA_PASSWORD. It was not on the command line.
+
+bugged server, port 4190, exit 1:
+  F1 FAIL  Expected BUTTON  Received FOOTER  (F1.spec.ts:21)
+  F2 FAIL  Expected 1  Received 2  (F2.spec.ts:37)
+  F6 FAIL  toBeVisible timeout 5000ms; text /失敗|錯誤|無法|離線|請稍後/ not found  (F6.spec.ts:18)
+  3 failed
+
+VARIANT=fix-b1 server, port 4191, exit 1:
+  F1 FAIL  Expected BUTTON  Received FOOTER  (F1.spec.ts:21)
+  F2 PASSED
+  F6 FAIL  toBeVisible timeout 5000ms; text /失敗|錯誤|無法|離線|請稍後/ not found  (F6.spec.ts:18)
+  2 failed, 1 passed (6.0s)
+
+fix-b1 only changes the double-submit path. Footer overlap and silent offline submit stay broken on both ports.

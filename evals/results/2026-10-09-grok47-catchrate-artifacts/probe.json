@@ -1,0 +1,40 @@
+{
+  "base": "http://localhost:4173",
+  "cdpPort": 9444,
+  "viewports": ["1440x900", "390x844", "320x568"],
+  "publicPages": ["/#/login"],
+  "login": {
+    "url": "/#/login",
+    "fill": {
+      "[name=user]": "qa-user@example.com",
+      "[name=password]": { "env": "QA_PASSWORD" }
+    },
+    "submit": "form button"
+  },
+  "pages": [
+    { "url": "/#/orders", "anchor": "h1:訂單" },
+    { "url": "/#/orders/new", "anchor": "h1:建立訂單" },
+    { "url": "/#/settings", "anchor": "h1:設定" },
+    "/#/help",
+    "/#/contact",
+    "/#/missing",
+    "/not-a-page"
+  ],
+  "records": ["/#/orders/1", "/#/orders/2", "/#/orders/3"],
+  "lists": [{ "url": "/#/orders", "api": "/api/orders" }],
+  "forms": [
+    {
+      "url": "/#/orders/new",
+      "fill": {
+        "[name=customer]": "QA 客戶",
+        "[name=item]": "QA 品項",
+        "[name=qty]": "2",
+        "[name=price]": "100"
+      },
+      "submit": "button[type=submit]",
+      "api": "/api/orders",
+      "longField": "[name=customer]",
+      "allowSubmit": true
+    }
+  ]
+}

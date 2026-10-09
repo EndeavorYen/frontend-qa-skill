@@ -37,7 +37,7 @@
 
 **招式**
 - 每個畫面在桌機尺寸看一張全頁截圖（`fullshot <t> shots/S<n>-desktop.png`，再用 Read 打開），檢查對齊、間距節奏、字級層級、顏色是否一致。小尺寸先用 DOM 檢查（`responsive-audit`、橫向捲動、點擊目標大小），發現疑點才看那個尺寸的截圖。這是 SKILL.md「截圖規則」中看圖額度的主要用途，同一個畫面、同一個尺寸不要看第二張；其他細節用 `styles` 讀。
-- 對同類元素（按鈕、卡片、標題）讀 computed style（`styles <t> <sel>`），比對尺寸、圓角、字重是否一致。
+- 對同類元素（按鈕、卡片、標題）讀 computed style（`styles <t> <sel>`），比對尺寸、圓角、字重是否一致。主要和次要按鈕圓角不同時，先查 design-context 或設計系統有沒有刻意區分（膠囊形主要按鈕、圖示按鈕、連結式按鈕）；只有不是刻意的，才記成 P3 一致性問題。比對時要比這兩顆按鈕，不要只比輸入框和按鈕，或只比登入頁和站內頁。
 - 檢查 hover、focus、active、disabled 四種狀態都有設計，而且彼此看得出差別（`hover <t> <ref>`、`emulate <t> --focus`）。
 - 有測深色模式時，切換成深色（`emulate <t> dark`），每個畫面在桌機尺寸看一張深色截圖，額度另計（見 SKILL.md「截圖規則」的主題數）；文字和背景的對比用 DOM 檢查。測完切回淺色（`emulate <t> light`）。
 - 留意文字被截斷、圖片變形、圖示風格混用、icon 和文字基線沒對齊、空白分配不平均。
@@ -50,7 +50,7 @@
 
 **招式**
 - 用 `390x844` 和 `320x568` 把主要流程完整走一遍（`viewport <t> 390x844`）。也可以一次掃多個尺寸（`responsive-audit <t> --viewport 390x844 --viewport 768x1024`）。
-- 檢查是否出現橫向捲動、元素重疊、按鈕小於 44px、固定定位的 header 或 footer 擋住內容、手機鍵盤彈出後輸入框被蓋住。
+- 檢查是否出現橫向捲動、元素重疊、按鈕小於 44px、固定定位的 header 或 footer 擋住內容、手機鍵盤彈出後輸入框被蓋住。在 `390x844`、不要先捲動長列表，用 `elementFromPoint` 取該畫面主要動作按鈕的中心，記下命中的是不是固定的 footer 或 header。`fullshot` 會把 `position:fixed` 的 footer 畫進長頁面的中間，那是工具合成結果，不能代替這次點擊檢查。
 - 只用 Tab、Shift+Tab、Enter、Space、Esc 完成主要任務（`press <t> Tab`）。檢查 focus 順序是否合理、焦點是否看得見、modal 是否把焦點限制在 modal 內、關閉後焦點是否回到原本的位置。
 - 檢查圖示按鈕有沒有可讀的名稱（看 `perceive` 輸出的 accessible name）。
 
@@ -62,7 +62,7 @@
 
 **招式**
 - 用慢網路走一次主要流程（`throttle <t> slow-3g`），檢查有沒有載入提示、能不能重複送出、會不會一直卡在 spinner。測完記得 `throttle <t> off`。
-- 在流程中途斷網（`throttle <t> offline`），然後恢復，看資料會不會遺失、有沒有提示。
+- 在流程中途斷網（`throttle <t> offline`），然後恢復，看資料會不會遺失、有沒有提示。送出的當下斷網，而且畫面上完全沒有反應（無法判斷寫入有沒有成功），要記成問題。
 - 讓 API 回傳 500、401、空陣列、超大資料量（`mock <t> add …`，語法見 commands.md），檢查錯誤訊息和恢復方式。
 - 凍結或位移時間（`clock <t> freeze`、`clock <t> offset`），檢查時間顯示、過期邏輯、時區。
 - 查看效能（`status <t> --vitals`），留意明顯的 LCP、CLS、INP 問題。
