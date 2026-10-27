@@ -33,8 +33,8 @@
 只帶入以下內容，不要把主 session 的對話紀錄或其他輪的細節傳過去：
 
 - 執行目錄的路徑，以及 `coverage.md` 的內容
-- 步驟 0 的目標 URL 和分頁 id、測試帳號（含密碼或登入方式）、環境、範圍、禁止動作、視窗尺寸、深度，以及工具軌是否開啟
-- `checkpoint.json` 的路徑。回到乾淨狀態用 `restore <t> --file <路徑> --format json` 再 `perceive <t>`，不要重新登入，也不要改用其他瀏覽器工具。測試輪中途 app 自己登出時，`restore` 把 session 寫回 storage，頁面仍停在 `#/login`；先 `reload <t>` 再 `perceive <t>`，頁面才會讀到還原後的 session。不要把這個檔的內容貼進 issue 或 `state/`
+- 步驟 0 的目標 URL 和分頁 id、測試帳號（只寫身分，不寫密碼）、環境、範圍、禁止動作、視窗尺寸、深度，以及工具軌是否開啟。登入沿用使用者已經登入的 Chrome，或請使用者自己登入；不要把密碼、token 或其他密鑰放進子 session 的內容，也不要傳給 `fill`、`fill_form`、`press_key`、`evaluate_script`
+- checkpoint 的名稱 `clean`、儲存時的 url，以及 keys、cookieNames、counts。不要把 storage 或 cookie 的值放進子 session。回到乾淨狀態的做法見 [SKILL.md](../SKILL.md#密鑰不進對話紀錄)：重裝腳本後呼叫 `__frontendQaRestoreCheckpoint('clean')`，`after` 計數要和儲存時相同，再 `navigate_page` 到存下來的網址，然後 `take_snapshot`。不要改用其他瀏覽器工具。HttpOnly cookie 或伺服器狀態還原不了，或回傳 `missing: true` 時，改重跑設定步驟。測試輪中途 app 自己登出、頁面停在 `#/login` 時，還原之後仍要 `navigate_page` 到存下來的網址，頁面才會讀到還原後的 session。不要把值貼進 issue 或 `state/`
 - 體檢子 session 另外帶入體檢程度（輕 / 標準 / 深，依 [depth.md](depth.md#預設面項) 或使用者的指定）
 - 這一輪需要的 reference：
   - 測試輪：`personas.md` 開頭的說明和這一輪的段落、`severity.md`、`report-template.md` 的 findings.md 格式；`狀態` 這一輪再加 `state-checklist.md`

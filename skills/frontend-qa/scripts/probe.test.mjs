@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 import { describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { anchorPresent, computeFingerprint } from './fingerprint.mjs';
+import { mask, maskControl, maskElement, maskEvaluateResult, maskConsole, maskConsoleArg, maskResult } from './mask.mjs';
 import { buildProbeOutput, normalizePage, noteFailedRequest, notePageLoad, plaintextPasswordFields, resolveEnvRefs } from './probe.mjs';
 
 const script = fileURLToPath(new URL('./probe.mjs', import.meta.url));
@@ -301,5 +302,157 @@ describe('probe.mjs via a symlinked skill directory', () => {
     assert.equal(result.stdout, '');
     assert.equal(existsSync(outPath), false);
     assert.doesNotMatch(output, /連不上|probe-error|登入失敗/);
+  });
+});
+
+describe('secret masking', () => {
+  test('masks password, hidden, token, cookie, and credential-shaped values', () => {
+    const secret = 'super-secret-password';
+    assert.equal(mask('password', secret), `<masked len=${secret.length}>`);
+    assert.equal(mask('cookie', 'ab'), '<masked len=2>');
+    assert.equal(mask('user', 'qa'), 'qa');
+    assert.equal(mask('version', '1.2.3'), '1.2.3');
+    assert.equal(mask('note', 'hello '.repeat(20)), 'hello '.repeat(20));
+    const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.signaturevalue';
+    assert.equal(mask('note', jwt), `<masked len=${jwt.length}>`);
+    assert.equal(mask('note', 'a'.repeat(20)), 'a'.repeat(20));
+    const overCap = 'hello '.repeat(334);
+    assert.equal(overCap.length, 2004);
+    assert.equal(mask('note', overCap), `${overCap.slice(0, 2000)}…<truncated len=2004>`);
+    assert.equal(maskControl('password', 'x', 'abc'), '<masked len=3>');
+    assert.equal(maskControl('hidden', 'x', 'abc'), '<masked len=3>');
+    assert.equal(maskControl('text', 'api_key', 'abc'), '<masked len=3>');
+    assert.equal(maskControl('text', 'email', 'qa@example.com'), 'qa@example.com');
+    assert.equal(
+      JSON.stringify(maskResult({ counts: { session: 2, local: 1 }, password: 'abc' })),
+      JSON.stringify({ counts: { session: 2, local: 1 }, password: '<masked len=3>' }),
+    );
+  });
+
+  test('probe masks input values and console values before they are emitted', () => {
+    const probeSource = readFileSync(script, 'utf8');
+    assert.match(probeSource, /maskEvaluateResult\(r\.result\)/);
+    assert.match(probeSource, /maskConsoleArg/);
+    assert.match(probeSource, /MASK_SOURCE/);
+    assert.match(probeSource, /__frontendQaMaskElement/);
+    assert.doesNotMatch(probeSource, /\.value\b/);
+    const secret = 'super-secret-password';
+    const password = {
+      getAttribute(name) {
+        if (name === 'type') return 'password';
+        if (name === 'name') return 'password';
+        return null;
+      },
+      id: 'pw',
+      value: secret,
+    };
+    const hidden = {
+      getAttribute(name) {
+        return name === 'type' ? 'hidden' : null;
+      },
+      id: '',
+      value: 'tok',
+    };
+    const token = {
+      getAttribute(name) {
+        if (name === 'type') return 'text';
+        if (name === 'name') return 'api_key';
+        return null;
+      },
+      id: '',
+      value: 'abc',
+    };
+    assert.equal(maskElement(password), `<masked len=${secret.length}>`);
+    assert.equal(maskElement(hidden), '<masked len=3>');
+    assert.equal(maskElement(token), '<masked len=3>');
+    const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.signaturevalue';
+    assert.equal(maskConsoleArg({ value: jwt }), `<masked len=${jwt.length}>`);
+    const logged = maskConsole(`login failed ${jwt} then more text`);
+    assert.equal(logged, `login failed <masked len=${jwt.length}> then more text`);
+    assert.doesNotMatch(logged, new RegExp(jwt));
+    assert.match(logged, /<masked len=/);
+    const emitted = maskEvaluateResult({ value: { password: secret, note: 'hello' } });
+    assert.equal(emitted.password, `<masked len=${secret.length}>`);
+    assert.equal(emitted.note, 'hello');
+    assert.doesNotMatch(JSON.stringify(emitted), new RegExp(secret));
+  });
+
+  test('maskConsole keeps a non-secret console line and masks only credential tokens', () => {
+    const line = 'GET /orders/12345/edit-form failed for user 3f2a9c1e-1b2c-4d5e-8f90-1234567890ab';
+    const overEighty = line + ' x';
+    assert.equal(line.length, 80);
+    assert.ok(overEighty.length > 80);
+    assert.equal(maskConsole(line), line);
+    assert.equal(maskConsole(overEighty), overEighty);
+
+    const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.signaturevalue';
+    const hex = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4';
+    assert.equal(hex.length, 40);
+    assert.equal(
+      maskConsole(`login failed ${jwt} then more text`),
+      `login failed <masked len=${jwt.length}> then more text`,
+    );
+    assert.equal(maskConsole(`rejected ${hex} for order`), `rejected <masked len=40> for order`);
+
+    const overCap = 'hello '.repeat(334);
+    assert.equal(overCap.length, 2004);
+    assert.equal(maskConsole(overCap), `${overCap.slice(0, 2000)}…<truncated len=2004>`);
+  });
+
+  test('leaves ordinary page data intact and masks whole-word secrets', () => {
+    const uuid = '123e4567-e89b-12d3-a456-426614174000';
+    const path = '/orders/12345/edit-form';
+    const description = 'Heavyweight cotton tee, navy, regular fit. '.repeat(8).slice(0, 300);
+    const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.signaturevalue';
+    const hex = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4';
+    const plainNumber = '9'.repeat(40);
+
+    assert.equal(description.length, 300);
+    assert.equal(hex.length, 40);
+    assert.equal(mask('inside', 'kept'), 'kept');
+    assert.equal(mask('author', 'Alice'), 'Alice');
+    assert.equal(mask('sidebar', 'open'), 'open');
+    assert.equal(mask('id', uuid), uuid);
+    assert.equal(mask('href', path), path);
+    assert.equal(mask('description', description), description);
+    assert.equal(mask('qty', plainNumber), plainNumber);
+    assert.equal(mask('next', '/orders/1?tab=details&sort=id'), '/orders/1?tab=details&sort=id');
+
+    assert.equal(mask('session_id', 'abc'), '<masked len=3>');
+    assert.equal(mask('authToken', 'abc'), '<masked len=3>');
+    assert.equal(mask('x-api-key', 'abc'), '<masked len=3>');
+    assert.equal(mask('Authorization', 'abc'), '<masked len=3>');
+    assert.equal(mask('note', jwt), `<masked len=${jwt.length}>`);
+    assert.equal(mask('note', hex), '<masked len=40>');
+
+    assert.equal(JSON.stringify(maskResult({
+      inside: 'kept',
+      author: 'Alice',
+      sidebar: 'open',
+      id: uuid,
+      href: path,
+      description,
+      qty: plainNumber,
+      session_id: 'abc',
+      authToken: 'abc',
+      'x-api-key': 'abc',
+      Authorization: 'abc',
+      note: jwt,
+      digest: hex,
+    })), JSON.stringify({
+      inside: 'kept',
+      author: 'Alice',
+      sidebar: 'open',
+      id: uuid,
+      href: path,
+      description,
+      qty: plainNumber,
+      session_id: '<masked len=3>',
+      authToken: '<masked len=3>',
+      'x-api-key': '<masked len=3>',
+      Authorization: '<masked len=3>',
+      note: `<masked len=${jwt.length}>`,
+      digest: '<masked len=40>',
+    }));
   });
 });

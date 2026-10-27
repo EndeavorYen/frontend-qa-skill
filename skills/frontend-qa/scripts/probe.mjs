@@ -9,6 +9,7 @@ import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { browserAnchorExpression, browserFingerprintExpression } from './fingerprint.mjs';
+import { MASK_SOURCE, maskConsole, maskConsoleArg, maskEvaluateResult } from './mask.mjs';
 
 const ANTI_PATTERNS = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'anti-patterns.js'), 'utf8');
 const ANTI_CHECKS = [
@@ -216,7 +217,7 @@ const onEvent = ({ method, params }) => {
     const d = params.exceptionDetails;
     events.errors.push((d.exception?.description || d.text || '').split('\n')[0]);
   } else if (method === 'Runtime.consoleAPICalled' && params.type === 'error') {
-    events.errors.push(params.args.map((a) => a.value ?? a.description ?? '').join(' ').slice(0, 200));
+    events.errors.push(maskConsole(params.args.map((arg) => maskConsoleArg(arg)).join(' ')));
   } else if (method === 'Network.requestWillBeSent') {
     inflight.add(params.requestId);
     // 重新導向會用同一個 requestId 再發一次事件，不要重複計算
@@ -254,7 +255,7 @@ const onEvent = ({ method, params }) => {
 const evaluate = async (expression) => {
   const r = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
   if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description || r.exceptionDetails.text);
-  return r.result.value;
+  return maskEvaluateResult(r.result);
 };
 // 等到沒有進行中的請求，最多 maxMs
 const settle = async (maxMs = 5000) => {
@@ -297,10 +298,14 @@ const step = async (label, url, fn) => {
 };
 
 // ---------- 頁面內的檢查 ----------
+const antiPatternExpression = ANTI_PATTERNS.replace(/^\/\/.*\n/, '');
+const preparedAntiPatterns = `(() => {\n${MASK_SOURCE}\nreturn ${antiPatternExpression};\n})()`;
 const PAGE_AUDIT = `(() => {
+${MASK_SOURCE}
+  const shownValue = globalThis.__frontendQaMaskElement;
   const visible = (e) => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none' && +s.opacity !== 0; };
   const byIds = (e) => (e.getAttribute('aria-labelledby') || '').split(/\\s+/).map((id) => document.getElementById(id)?.innerText || '').join(' ').trim();
-  const label = (e) => (e.getAttribute('aria-label') || byIds(e) || e.innerText || e.value || e.getAttribute('title') || e.getAttribute('alt') || e.getAttribute('placeholder') || (e.labels && e.labels[0] ? e.labels[0].innerText : '') || '').trim().replace(/\\s+/g, ' ').slice(0, 30);
+  const label = (e) => (e.getAttribute('aria-label') || byIds(e) || e.innerText || shownValue(e) || e.getAttribute('title') || e.getAttribute('alt') || e.getAttribute('placeholder') || (e.labels && e.labels[0] ? e.labels[0].innerText : '') || '').trim().replace(/\\s+/g, ' ').slice(0, 30);
   const desc = (e) => { const cls = typeof e.className === 'string' && e.className.trim() ? '.' + e.className.trim().split(/\\s+/).join('.') : ''; return e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + cls; };
   const parse = (c) => { const m = c.match(/[\\d.]+/g); return m ? m.map(Number) : [0, 0, 0, 0]; };
   const lum = ([r, g, b]) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
@@ -374,7 +379,7 @@ const auditPage = async (url, kind, { withFingerprint = false, anchor } = {}) =>
       if (a.notKeyboard.length) add('not-keyboard-reachable', url, sample(a.notKeyboard), at);
       if (a.unnamed.length) add('no-accessible-name', url, sample(a.unnamed), at);
       try {
-        const ap = await evaluate(ANTI_PATTERNS);
+        const ap = await evaluate(preparedAntiPatterns);
         if (ap?.warning) add('text-checks-skipped', url, ap.warning, at);
         for (const [key, check] of ANTI_CHECKS) {
           if (ap?.[key]?.length) add(check, url, sample(ap[key]), at);

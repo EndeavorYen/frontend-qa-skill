@@ -1,227 +1,161 @@
 # 重現
 
-P0 和 P1 除了文字的重現步驟，還要有兩份檔案。斷言都寫「**修好之後應該成立的事**」：bug 還在會失敗，bug 修好會通過。
+P0 和 P1 除了文字的重現步驟，還要有兩份檔案。斷言寫「**修好之後應該成立的事**」：bug 還在時 `pass` 是 false，bug 修好時 `pass` 是 true。
 
-- `repro/F<n>.actions.json`：主要的重播檔。複驗用 chrome-cdp-ex 的 `replay`，不需要 LLM，也不需要安裝 Playwright。
-- `repro/F<n>.spec.ts`：`export-playwright` 匯出後再改過的 spec，交給開發者或 CI。寫法規則見下面「怎麼寫 spec」。
+- `repro/F<n>.steps.md`：MCP 重播紀錄。每一步是一則 MCP 工具呼叫。重播這份檔不需要 Playwright。
+- `repro/F<n>.spec.ts`：依 steps 檔手寫的 Playwright spec。P0、P1 必備，不是可選。不要匯出，不要安裝 Playwright。密碼只讀 `process.env.QA_PASSWORD`，不要把值寫進檔案。
 
-`replay` 只會重做動作，不會判斷 bug 是否還在。重播之後要接一段斷言：`flow <t> "assert selector …; assert text …"`。
+允許的工具只有 [SKILL.md](../SKILL.md#需求) 那份清單。steps 檔裡的目標寫 role 和可及名稱，不寫 uid。uid 每次 `take_snapshot` 都會變。
 
 ## 什麼時候寫
 
-P0、P1 第二次從乾淨狀態重現成功之後。F 編號和 `findings.md` 相同。乾淨狀態是 `restore <t> --file .frontend-qa/<run>/checkpoint.json --format json`，然後 `perceive <t>`。測試輪中途 app 自己登出時，`restore` 把 session 寫回 storage，頁面仍停在 `#/login`；先 `reload <t>` 再 `perceive <t>`，頁面才會讀到還原後的 session。
+P0、P1 第二次從乾淨狀態重現成功之後。F 編號和 `findings.md` 相同。乾淨狀態的做法見 [SKILL.md](../SKILL.md#密鑰不進對話紀錄)：`__frontendQaRestoreCheckpoint('clean')` 的 `after` 計數要和儲存時相同，再用 `navigate_page`（`type` 為 `url`）打開存下來的網址。HttpOnly cookie 和伺服器狀態還原不了，或回傳 `missing: true`，改請使用者在已接上的瀏覽器自己登入。測試輪中途 app 自己登出、頁面停在 `#/login` 時，還原之後仍要 `navigate_page` 到存下來的網址。
 
-## 重播檔
+## steps 檔
 
-`record-actions` 沒有「從現在開始錄」的旗標。它匯出這個分頁 daemon 從啟動到現在的整個 action log（schema `chrome-cdp-ex.record-actions.v1`）。要讓檔案只含這一次重現：
+路徑是 `.frontend-qa/<run>/repro/F<n>.steps.md`。編號步驟，每步寫四件事：工具名稱、目標（role + 可及名稱；沒有元素目標的工具改寫 url 或參數）、輸入值、預期觀察。最後一步一定是斷言，見下一節。
 
-1. `restore <t> --file .frontend-qa/<run>/checkpoint.json --format json`。測試輪中途 app 自己登出、頁面停在 `#/login` 時，先 `reload <t>`。再 `perceive <t>`。這時已經是登入後的乾淨狀態。
-2. 執行 `throttle <t> off` 和 `mock <t> clear`，清掉上一輪留下的設定。`stop` 之後新的 daemon 會套用 `cdp-<targetId>.env.json` 裡還留著的 throttle 和 mock。這次重現本身要用的 mock 或 throttle，留到 `stop` 之後再設。
-3. `stop <t>`。daemon 和它的 action log 會消失，分頁、cookie、網址還在。不要用 `closetab`。
-4. 只做這次重現的步驟，不要做登入。密碼欄位不要出現在這段裡。這次需要的 `mock <t> add …` 或 `throttle <t> …` 放在這些步驟前面，`record-actions` 會把它們放進 `environment`，`replay` 會先做。
-5. 存檔。stdout 若以 `daemon restarted:` 開頭，拿掉那一行再存，否則 `replay` 會報 invalid JSON：
+密碼、token 或其他密鑰不寫進檔案，也不傳給任何 MCP 工具。規則見 [SKILL.md](../SKILL.md#密鑰不進對話紀錄)。steps 檔裡的密鑰寫成佔位符 `<secret QA_PASSWORD: entered by a person, not by a tool>`。重播不執行這個佔位符：登入沿用使用者已經登入的 Chrome（專用設定檔，見 [SKILL.md](../SKILL.md#需求)），否則停止並請使用者在該瀏覽器自己登入，完成後再繼續。Playwright spec 讀 `process.env.QA_PASSWORD`；沒有設定就失敗，不要把值寫進 spec。
 
-```bash
-"$CDP_DIR/bin/chrome-cdp" record-actions <t> --format json > .frontend-qa/<run>/repro/F<n>.actions.json
-"$CDP_DIR/bin/chrome-cdp" export-playwright <t> > .frontend-qa/<run>/repro/F<n>.spec.ts.draft
+```markdown
+# F7
+
+1. tool: navigate_page
+   type: url
+   url: http://localhost:3000/orders/new
+   expect: heading「建立訂單」可見
+2. tool: fill
+   target: { role: textbox, name: 客戶名稱 }
+   value: QA
+   expect: 該欄位顯示 QA
+3. tool: click
+   target: { role: button, name: 送出訂單 }
+   expect: 網址或畫面有變化
+4. tool: evaluate_script
+   function: () => { const maskResult = globalThis.__frontendQaMaskResult; if (typeof maskResult !== "function") return { pass: false, detail: "mask.js is not installed" }; const row = document.querySelector("tbody tr"); const text = row ? row.innerText : ""; const pass = text.includes("2026-01-03"); const detail = pass ? "first row has 2026-01-03" : "first row is " + text; return maskResult({ pass, detail }); }
+   expect: 有 bug 的版本回傳 pass false
 ```
 
-`record-actions` 會把密碼欄位寫成 `<redacted>`。這一筆的 `replayable` 是 false，`needsInput` 是 `["text"]`。`replay` 會跳過它，reason 是 `not replayable`，不會填空字串，也不會把密碼填回去。所以重播檔必須從 `restore` 之後已登入的狀態開始錄，不包含登入步驟。存檔後確認沒有 `needsInput` 含 `text` 的 fill，而且 `replayable` 不是 false；有的話這份檔不能拿來複驗，改步驟再錄一次。
+連點不能用兩次 `click`：`click` 一次只點一下，而且會等工具回傳。把兩次 `.click()` 寫進同一步 `evaluate_script`，按鈕用 role 和可及名稱在函式裡找：
 
-`eval`、`eval64`、`call` 不是 action，不會寫進 action log。`record-actions` 的 `actions[].command` 不會有它們，`replay` 也不會重做。連點就是這種情況：`click` 和 `repeat` 都會等頁面穩定，做不出快速連點，只能用 `eval`（見 [personas.md](personas.md#亂點)），所以連點本身不在重播檔裡。
-
-錄連點時，`stop` 之後只做連點之前的步驟，讓檔案停在按鈕還在的畫面。連點之後才做的 `nav` 不要錄進同一份檔，否則 `replay` 會在連點之前離開那個畫面，後面的 `eval` 點不到按鈕。連點的 `eval` 寫進 finding 的步驟，也寫進下面驗證用的 `flow`。存檔後確認 `actions[].command` 沒有 `eval`，而且每步 `replayable` 是 true、`needsInput` 是空的。
-
-`flow` 先用分號切開步驟，再把每個步驟用空白切開。`eval` 會把切開的參數用空白接回一行，所以寫進 `flow` 的那個 `eval` 不能含分號；兩次 `.click()` 用逗號接。`flow` 裡的 `wait` 只接受 `dom stable` 和 `network idle`，不是毫秒。毫秒等待是另一個指令 `wait <t> <ms>`，它也不是 action，`replay` 不會重做。
-
-## 怎麼寫 spec
-
-1. 上面 `export-playwright <t>` 的輸出當草稿（要 JSON 給另一個 agent 時加 `--format json`；寫 spec 用預設的文字輸出）。草稿通常**不能直接用**：
-   - 可能少了登入步驟，也可能帶著登入時填的明文密碼。**刪掉草稿中的登入段落**，一律改用共用的 `repro/_login.ts`
-   - `eval` 做的操作（例如連點）不會匯出
-   - 沒有任何斷言
-2. `_login.ts` 的網址用 `BASE_URL` 環境變數，密碼用 `QA_PASSWORD` 環境變數。**密碼不能寫進任何檔案**，登入失敗時也不能為了讓腳本跑起來就寫死
-3. 用 `test.step` 把腳本分成「前置」和「斷言」兩段。觸發 bug 之前，前置裡一定要有**正向錨點**：確認現在真的在要測的畫面、而且畫面已經載入，例如 `await expect(page).toHaveURL(/projects\/new/)` 加上 `await expect(page.getByRole('heading', { name: '新增專案', exact: true })).toBeVisible()`（`exact: true`，否則「專案」也會比對到「新增專案」）。斷言是否定斷言（「不見了」「數量是 0」），而且用了 mock、延遲這類 route 觸發條件時，前置還要證明它**真的生效了**，例如 route 裡計數、前置最後 `await expect.poll(() => injected).toBeGreaterThan(0)`。沒有錨點的話，登入失效、被導回首頁，或 mock 沒攔到請求時，「某個東西不見了」這類斷言會直接通過，被誤判成已修
-4. 補上觸發 bug 的那一步：
-
-| 情境 | 寫法 |
-|---|---|
-| 連點 | `page.evaluate(() => { const b = document.querySelector('<sel>'); b.click(); b.click(); })`，同一個 task 內點兩次 |
-| API 回錯誤 | `page.route((url) => url.pathname === '/api/<路徑>', (r) => { injected++; return r.fulfill({ status: 500, body: '{}' }); })`。用函式比對，網址加了 query 也攔得到 |
-| 斷網 | `context.setOffline(true)` |
-| 請求很慢 | `page.route(…, async (r) => { injected++; await new Promise((ok) => setTimeout(ok, 10000)); return r.continue(); })` |
-| 換一個尺寸 | `test.use({ viewport: { width: <寬>, height: <高> } })` |
-
-需要 `@playwright/test` 1.51 以上（`filter({ visible: true })`）。
-
-5. 寫斷言，描述修好之後應該看到什麼。優先用「出現了什麼」的正向斷言；用「不見了」「數量是 0」這類否定斷言時，前面一定要有第 3 點的錨點。找文字時加上 `filter({ visible: true })`，因為表單常常預先埋了隱藏的錯誤元素。同一件事要能寫成 `flow` 的斷言，見下一節：
-
-```ts
-// 失敗時要有看得見的錯誤訊息
-await expect(page.getByText(/失敗|錯誤|無法/).filter({ visible: true }).first()).toBeVisible({ timeout: 5000 });
-
-// 排序後第一列是日期最早的那一筆
-await expect(page.locator('tbody tr').first()).toContainText('2026-01-03');
-
-// 上傳後檔案出現在附件列表
-await expect(page.getByRole('listitem').filter({ hasText: 'report.pdf' })).toBeVisible();
-
-// 只發出一個寫入請求：攔截主要寫入 API、回假成功，只數請求，不看清單上的列數
-const writes: string[] = [];
-page.on('request', (r) => { if (r.method() === 'POST' && r.url().includes('/api/items')) writes.push(r.url()); });
-await page.route((url) => url.pathname === '/api/items', (route) =>
-  route.request().method() === 'POST'
-    ? route.fulfill({ status: 201, contentType: 'application/json', body: '{"id":1}' })
-    : route.continue());
-// ……觸發兩次送出……
-await expect.poll(() => writes.length).toBeGreaterThan(0);
-await page.waitForTimeout(1000);
-expect(writes.length).toBe(1);
+```js
+() => {
+  const maskResult = globalThis.__frontendQaMaskResult;
+  if (typeof maskResult !== "function") return { clicked: 0, detail: "mask.js is not installed" };
+  const button = [...document.querySelectorAll("button")].find((element) =>
+    (element.getAttribute("aria-label") || element.innerText || "").trim() === "送出訂單");
+  button.click();
+  button.click();
+  return maskResult({ clicked: 2 });
+}
 ```
 
-連點不要用清單上某個固定名稱的列數當斷言。後端記憶體可能還留著上一輪同名資料，修好的版本也會失敗；延遲較長的寫入，若送出後立刻換頁，列數也會數錯。上面這種 `page.route` 只數請求。若一定要數列，每次用沒出現過的名稱，並等到延遲的寫入回應之後再離開表單，且不斷言「恰好一列」去比對舊資料。
+慢網路或斷線用 `emulate` 的 `networkConditions`（`Slow 3G`、`Offline`）。沒有攔截 HTTP 的工具；要讓 API 回 500 時，用一步 `evaluate_script` 包住 `window.fetch`（頁面若用 XHR 也一併包住），只攔這次的網址片段。測完 `navigate_page`（`type` 為 `reload`）還原。
 
-輸入驗證（例如數值不合法）要斷言沒有新的寫入請求、也沒有新的一列。頁面上本來就一直看得到的提示不能當通過條件：有 bug 的版本仍會完成寫入，提示卻一直在。
+視窗大小用 `resize_page`。要連觸控與 mobile 版面一起模擬時用 `emulate` 的 `viewport`（例如 `390x844x1,mobile,touch`）。
 
-主要按鈕被固定 footer 擋住：視窗設成 `390x844`，不要捲動長列表，也不要對按鈕呼叫 `scrollIntoView`。用 `elementFromPoint` 取按鈕當下的中心（按鈕留在原位），斷言命中的是 `BUTTON`，不是 `FOOTER`。先把按鈕捲進畫面會讓有 bug 的版本也通過。`fullshot` 把固定 footer 畫進長頁中間，不能拿來寫這條斷言。
+## 斷言
 
-送出時斷網沒有回饋：`context.setOffline(true)` 後按送出，5 秒內要出現看得見的錯誤文字（失敗、錯誤、無法、離線、請稍後）。這是 P1，要有 spec。
+最後一步的 `evaluate_script` 必須回傳 `{pass: boolean, detail: string}`。`pass` 表示修好之後應該成立的事。finding 在有 bug 的版本上確認，只有重播回傳 `pass: false` 才算數。修好後再查時，同一份檔回傳 `pass: true`。
 
-範例：
+`detail` 寫人看得懂的一句話，說明量到什麼（例如「寫入請求 2 筆」），不要只寫 true 或 false。
+
+寫斷言時：
+
+- 優先斷言「出現了什麼」。用「不見了」「數量是 0」時，函式裡要先確認現在真的在要測的畫面（網址與標題），否則被導回首頁也會通過。
+- 隱藏元素不算。文字用可見節點，不要用 `innerHTML` 去對到 `display: none` 的預埋錯誤。
+- 連點不要用清單上某個固定名稱的列數。後端可能還留著上一輪同名資料。在這一步之前用 `evaluate_script` 包住寫入用的 `fetch`，只數請求，回一個假的成功回應，不斷言舊列。
+- 主要按鈕被固定 footer 擋住：先 `resize_page` 或 `emulate` 到 `390x844`，不要捲動長列表，也不要對按鈕呼叫 `scrollIntoView`。`evaluate_script` 用 `elementFromPoint` 取按鈕當下的中心，`pass` 為命中的是 `BUTTON`。`take_screenshot` 的 `fullPage` 會把固定 footer 畫進長頁中間，不能拿來寫這條斷言。
+- 送出時斷網沒有回饋：`emulate` 的 `networkConditions` 為 `Offline` 後送出，斷言 5 秒內出現看得見的錯誤文字（失敗、錯誤、無法、離線、請稍後）。等待用 `wait_for` 的 `text`，或在斷言函式裡讀可見文字；不要另叫清單以外的工具。
+
+有 bug 的版本若回傳 `pass: true`，斷言沒有抓到 bug，改寫最後一步再重播。
+
+## 重播
+
+1. `new_page` 開一個新分頁，載入 steps 第 1 步的 url（第 1 步若不是導覽，就載入 finding 的起始 URL）。不要沿用測試輪那個分頁的畫面狀態。
+2. 需要已登入的乾淨狀態時，先照 [SKILL.md](../SKILL.md#密鑰不進對話紀錄) 還原 checkpoint。`after` 計數要和儲存時相同。HttpOnly cookie 或伺服器狀態還原不了，或回傳 `missing: true`，就請使用者在已接上的瀏覽器自己登入，不要把密鑰傳給任何工具。會寫入的重現，重播前先把後端重設回乾淨資料，否則舊資料會讓斷言判錯。seeded app 的做法是重啟 `node evals/seeded-app/server.mjs`（要驗證修好的版本時加上 `VARIANT=fix-b1`），再還原 checkpoint，然後 `navigate_page` 到存下來的網址，讓文件換成現在的前端。steps 檔裡的密鑰佔位符不要拿去呼叫工具。任何回傳資料的 `evaluate_script` 之前先裝 `scripts/mask.js`。
+3. 依編號執行每一步。動作前先 `take_snapshot`，用 role 和可及名稱對到這次的 uid，再呼叫該工具。對不到元素就停止，不要猜 uid。
+4. 跑最後一步的 `evaluate_script`。
+5. 在 `report.md` 該 finding 的重播行寫結果：`repro/F<n>.steps.md`（pass: false，detail: …，符合預期）或 `repro/F<n>.steps.md`（pass: true，detail: …，已修）。重播做不完時寫原因，不要留空白。
+
+| 結果 | 怎麼處理 | finding 的「重播」寫法 |
+|---|---|---|
+| 步驟都做完，`pass` 是 false | 有 bug 的版本上符合預期 | `repro/F<n>.steps.md`（pass: false，detail: …，符合預期） |
+| 步驟都做完，`pass` 是 true | 有 bug 的版本上代表斷言沒抓到 bug，改寫斷言再跑。修好後再查時，這列代表已修 | 有 bug 的版本先不要寫；已修時寫 `repro/F<n>.steps.md`（pass: true，detail: …，已修） |
+| 步驟對不到元素或工具失敗 | 修好 steps 或乾淨狀態再跑 | — |
+
+## 會寫入資料的腳本
+
+steps 檔會真的操作 app。會建立、修改資料，或觸發付款、寄信的項目：
+
+- 在 finding 的「重播」那一行註明會寫入什麼。spec 第一行註解加上 `// 會寫入：<寫入什麼>`
+- 能只計數、不需要真的寫入的（例如連點），用 `evaluate_script` 包住寫入請求並回假成功。spec 用 `page.route` 做同一件事
+- 遵守步驟 0 的禁止動作。正式環境不跑這類重播或腳本
+
+## 手寫 spec
+
+P0、P1 必備 `repro/F<n>.spec.ts`，依 `repro/F<n>.steps.md` 手寫。不要匯出，不要安裝 Playwright。finding 的「重現腳本」寫這個 spec 的路徑。
+
+手寫時：
+
+- 共用 `repro/_login.ts`。網址讀 `process.env.BASE_URL`，密碼讀 `process.env.QA_PASSWORD`。不要把密碼寫進程式，登入失敗時也不要寫死
+- 用 `test.step` 分成「前置」和「斷言」。前置要有正向錨點（網址與標題可見）。否定斷言（「不見了」「數量是 0」）前面一定要有這個錨點
+- 斷言和 steps 檔最後一步要證明同一件事
+- 需要 `@playwright/test` 1.51 以上（`filter({ visible: true })`）。版本更低或沒有套件時不要執行、不要安裝。spec 檔仍要寫
 
 ```ts
 // repro/_login.ts
 import type { Page } from '@playwright/test';
 export const BASE = process.env.BASE_URL || 'http://localhost:3000';
 export async function login(page: Page) {
+  const password = process.env.QA_PASSWORD;
+  if (!password) throw new Error('QA_PASSWORD is unset. Set it in the environment before running this spec.');
   await page.goto(BASE + '/login');
   await page.locator('[name=email]').fill('qa@example.com');
-  await page.locator('[name=password]').fill(process.env.QA_PASSWORD ?? '');
+  await page.locator('[name=password]').fill(password);
   await page.locator('form button').click();
   await page.waitForURL(/dashboard/);
 }
-
-// repro/F4.spec.ts
-// F4 [P1] 依到期日排序後，第一頁的順序是錯的
-import { test, expect } from '@playwright/test';
-import { BASE, login } from './_login';
-test('依到期日排序後，第一列是最早到期的專案', async ({ page }) => {
-  await test.step('前置', async () => {
-    await login(page);
-    await page.goto(BASE + '/projects');
-    await expect(page.getByRole('heading', { name: '專案', exact: true })).toBeVisible();
-    await page.getByRole('columnheader', { name: '到期日' }).click();
-  });
-  await test.step('斷言', async () => {
-    await expect(page.locator('tbody tr').first()).toContainText('2026-01-03');
-  });
-});
 ```
-
-## flow 的斷言
-
-v2.21.0 的 `flow` 只有三種斷言，判斷方式和 spec 不是同一個 API：
-
-| flow | 實際檢查 |
-|---|---|
-| `assert selector <css>` | `document.querySelector` 有匹配，包含隱藏元素 |
-| `assert selector-missing <css>` | 沒有匹配 |
-| `assert text <字串>` | `document.body.innerText` 包含這段字（不是正規表示式，也不是 exact） |
-
-`innerText` 不含 `display: none` 的文字，所以「出現看得見的錯誤訊息」可以寫成 `assert text 失敗`，對得上 spec 的 `getByText(...).filter({ visible: true })`。字串會匹配頁面上任何一處：spec 用 `exact: true` 避免「專案」匹配到「新增專案」時，flow 要寫更長的字串，或改用只在修好後才存在的 selector。
-
-對得上的例子：
-
-```bash
-"$CDP_DIR/bin/chrome-cdp" flow <t> "assert text 失敗" --format json
-"$CDP_DIR/bin/chrome-cdp" flow <t> "assert selector tbody tr:first-child; assert text 2026-01-03" --format json
-"$CDP_DIR/bin/chrome-cdp" flow <t> "assert text report.pdf" --format json
-```
-
-第二個例子的 `assert text` 仍是整頁包含，不是「只有第一列」。日期若也出現在別處，spec 保留 `tbody tr` 第一列的斷言，flow 改寫成修好後才匹配得到的 selector，並在 finding 寫明 flow 檢查的是哪一件事。
-
-請求次數、網址、`exact` 角色名稱，flow 表達不了。spec 保留原來的斷言。flow 改寫成修好之後畫面上看得到的文字或 selector，和 spec 要證明的是同一件事（例如連點修好後畫面上只有一筆新資料，而不是去數請求）。
-
-`flow` 的 `--format json` 在斷言失敗時，該步的 `failureKind` 是 `assertion`，而且指令非 0。成功時 JSON 在 stdout。斷言失敗時同一份 JSON 在 stderr，stdout 是空的；解析時兩邊都要讀，並先拿掉開頭的 `daemon restarted:` 那一行。
-
-## 會寫入資料的腳本
-
-重播檔和 spec 都會真的操作 app。會建立、修改資料，或觸發付款、寄信的項目：
-- spec 的第一行註解加上 `// 會寫入：<寫入什麼>`；重播檔在 finding 的「重播」那一行註明會寫入什麼
-- spec 能只計數、不需要真的寫入的（例如連點檢查），用 `page.route` 攔截寫入請求，回一個假的成功回應。重播檔要同樣不寫入時，重現過程改用 `mock <t> add <urlPattern> --status <code> --body <text>`，讓它進 `environment`
-- 遵守步驟 0 的禁止動作。正式環境不跑這類重播或腳本
 
 ## 驗證腳本
 
-寫完要在**目前的 app** 上確認：重播本身成功，失敗落在後面的 flow 斷言。先回到乾淨狀態，再重播，再斷言。
-
-`restore` 只還原這個分頁的 URL、cookie 和 storage，不還原後端，也不重新載入頁面。會寫入的重現，重播前要先把後端重設回乾淨資料，否則上一輪建立的資料還在，斷言會因為舊資料失敗或通過。seeded app 的做法是重啟 `node evals/seeded-app/server.mjs`（要驗證修好的版本時加上 `VARIANT=fix-b1`），再 `restore`。
-
-`restore` 回到同一個 origin 的 hash 網址時，分頁不會重抓前端。重新部署或換了 variant 之後，分頁仍跑舊的 `app.js`，修好的 bug 會被誤判成仍存在。`restore` 之後先 `reload <t>`：cookie 和 storage 還在，文件才換成現在的前端。然後 `perceive <t>`。測試輪中途 app 自己登出時也要這一步：session 已寫回 storage，頁面仍停在 `#/login`，不 `reload` 就不會離開登入頁。
-
-觸發步驟都在重播檔裡時：
+寫完 spec 後，在目前的 app 上跑。`QA_PASSWORD` 要事先放在環境變數裡，不要直接寫在指令上。
 
 ```bash
-"$CDP_DIR/bin/chrome-cdp" restore <t> --file .frontend-qa/<run>/checkpoint.json --format json
-"$CDP_DIR/bin/chrome-cdp" reload <t>
-"$CDP_DIR/bin/chrome-cdp" perceive <t>
-"$CDP_DIR/bin/chrome-cdp" replay <t> --file .frontend-qa/<run>/repro/F<n>.actions.json --format json
-"$CDP_DIR/bin/chrome-cdp" flow <t> "assert selector …; assert text …" --format json
-```
-
-觸發步驟是連點的 `eval` 時，`replay` 只會做連點之前的步驟。把同一個 `eval` 放進後面的 `flow`，再導到斷言要看的畫面。`eval` 那一步不能含分號：
-
-```bash
-"$CDP_DIR/bin/chrome-cdp" restore <t> --file .frontend-qa/<run>/checkpoint.json --format json
-"$CDP_DIR/bin/chrome-cdp" reload <t>
-"$CDP_DIR/bin/chrome-cdp" perceive <t>
-"$CDP_DIR/bin/chrome-cdp" replay <t> --file .frontend-qa/<run>/repro/F<n>.actions.json --format json
-"$CDP_DIR/bin/chrome-cdp" flow <t> "eval (()=>(document.querySelector('<sel>').click(), document.querySelector('<sel>').click()))(); wait network idle; nav <list-url>; wait network idle; assert selector-missing <css>" --format json
-```
-
-`replay` 用的是 selector，不依賴 `@ref`。上面這些步驟不需要 LLM，也不需要 Playwright。只跑 `replay` 再跑一個不含 `eval` 的斷言，連點的 bug 還在也會通過。省掉 `reload` 時，前端已經換成修好的版本也會得到 `failureKind` `assertion`。
-
-| 結果 | 怎麼處理 | finding 的「重播」寫法 |
-|---|---|---|
-| `replay` 的 `failed` 是 0、`skipped` 是 0，flow 的 `failureKind` 是 `assertion` | 符合預期 | `repro/F<n>.actions.json`（replay 通過，flow 斷言失敗，符合預期） |
-| flow 通過 | 斷言沒有抓到 bug，改寫 flow 和 spec 的斷言 | — |
-| `replay` 有 `failed` 或 `skipped` | 重播檔或乾淨狀態不對（含密碼被遮蔽），修好再跑 | — |
-
-spec 另外照下面確認。沒有 Playwright 時，複驗仍然用上面的 `replay` 加 flow，spec 標未執行即可。`QA_PASSWORD` 要事先放在環境變數裡，不要直接寫在指令上，否則密碼會留在對話紀錄。spec 不包含登入段落，密碼只活在 `_login.ts` 讀到的環境變數裡。
-
-```bash
-cd .frontend-qa/<run>/repro && npx --no-install playwright --version   # 要 1.51 以上
-cd .frontend-qa/<run>/repro && BASE_URL=<網址> npx --no-install playwright test --reporter=line
+cd .frontend-qa/<run>/repro && npx --no-install playwright --version
+cd .frontend-qa/<run>/repro && BASE_URL=<url> npx --no-install playwright test --reporter=line
 ```
 
 | 結果 | 怎麼處理 | finding 的「重現腳本」寫法 |
 |---|---|---|
-| 失敗在「斷言」 | 符合預期 | `repro/F<n>.spec.ts`（目前失敗，符合預期） |
+| 失敗在「斷言」 | 有 bug 的版本上符合預期 | `repro/F<n>.spec.ts`（目前失敗，符合預期） |
 | 通過 | 斷言沒有抓到 bug，改寫斷言 | — |
-| 失敗在「前置」 | 設定錯誤（登入、selector、網址，或 mock 沒攔到請求、計數是 0），修好再跑 | — |
-| `npx --no-install` 找不到 Playwright，或出現 `Executable doesn't exist`（沒裝瀏覽器） | 不要自己安裝 | `repro/F<n>.spec.ts`（未執行：沒有 Playwright） |
-| 版本低於 1.51（舊版會默默忽略 `filter({ visible: true })`，隱藏元素也會被比對到） | 不要執行 | `repro/F<n>.spec.ts`（未執行：Playwright 版本 < 1.51） |
-| 錯誤發生在兩段之外（`Cannot find module '@playwright/test'`、語法錯誤、No tests found） | 語法錯誤就修好再跑；其他不要自己安裝 | `repro/F<n>.spec.ts`（未執行：<原因>） |
-| 需要登入但沒有可用的密碼 | 不要寫死密碼 | `repro/F<n>.spec.ts`（未執行：沒有測試帳號密碼） |
+| 失敗在「前置」 | 設定錯誤，修好再跑 | — |
+| 找不到 Playwright，或 `Executable doesn't exist` | 不要自己安裝 | `repro/F<n>.spec.ts`（未執行：沒有 Playwright） |
+| 版本低於 1.51 | 不要執行 | `repro/F<n>.spec.ts`（未執行：Playwright 版本 < 1.51） |
+| 沒有測試帳號密碼 | 不要寫死密碼 | `repro/F<n>.spec.ts`（未執行：沒有測試帳號密碼） |
+
+MCP 重播仍照上面「重播」執行。沒有 spec 時，P0、P1 的證據不完整。
 
 ## 複驗
 
-跨次執行時，腳本在 `state/repro/`（見 [memory.md](memory.md#結束前更新狀態檔)）。`_login.ts` 全專案共用一份。`*.actions.json` 一起保留，給 `重播:` 使用。`checkpoint.json` 含 cookie 和 storage，不能複製到 `state/`。
+跨次執行時，steps 檔和 spec 在 `state/repro/`（見 [memory.md](memory.md#結束前更新狀態檔)）。`_login.ts` 全專案共用一份。Checkpoint 的值留在頁面裡，不能寫進 `state/`，見 [SKILL.md](../SKILL.md#密鑰不進對話紀錄)。
 
-使用者要確認問題修好了沒有時，不需要重新測試，也不需要 Playwright。每個 P0、P1 用上面「驗證腳本」的同一組指令：會寫入的項目先重設後端，再 `restore`、`reload`、`perceive`、`replay`、`flow`。`reload` 放在 `restore` 和 `perceive` 之間。`restore` 不會重新載入頁面，所以前端重新部署或換了 variant 之後，分頁仍跑舊的程式，修好的 bug 會被誤判成仍存在；`reload` 留下還原後的 session，並載入現在的前端。連點的 `flow` 必須包含同一個 `eval`。
+使用者要確認問題修好了沒有時，不需要重新測試。每個 P0、P1 用上面「重播」的同一組做法：會寫入的項目先重設後端，再還原 storage、`navigate_page` 到存下來的網址、依 steps 重播。前端重新部署或換了 variant 之後，一定要重新載入文件，否則分頁仍跑舊程式，修好的 bug 會被誤判成仍存在。
 
-- `replay` 成功且 flow 通過：標成「已修」
-- `replay` 成功且 flow 的 `failureKind` 是 `assertion`：標成「仍存在」
-- `replay` 失敗或被跳過：可能是畫面改版或乾淨狀態已不能還原，交給 agent 照文字重現步驟判斷，必要時更新重播檔
+- 重播完成且 `pass` 是 true：標成「已修」
+- 重播完成且 `pass` 是 false：標成「仍存在」
+- 重播做不完：可能是畫面改版或乾淨狀態已不能還原，交給 agent 照文字重現步驟判斷，必要時更新 steps 檔
 - 會寫入資料的項目，只在非正式環境跑；正式環境照 [critic.md](critic.md#怎麼驗證) 的「有副作用的 finding」
 
-spec 可以另跑，作為交給 CI 的同一份斷言。沒有 Playwright 時跳過這段，不影響上面的複驗：
+P0、P1 的 spec 另跑，作為交給 CI 的同一份斷言。沒有 Playwright 時不要安裝，spec 仍留著；這不取代上面的 MCP 重播：
 
 ```bash
-cd .frontend-qa/<run>/repro && BASE_URL=<網址> npx --no-install playwright test --reporter=json > result.json
+cd .frontend-qa/<run>/repro && BASE_URL=<url> npx --no-install playwright test --reporter=json > result.json
 ```
 
-- 通過：和 flow 一致才標成「已修」
+- 通過：和 `pass: true` 一致才標成「已修」
 - 失敗在「斷言」：標成「仍存在」
 - 失敗在「前置」：可能是畫面改版，交給 agent 照文字重現步驟判斷，必要時更新腳本
 - 第一行有 `// 會寫入` 的腳本，只在非正式環境跑

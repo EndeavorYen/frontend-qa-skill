@@ -4,11 +4,11 @@
 
 ## 什麼時候跑
 
-步驟 1 的覆蓋地圖完成後、步驟 2 開始前跑一次。步驟 0 已經確認 chrome-cdp-ex v2.21.0 以上和 Node 22。另外需要同時符合：
-- 知道 `CDP_PORT`，或在 `probe.json` 寫了 `cdpPort`
+步驟 1 的覆蓋地圖完成後、步驟 2 開始前跑一次。步驟 0 已經用 `list_pages` 確認 chrome-devtools-mcp 已連上。Chrome 以專用設定檔啟動，並加上 `--remote-debugging-port=9222 --user-data-dir=<專用設定檔目錄>`。MCP server 用 `npx chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:9222` 接上，見 [SKILL.md](../SKILL.md#需求)。探測腳本自己連 DevTools protocol，不經過那些 MCP 工具，另外需要 Node 22，而且同時符合：
+- `CDP_PORT=9222`，或 `probe.json` 的 `cdpPort` 設成同一個 port。兩個都沒有就跳過探測
 - 至少開了一個測試輪，或入口是 `audit`
 
-不符合的話就跳過，改由測試輪用 chrome-cdp-ex 手動檢查，並在 `report.md` 寫明沒有跑探測及原因。不要改用其他瀏覽器工具。
+不符合的話就跳過，改由測試輪用 [SKILL.md](../SKILL.md#需求) 列出的 MCP 工具手動檢查，並在 `report.md` 寫明沒有跑探測及原因。不要改用其他瀏覽器工具。Linux 上若因 AppArmor 出現 `No usable sandbox!`，只在載入本機測試 app 時，於 Chrome 啟動參數加上對應的 no-sandbox 參數。
 
 ## 設定檔
 
@@ -48,12 +48,12 @@
 | `login` | 登入步驟；不需要登入就省略。密碼寫成 `{ "env": "QA_PASSWORD" }`，不能寫明文 |
 | `pages` | 覆蓋地圖中的每個畫面。可以是網址字串，或 `{ "url": "/#/orders", "anchor": "h1:訂單列表" }`。`anchor` 是 `標籤:文字`，載入後必須看得到這個文字完全相同的元素 |
 | `records` | 既有資料抽樣中每一組抽到的那一筆的詳情頁（見 [state-checklist.md](state-checklist.md#既有資料抽樣)） |
-| `lists` | 會呼叫 API 載入的列表，`api` 是在 netlog 看到的請求網址片段 |
+| `lists` | 會呼叫 API 載入的列表，`api` 是在 `list_network_requests` 看到的請求網址片段 |
 | `forms` | 會送出資料的表單。`fill` 是 selector 和值，`api` 是送出時的請求網址片段，`longField` 用來測超長輸入 |
 
 **`allowSubmit: true` 只能在步驟 0 允許建立資料時才設。** 送出類檢查會真的送出表單，而且連點檢查可能建立兩筆資料。沒有設的表單只做頁面檢查。探測腳本不會按刪除，也不會碰付款、寄信這類按鈕；不要把這類表單放進 `forms`。
 
-**設定檔不能出現明文密碼**，規則和 [repro.md](repro.md) 相同。密碼欄位寫成 `{ "env": "QA_PASSWORD" }`，這個物件只能有一個 `env` 鍵。`probe.mjs` 讀設定檔時把它換成該環境變數的值。變數不存在或是空字串時，腳本直接停止（exit code 2），stderr 印出要設定的變數名稱，不會連上瀏覽器，也不會帶空密碼登入。解析只發生在記憶體裡，不會把密碼寫回 `probe.json`。密碼欄位若仍是字串，stderr 印出警告（不含密碼內容）並繼續。`QA_PASSWORD` 要事先放在環境變數裡，不要寫在指令上，否則密碼會留在對話紀錄。email 這類非密碼欄位仍直接寫值。
+**設定檔不能出現明文密碼**。密碼欄位寫成 `{ "env": "QA_PASSWORD" }`，這個物件只能有一個 `env` 鍵。`probe.mjs` 在自己的行程裡把它換成該環境變數的值。變數不存在或是空字串時，腳本直接停止（exit code 2），stderr 印出要設定的變數名稱，不會連上瀏覽器，也不會帶空密碼登入。解析只發生在記憶體裡，不會把密碼寫回 `probe.json`，也不會把密碼放進 MCP 工具參數。密碼欄位若仍是字串，stderr 印出警告（不含密碼內容）並繼續。`QA_PASSWORD` 要事先放在環境變數裡，不要寫在指令上，否則密碼會留在對話紀錄。agent 不可以把這個值傳給 `fill`、`fill_form`、`press_key`、`evaluate_script`，見 [repro.md](repro.md)。email 這類非密碼欄位仍直接寫值。
 
 可選欄位：
 
@@ -65,15 +65,17 @@
 | `commandTimeoutMs` | 15000 | 單一 CDP 指令的逾時，超過就記一筆 `probe-error`，繼續下一項。建立連線和登入階段逾時、或 CDP 連線中斷時，直接停止並寫出目前的結果 |
 | `errorWords`、`loadingWords` | 中英文常見字詞 | 判斷錯誤訊息和載入中的正規表示式 |
 | `isolate` | `true` | 在隔離的 browser context 中執行；設成 `false` 會共用使用者瀏覽器的 cookie 和登入狀態 |
-| `cdpPort` | — | 沒有設定環境變數 `CDP_PORT` 時才用 |
+| `cdpPort` | — | 與 Chrome 的 `--remote-debugging-port` 相同，文件裡的設定是 `9222`。環境變數 `CDP_PORT` 也可以（例如 `CDP_PORT=9222`）。兩個都沒有時，探測跳過 |
 
 ## 執行
 
 `<skill 目錄>` 見 [SKILL.md](../SKILL.md#名詞)。
 
 ```bash
-CDP_PORT=<port> node <skill 目錄>/scripts/probe.mjs .frontend-qa/<run>/probe.json --out .frontend-qa/<run>/probe-result.json
+CDP_PORT=9222 node <skill 目錄>/scripts/probe.mjs .frontend-qa/<run>/probe.json --out .frontend-qa/<run>/probe-result.json
 ```
+
+port 用環境變數 `CDP_PORT`（與 Chrome 的 `--remote-debugging-port=9222` 相同），或寫在 `probe.json` 的 `cdpPort`。兩個都沒有就跳過，不要跑這個指令。`probe.json` 已寫 `cdpPort` 時可省略 `CDP_PORT`。
 
 stdout 只有一行摘要（各檢查的筆數），完整結果在 `probe-result.json`。`pages` 和 `records` 會多一個 `fingerprints` 物件：鍵是設定檔裡的 url，值是 `{ hash, list }`，在第一個尺寸載入完成後計算，演算法在 [`scripts/fingerprint.mjs`](../scripts/fingerprint.mjs)。
 
@@ -116,7 +118,7 @@ stdout 只有一行摘要（各檢查的筆數），完整結果在 `probe-resul
 
 - 每一筆結果都要判斷是不是真的問題，再寫進 `findings.md`。證據寫 `probe-result.json` 中的那一筆，以及畫面代號。例如 `small-target` 會列出所有小於 44px 的元素，要合併成一筆，不要一個元素一筆
 - 同一個問題出現在多個尺寸或多個頁面時，合併成一筆
-- P0、P1 照證據規則，仍然要用 chrome-cdp-ex 從乾淨狀態重現兩次。做法是 `restore <t> --file .frontend-qa/<run>/checkpoint.json --format json`，再 `perceive <t>`。測試輪中途 app 自己登出時，`restore` 把 session 寫回 storage，頁面仍停在 `#/login`；先 `reload <t>` 再 `perceive <t>`，頁面才會讀到還原後的 session。
+- P0、P1 照證據規則，仍然要用 MCP 工具從乾淨狀態重現兩次。做法見 [SKILL.md](../SKILL.md#密鑰不進對話紀錄)：`__frontendQaRestoreCheckpoint('clean')` 的 `after` 計數要和儲存時相同，再 `navigate_page` 到存下來的網址，然後 `take_snapshot`。HttpOnly cookie 或伺服器狀態還原不了，或回傳 `missing: true` 時，改重跑設定步驟。測試輪中途 app 自己登出、頁面停在 `#/login` 時，還原之後仍要 `navigate_page` 到存下來的網址，頁面才會讀到還原後的 session。
 - `probe-error` 記到工具軌或 `unattributed.md`。寫進 `unattributed.md` 的每一筆都要有證據，至少一種：`shots/` 的截圖路徑、重現腳本，或 `probe-result.json` 的那一筆（見 [report-template.md](report-template.md#unattributedmd)）。對應的檢查改回測試輪手動做
 - 在覆蓋地圖的備註寫「探測：<check 名稱>」，表示這一格已經有哪些檢查做過了
 

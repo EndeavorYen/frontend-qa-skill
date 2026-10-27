@@ -47,6 +47,7 @@ const HIT_HTML = `<!doctype html><html><head><meta charset="utf-8"></head><body 
     <button style="background:#2563eb;color:#fff">匯出</button>
   </div>
   <input id="ph" placeholder="客戶名稱" style="display:block;width:200px;height:40px">
+  <input id="pw" type="password" name="password" placeholder="密碼" value="super-secret-password" style="display:block;width:220px;height:40px">
   <div role="dialog" aria-modal="true" style="display:block;width:320px;padding:12px;background:#fff">
     <p>要放棄變更嗎？</p>
     <button>確定</button><button>取消</button>
@@ -234,8 +235,12 @@ test('internal markdown links under the skill resolve', () => {
   assert.deepEqual(errors, []);
 });
 
+function withMask(source) {
+  return read('scripts/mask.js') + '\n' + source;
+}
+
 test('eval anti-patterns fire on a hit page and stay quiet on a clean page', { timeout: 30000 }, async () => {
-  const source = read('scripts/anti-patterns.js');
+  const source = withMask(read('scripts/anti-patterns.js'));
   const port = await freePort();
   const dataDir = mkdtempSync(join(tmpdir(), 'qa-chrome-'));
   const chrome = spawn('google-chrome', [
@@ -262,6 +267,9 @@ test('eval anti-patterns fire on a hit page and stay quiet on a clean page', { t
       assert.ok(result.hit[key].every((item) => /"/.test(item)), `${key} item has no element text`);
       assert.deepEqual(result.clean[key], [], `${key} false positive: ${JSON.stringify(result.clean[key])}`);
     }
+    const blob = JSON.stringify(result.hit);
+    assert.doesNotMatch(blob, /super-secret-password/);
+    assert.match(blob, /value=<masked len=21>/);
   } finally {
     chrome.kill('SIGKILL');
     for (let attempt = 0; attempt < 20; attempt++) {
@@ -299,7 +307,7 @@ const LATIN1_HTML = Buffer.concat([
 ]);
 
 test('non-UTF-8 pages skip CJK patterns and still check English', { timeout: 30000 }, async () => {
-  const source = read('scripts/anti-patterns.js');
+  const source = withMask(read('scripts/anti-patterns.js'));
   assert.match(source, /document\.characterSet/);
   assert.match(read('scripts/probe.mjs'), /ap\?\.warning/);
   assert.match(read('scripts/probe.mjs'), /text-checks-skipped/);

@@ -19,7 +19,7 @@
 
 - `findings.md` 全文
 - `shots/` 的路徑（不要把截圖讀進主 session 再轉交）
-- `tool-track.md` 全文，以及 SKILL.md 的「歸因規則」：工具有哪些已知問題、測試時用了什麼替代做法（例如某個操作要改用 `eval` 才觸發得到），Critic 重做時要照用
+- `tool-track.md` 全文，以及 SKILL.md 的「歸因規則」：工具有哪些已知問題、測試時用了什麼替代做法（例如某個操作要改用 `evaluate_script` 才觸發得到），Critic 重做時要照用
 - 目標 URL、分頁 id、測試帳號、環境、禁止動作
 - SKILL.md 的「證據規則」「護欄」，以及 [severity.md](severity.md)
 
@@ -33,13 +33,13 @@
 | P2 | 照重現步驟重做 1 次；沒重現的話，再從乾淨狀態做第 2 次 |
 | P3 | 看截圖和證據判斷；證據不足時才重做 |
 
-乾淨狀態是步驟 1 的 `checkpoint.json`：`restore <t> --file .frontend-qa/<run>/checkpoint.json --format json`，再 `perceive <t>`，然後照步驟操作。`restore` 只還原這個分頁的 URL、cookie 和 storage，不還原後端資料。測試輪中途 app 自己登出時，`restore` 把 session 寫回 storage，頁面仍停在 `#/login`；先 `reload <t>` 再 `perceive <t>`，頁面才會讀到還原後的 session。
+乾淨狀態是步驟 1 存在頁面裡的 checkpoint，做法見 [SKILL.md](../SKILL.md#密鑰不進對話紀錄)：`__frontendQaRestoreCheckpoint('clean')` 的 `after` 計數要和儲存時相同，再 `navigate_page` 到存下來的網址，然後 `take_snapshot`，照步驟操作。這只還原這個分頁的 URL、非 HttpOnly cookie 和 storage，不還原後端資料，也還原不了 HttpOnly cookie。回傳 `missing: true` 或還原不了時改重跑設定步驟。測試輪中途 app 自己登出、頁面停在 `#/login` 時，還原之後仍要 `navigate_page` 到存下來的網址，頁面才會讀到還原後的 session。不要把 storage 或 cookie 的值貼進對話。
 
-**有副作用的 finding**：重做會寫入資料、扣款、寄信或通知的（例如重複建立、重複扣款），重做前先照步驟 0 的禁止動作判斷：正式環境不重做，改看證據判斷；非正式環境要先知道怎麼回到乾淨狀態（重設資料、換一筆新資料）。只跑 `restore` 不夠，因為後端資料還在。不知道怎麼清掉後端資料的話也改看證據。改看證據的，在理由寫「未重做：有副作用」。
+**有副作用的 finding**：重做會寫入資料、扣款、寄信或通知的（例如重複建立、重複扣款），重做前先照步驟 0 的禁止動作判斷：正式環境不重做，改看證據判斷；非正式環境要先知道怎麼回到乾淨狀態（重設資料、換一筆新資料）。只還原 checkpoint 的 storage 不夠，因為後端資料還在。不知道怎麼清掉後端資料的話也改看證據。改看證據的，在理由寫「未重做：有副作用」。
 
 **重做失敗不等於不成立**：重做沒出現時，先照歸因規則判斷是不是工具的問題（換一種操作方式再試）。P0、P1 主 session 已經從乾淨狀態重現過 2 次，Critic 重做失敗、或因為有副作用而沒有重做時，都不能判 `不成立`，最多判 `待確認`，交回主 session 再驗一次。
 
-**失敗要給下一步**：重做失敗、驅動指令報錯，或這一條沒有做完時，理由要寫明原因，並給一條可以直接複製執行的下一步指令，三選一：`CDP_PORT=<port> node skills/frontend-qa/scripts/probe.mjs <probe.json> --out <probe-result.json>`、被測目標自己的重現指令（`cd .frontend-qa/<run>/repro && BASE_URL=<網址> npx --no-install playwright test --reporter=line`，見 [repro.md](repro.md#驗證腳本)）、或剛剛失敗的那一條驅動指令原樣。`BASE_URL=<網址> npx playwright test -c <repo>/evals/repro` 只適用於 seeded-app 評測（見 `evals/repro/README.md`），不要拿去跑別的網站。
+**失敗要給下一步**：重做失敗、驅動工具報錯，或這一條沒有做完時，理由要寫明原因，並給一條可以直接複製執行的下一步，三選一：`CDP_PORT=9222 node skills/frontend-qa/scripts/probe.mjs <probe.json> --out <probe-result.json>`（`probe.json` 已寫 `cdpPort` 時可省略這個環境變數）、`cd .frontend-qa/<run>/repro && BASE_URL=<url> npx --no-install playwright test --reporter=line`（見 [repro.md](repro.md#驗證腳本)）、或剛剛失敗的那一次 MCP 工具呼叫原樣。`BASE_URL=<url> npx playwright test -c <repo>/evals/repro` 只適用於 seeded-app 評測（見 `evals/repro/README.md`），不要拿去跑別的網站。
 
 Critic 重做時遇到的工具問題，寫在判定的理由裡，主 session 收到後照歸因規則補進 `tool-track.md`。
 
@@ -57,7 +57,7 @@ Critic 重做時遇到的工具問題，寫在判定的理由裡，主 session �
 |---|---|---|---|---|
 | F3 | 成立 | 照步驟重做 2 次都重現 | P1（不變） | — |
 | F9 | 部分成立 | 「匯出的 CSV 少了欄位」只少了『負責人』一欄，描述中的『到期日』其實有匯出 | P2（不變） | 已改寫 |
-| F14 | 不成立 | 從乾淨狀態重做 2 次都沒有出現，換成 `eval` 操作也一樣；證據：`shots/F14-half-loaded.png`（載入到一半時拍的） | — | 已刪除 |
+| F14 | 不成立 | 從乾淨狀態重做 2 次都沒有出現，換成 `evaluate_script` 操作也一樣；證據：`shots/F14-half-loaded.png`（載入到一半時拍的） | — | 已刪除 |
 | F2 | 待確認 | P1，重做 2 次沒出現，但工具軌記錄 `click` 這幾次回報不穩定 | — | 讀 DOM 確認重現，成立；`shots/F2-recheck.png` |
 ```
 
