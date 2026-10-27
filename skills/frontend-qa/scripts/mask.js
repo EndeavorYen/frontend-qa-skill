@@ -1,21 +1,24 @@
-// maskText pipeline: cut at 2000, then shapes, one key-anchored scan,
-// object/array values masked whole, then a token pass. No raw fallback.
-// Every scan fails closed. A cap is not an emit point: past MAX_QUOTED the
-// same scan runs to the end of that value. If that end is not there, the
-// rest of the input is masked. Linear time.
-// Key rule, JWT/auth/userinfo regexes, and the assignment scan adapted from
+// maskText pipeline: cut at 2000, then JSON, cookie, query/form, and
+// key-anchored values. A sensitive value runs to end of line plus deeper
+// folds, except JSON, query/form, and Cookie/Set-Cookie. Scheme words keep
+// the c908bc0 marker shape. Then JWT, vendor, userinfo, and the token pass.
+// No raw fallback. Linear time.
+// Key rule, JWT/auth/userinfo regexes, and the token pass adapted from
 // chrome-cdp-ex skills/chrome-cdp-ex/scripts/lib/redaction.mjs (v2.21.0, b928082, MIT).
 (function installFrontendQaMask() {
 'use strict';
 const TRUNCATE_AT = 2000;
-const MAX_QUOTED = 4096;
 const PLACEHOLDER = /^<masked len=\d+>/;
+const MARKER_EXACT = /^<masked len=[1-9][0-9]*>$/;
+const PASS_LONE = /^<masked len=[1-9][0-9]*>$/;
+const PASS_PAIR = /^<masked len=[1-9][0-9]*> <masked len=[1-9][0-9]*>$/;
+const PASS_SCHEME = /^([A-Za-z]+) <masked len=[1-9][0-9]*>$/;
 const marker = (s) => '<masked len=' + s.length + '>';
 const KEY_TOKENS = new Set(['pass', 'password', 'passwords', 'passwd', 'passphrase', 'pwd',
   'secret', 'secrets', 'token', 'apikey', 'privatekey', 'accesskey', 'secretkey', 'sessionkey',
   'authkey', 'credential', 'credentials', 'otp', '2fa', 'mfa', 'auth', 'authorization', 'pin',
   'cvv', 'cvc', 'ssn', 'session', 'sessionid', 'sid', 'sessid', 'cookie', 'jwt', 'csrf', 'xsrf',
-  'bearer', 'passcode', 'pincode', 'cardnumber', 'securitycode']);
+  'bearer', 'passcode', 'pincode', 'cardnumber', 'securitycode', 'signature']);
 const KEY_SUFFIXES = ['token', 'secret', 'password', 'passwd', 'apikey', 'sessionid', 'sessid'];
 const QTY_BEFORE = new Set(['max', 'min', 'num', 'total']);
 const QTY_AFTER = new Set(['count', 'counts', 'limit', 'limits', 'length', 'size', 'usage', 'budget', 'total']);
@@ -43,284 +46,705 @@ function isSensitiveKey(key, q) {
 }
 const JWT_RE = /(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{4,}\.eyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]*/g;
 const SCHEME_WORD = /^[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*$/;
-const AUTH_SCHEMES = new Set(['bearer', 'basic', 'token', 'digest', 'negotiate', 'ntlm', 'apikey',
-  'sharedkey', 'oauth', 'hoba', 'mutual', 'vk']);
-const HEADER_LINE = /^[A-Za-z0-9-]+:[ \t]/;
+const SCHEME_NAMES = new Set(['bearer', 'basic', 'token', 'digest', 'negotiate', 'ntlm', 'apikey',
+  'sharedkey', 'oauth', 'hoba', 'mutual', 'hawk', 'vk']);
+const KEYLESS_NAMES = new Set(['bearer', 'basic', 'token', 'digest', 'negotiate', 'ntlm', 'apikey',
+  'sharedkey', 'oauth', 'hoba', 'mutual', 'hawk', 'vk']);
+// Closed list. A fold line KEY: VALUE starts a new line only when KEY is here.
+// accept-* and content-* are prefix patterns. Extending this list is a design change.
+const READABLE_HEADERS = Object.freeze([
+  'accept',
+  'accept-*',
+  'content-*',
+  'user-agent',
+  'host',
+  'x-request-id',
+  'cache-control',
+  'connection',
+  'origin',
+  'referer',
+  'date',
+]);
+const COOKIE_ATTRS = new Set(['path', 'domain', 'expires', 'max-age', 'secure', 'httponly', 'samesite', 'partitioned']);
 const TOKEN68_RE = /[A-Za-z0-9._~+/=-]+/y;
 const VENDOR_RE = /(?<![A-Za-z0-9])(?:AKIA|ASIA)[0-9A-Z]{16}(?![A-Za-z0-9])|(?<![A-Za-z0-9])(?:xox[abposr]-[A-Za-z0-9-]{10,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|[sr]k_(?:live|test)_[A-Za-z0-9]{10,}|AIza[0-9A-Za-z_-]{30,})/g;
 const USERINFO_RE = /(?<![a-z0-9+.-])([a-z][a-z0-9+.-]*:\/\/[^\s/?#@:]*:)([^\s/?#@]+)(@)/gi;
-const ASSIGN_RE = /(^|[\s{[,;?&#]|(?<![=(])["'`])(\\?["'`]|)([A-Za-z0-9_.%-]+(?::[A-Za-z0-9_.%-]+)*)\2(\s*[:=]\s*)/g;
-const BARE_RE = /[^"'`\s,;&}\])<>]+/y;
-const CSS_PSEUDO = /^:(?:hover|focus|active|checked|disabled|enabled|visited|not|has|is|where|before|after|first-child|last-child|nth-child|root|empty|required|valid|invalid)\b/;
-// A cap is not an emit point. The first window stops at MAX_QUOTED; the same
-// scan then runs to the closing quote. No closer: mask through the end of the input.
-function scanQuoted(text, at) {
-  const q = text[at];
-  const cap = at + 1 + MAX_QUOTED;
-  let i = at + 1;
-  while (i < text.length) {
-    const limit = i < cap ? Math.min(text.length, cap) : text.length;
-    for (; i < limit; i++) {
-      if (text[i] === '\\') i++;
-      else if (text[i] === q) return { start: at + 1, end: i, close: q };
-    }
+function schemeChar(c) {
+  return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c === '+' || c === '.' || c === '-';
+}
+function urlStop(c) {
+  return c === ' ' || c === '\n' || c === '\r' || c === '\t' || c === '\f' || c === '\v'
+    || c === '"' || c === "'" || c === '`' || c === '<' || c === '>' || c === '(' || c === ')'
+    || c === '[' || c === ']' || c === '{' || c === '}' || c === ',' || c === ';' || c === '!'
+    || c === '|' || c === '\\';
+}
+function queryUrlRanges(text) {
+  const ranges = [];
+  let from = 0;
+  while (from < text.length) {
+    const i = text.indexOf('://', from);
+    if (i < 0) break;
+    let s = i - 1;
+    while (s >= 0 && schemeChar(text[s])) s--;
+    s++;
+    const head = text[s];
+    if (s < i && ((head >= 'A' && head <= 'Z') || (head >= 'a' && head <= 'z'))) {
+      let e = i + 3;
+      let sawQuery = false;
+      while (e < text.length && !urlStop(text[e])) {
+        if (text[e] === '?') sawQuery = true;
+        e++;
+      }
+      if (sawQuery && (text[e] === ' ' || text[e] === '\t')) {
+        const tail = text.slice(s, e);
+        const word = /[=:][ \t]*([A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*)$/.exec(tail);
+        if (word && isKeyedSchemeWord(word[1])) {
+          let k = e;
+          while (text[k] === ' ' || text[k] === '\t') k++;
+          while (k < text.length && !urlStop(text[k]) && text[k] !== '&' && text[k] !== '#') k++;
+          e = k;
+        }
+      }
+      if (sawQuery) ranges.push([s, e]);
+      from = e > i + 3 ? e : i + 3;
+    } else from = i + 3;
   }
-  return { start: at + 1, end: text.length, close: '' };
+  return ranges;
 }
-function scanNested(text, at) {
-  const cap = at + MAX_QUOTED;
-  let depth = 0;
-  let q = '';
-  let i = at;
-  while (i < text.length) {
-    const limit = i < cap ? Math.min(text.length, cap) : text.length;
-    for (; i < limit; i++) {
-      const ch = text[i];
-      if (q) { if (ch === '\\') i++; else if (ch === q) q = ''; continue; }
-      if (ch === '"' || ch === "'" || ch === '`') q = ch;
-      else if (ch === '{' || ch === '[') depth++;
-      else if ((ch === '}' || ch === ']') && --depth === 0) return { start: at, end: i + 1 };
-    }
-  }
-  return { start: at, end: text.length };
-}
-function skipBws(text, i) {
-  while (text[i] === ' ' || text[i] === '\t') i++;
-  return i;
-}
-function isAuthScheme(word) {
-  const name = String(word);
-  if (AUTH_SCHEMES.has(name.toLowerCase())) return true;
-  return name.includes('-') && SCHEME_WORD.test(name);
-}
-function credentialToken(token) {
-  return chunkOpaque(token) || /\d/.test(token) || /[^A-Za-z0-9]/.test(token) || token.length >= 20;
-}
-// Non-auth scheme words still use this. Auth schemes do not: the tail is always the credential.
-function tailIsCredential(tail) {
-  if (/[^A-Za-z\s]/.test(tail)) return true;
-  const words = tail.split(/\s+/).filter(Boolean);
-  if (words.length === 1) return true;
-  for (let i = 0; i < words.length; i++) {
-    if (credentialToken(words[i])) return true;
+const COOKIE_RE = /^([ \t]*(?:[-*][ \t])?)(cookie|set-cookie)([ \t]*:[ \t]*)(.*)$/i;
+const TRUNC_RE = /^…<truncated len=\d+>/;
+function isReadableHeaderName(name) {
+  const n = String(name).toLowerCase();
+  for (let i = 0; i < READABLE_HEADERS.length; i++) {
+    const item = READABLE_HEADERS[i];
+    if (item.endsWith('*')) {
+      if (n.startsWith(item.slice(0, -1))) return true;
+    } else if (n === item) return true;
   }
   return false;
 }
-// An indented key line is not a fold. Colon plus whitespace only: not `=`, not `key:value`.
-const INDENT_KEY_LINE = /^[ \t]+["']?[A-Za-z0-9_-]+["']?[ \t]*:[ \t]/;
-function foldLineIsKey(text, at) {
-  return INDENT_KEY_LINE.test(text.slice(at));
+function isKeyedSchemeWord(word) {
+  if (!SCHEME_WORD.test(word)) return false;
+  if (SCHEME_NAMES.has(word.toLowerCase())) return true;
+  return word.includes('-');
 }
-// End of an unquoted value: end of line, plus folded lines that start with space or tab.
-// A key line is not a fold. Do not stop at ; , : / or quotes. Run past 4096 to that same end.
-function valueEnd(text, at) {
-  let i = at;
-  while (i < text.length) {
-    const ch = text[i];
-    if (ch === '\n' || ch === '\r') {
-      let j = i + 1;
-      if (ch === '\r' && text[j] === '\n') j++;
-      if (j < text.length && (text[j] === ' ' || text[j] === '\t') && !foldLineIsKey(text, j)) {
-        i = j;
-        continue;
-      }
-      break;
-    }
-    i++;
-  }
-  return i;
+function isKeylessScheme(word) {
+  const n = word.toLowerCase();
+  if (KEYLESS_NAMES.has(n)) return true;
+  if (/^scram-/i.test(word) && SCHEME_WORD.test(word)) return true;
+  if (/^aws4-/i.test(word) && SCHEME_WORD.test(word)) return true;
+  return false;
+}
+function isPassShape(value) {
+  if (PASS_LONE.test(value) || PASS_PAIR.test(value)) return true;
+  const scheme = PASS_SCHEME.exec(value);
+  if (!scheme) return false;
+  const word = scheme[1].toLowerCase();
+  return word === 'bearer' || word === 'basic';
+}
+function readMarkerAt(text, i) {
+  if (!text.startsWith('<masked len=', i)) return '';
+  const m = /^<masked len=[1-9][0-9]*>/.exec(text.slice(i));
+  return m ? m[0] : '';
 }
 function lineBreakEnd(text, at) {
   let j = at + 1;
   if (text[at] === '\r' && text[j] === '\n') j++;
   return j;
 }
-function lineContentEnd(text, at) {
+function eol(text, at) {
   let i = at;
   while (i < text.length && text[i] !== '\n' && text[i] !== '\r') i++;
   return i;
 }
-// Unquoted assignment value. Spaces stay inside a letter phrase. Stop at end of line,
-// at & ; , or at a quote or bracket. A space before a non-letter token (for example " [200]") ends it.
-function unquotedValueEnd(text, at) {
-  let i = at;
-  while (i < text.length) {
+function leadingWs(text, at) {
+  let n = 0;
+  while (text[at + n] === ' ' || text[at + n] === '\t') n++;
+  return n;
+}
+function lineStartAt(text, index) {
+  let i = index;
+  while (i > 0 && text[i - 1] !== '\n' && text[i - 1] !== '\r') i--;
+  return i;
+}
+function lineIndentAt(text, index) {
+  return leadingWs(text, lineStartAt(text, index));
+}
+function headerNameAt(text, at) {
+  const lineEnd = eol(text, at);
+  const m = /^["']?([A-Za-z0-9_.%-]+)["']?[ \t]*:[ \t]/.exec(text.slice(at, lineEnd));
+  return m ? m[1] : '';
+}
+function isMarkerLine(text, lineStart) {
+  const content = lineStart + leadingWs(text, lineStart);
+  const mk = readMarkerAt(text, content);
+  return mk !== '' && eol(text, content) === content + mk.length;
+}
+function isDeeperFold(text, lineStart, parentIndent) {
+  const indent = leadingWs(text, lineStart);
+  if (indent <= parentIndent) return false;
+  if (isMarkerLine(text, lineStart)) return false;
+  const name = headerNameAt(text, lineStart + indent);
+  if (name && isReadableHeaderName(name)) return false;
+  return true;
+}
+// End index after this line plus folds indented deeper than parentIndent.
+function extendFolds(text, lineEnd, parentIndent) {
+  let i = lineEnd;
+  while (i < text.length && (text[i] === '\n' || text[i] === '\r')) {
+    const j = lineBreakEnd(text, i);
+    if (j >= text.length || !isDeeperFold(text, j, parentIndent)) break;
+    i = eol(text, j);
+  }
+  return i;
+}
+function jsonUnescape(raw) {
+  try { return JSON.parse('"' + raw + '"'); } catch (e) { return raw; }
+}
+function looksLikeJson(slice) {
+  let i = 1;
+  while (i < slice.length && (slice[i] === ' ' || slice[i] === '\t' || slice[i] === '\n' || slice[i] === '\r')) i++;
+  if (i >= slice.length) return false;
+  const c = slice[i];
+  if (c === ']' || c === '}') return true;
+  if (c === '"' || c === '{' || c === '[' || c === 't' || c === 'f' || c === 'n' || c === '-' || c === '<') return true;
+  return c >= '0' && c <= '9';
+}
+function jsonOk(slice) {
+  if (!looksLikeJson(slice)) return false;
+  try { JSON.parse(slice); return true; } catch (e) { /* skeleton below */ }
+  if (!slice.includes('<masked len=')) return false;
+  const sk = slice.replace(/<masked len=[1-9][0-9]*>/g, '0');
+  try { JSON.parse(sk); return true; } catch (e) { return false; }
+}
+function balancedSpans(text) {
+  const spans = [];
+  const stack = [];
+  let q = false;
+  for (let i = 0; i < text.length; i++) {
     const ch = text[i];
-    if (ch === '\n' || ch === '\r' || ch === '&' || ch === ';' || ch === ',' ||
-        ch === '"' || ch === "'" || ch === '`' || ch === '}' || ch === ']' ||
-        ch === ')' || ch === '<' || ch === '>') break;
-    if (ch === ' ' || ch === '\t') {
-      let j = i;
-      while (text[j] === ' ' || text[j] === '\t') j++;
-      if (!/[A-Za-z]/.test(text[j] || '')) break;
-      let k = j;
-      while (k < text.length && /[A-Za-z]/.test(text[k])) k++;
-      i = k;
+    if (q) {
+      if (ch === '\\') { i++; continue; }
+      if (ch === '"') q = false;
+      continue;
+    }
+    const mk = readMarkerAt(text, i);
+    if (mk) { i += mk.length - 1; continue; }
+    if (ch === '"') { q = true; continue; }
+    if (ch === '{' || ch === '[') stack.push(i);
+    else if ((ch === '}' || ch === ']') && stack.length) {
+      const start = stack.pop();
+      const open = text[start];
+      if ((open === '{' && ch === '}') || (open === '[' && ch === ']')) spans.push([start, i + 1]);
+    }
+  }
+  return spans;
+}
+function maskJsonSlice(slice) {
+  const reps = [];
+  let i = 0;
+  function ws() {
+    while (i < slice.length && (slice[i] === ' ' || slice[i] === '\t' || slice[i] === '\n' || slice[i] === '\r')) i++;
+  }
+  function bad() { throw new Error('json'); }
+  function takeString(sens) {
+    if (slice[i] !== '"') bad();
+    i++;
+    const cs = i;
+    while (i < slice.length) {
+      if (slice[i] === '\\') { i += 2; continue; }
+      if (slice[i] === '"') break;
+      i++;
+    }
+    if (slice[i] !== '"') bad();
+    const ce = i;
+    i++;
+    if (!sens) return;
+    const content = slice.slice(cs, ce);
+    if (content.length && !isPassShape(content)) reps.push([cs, ce, marker(content)]);
+  }
+  function takePrimitive(sens) {
+    const mk = readMarkerAt(slice, i);
+    if (mk) { i += mk.length; return; }
+    const s = i;
+    const c = slice[i];
+    if (c === '-' || (c >= '0' && c <= '9')) {
+      i++;
+      while (i < slice.length && /[0-9eE+.\-]/.test(slice[i])) i++;
+    } else if (slice.startsWith('true', i)) i += 4;
+    else if (slice.startsWith('false', i)) i += 5;
+    else if (slice.startsWith('null', i)) i += 4;
+    else bad();
+    if (!sens) return;
+    const raw = slice.slice(s, i);
+    if (raw.length && !isPassShape(raw)) reps.push([s, i, marker(raw)]);
+  }
+  function takeValue(sens) {
+    ws();
+    const c = slice[i];
+    if (c === '"') takeString(sens);
+    else if (c === '{') takeObject(sens);
+    else if (c === '[') takeArray(sens);
+    else takePrimitive(sens);
+  }
+  function takeObject(sens) {
+    if (slice[i] !== '{') bad();
+    i++;
+    ws();
+    if (slice[i] === '}') { i++; return; }
+    for (;;) {
+      ws();
+      if (slice[i] !== '"') bad();
+      const ks = i + 1;
+      i++;
+      while (i < slice.length) {
+        if (slice[i] === '\\') { i += 2; continue; }
+        if (slice[i] === '"') break;
+        i++;
+      }
+      if (slice[i] !== '"') bad();
+      const keyName = jsonUnescape(slice.slice(ks, i));
+      i++;
+      ws();
+      if (slice[i] !== ':') bad();
+      i++;
+      takeValue(sens || isSensitiveKey(keyName));
+      ws();
+      if (slice[i] === ',') { i++; continue; }
+      if (slice[i] === '}') { i++; return; }
+      bad();
+    }
+  }
+  function takeArray(sens) {
+    if (slice[i] !== '[') bad();
+    i++;
+    ws();
+    if (slice[i] === ']') { i++; return; }
+    for (;;) {
+      takeValue(sens);
+      ws();
+      if (slice[i] === ',') { i++; continue; }
+      if (slice[i] === ']') { i++; return; }
+      bad();
+    }
+  }
+  try {
+    takeValue(false);
+    ws();
+    if (i !== slice.length) return null;
+  } catch (e) {
+    return null;
+  }
+  let out = slice;
+  for (let r = reps.length - 1; r >= 0; r--) {
+    const rep = reps[r];
+    out = out.slice(0, rep[0]) + rep[2] + out.slice(rep[1]);
+  }
+  return out;
+}
+function jsonSpanList(text) {
+  if (text.indexOf('{') < 0 && text.indexOf('[') < 0) return [];
+  const spans = balancedSpans(text);
+  const chosen = [];
+  const covered = [];
+  for (let n = spans.length - 1; n >= 0; n--) {
+    const s = spans[n][0];
+    const e = spans[n][1];
+    let inside = false;
+    for (let c = 0; c < covered.length; c++) {
+      if (s >= covered[c][0] && e <= covered[c][1]) { inside = true; break; }
+    }
+    if (inside) continue;
+    const slice = text.slice(s, e);
+    if (!jsonOk(slice) || maskJsonSlice(slice) == null) continue;
+    chosen.push([s, e]);
+    covered.push([s, e]);
+  }
+  chosen.sort((a, b) => a[0] - b[0]);
+  return chosen;
+}
+function applyRanges(text, ranges, mapFn) {
+  if (!ranges.length) return text;
+  let out = '';
+  let last = 0;
+  for (let n = 0; n < ranges.length; n++) {
+    const s = ranges[n][0];
+    const e = ranges[n][1];
+    if (s < last) continue;
+    out += text.slice(last, s) + mapFn(text.slice(s, e), s, e);
+    last = e;
+  }
+  return out + text.slice(last);
+}
+function applyJson(text) {
+  return applyRanges(text, jsonSpanList(text), (slice) => {
+    const masked = maskJsonSlice(slice);
+    return masked == null ? slice : masked;
+  });
+}
+function cookieSegments(body) {
+  const parts = [];
+  let i = 0;
+  let quote = '';
+  let start = 0;
+  let unpaired = false;
+  while (i <= body.length) {
+    const ch = i === body.length ? ';' : body[i];
+    if (i < body.length && quote) {
+      if (ch === quote) quote = '';
+      i++;
+      continue;
+    }
+    if (i < body.length && (ch === '"' || ch === "'")) { quote = ch; i++; continue; }
+    if (ch === ';' || i === body.length) {
+      if (quote) unpaired = true;
+      parts.push({ text: body.slice(start, i), unpaired: unpaired || quote !== '', start: start });
+      if (unpaired || quote) {
+        parts[parts.length - 1].rest = body.slice(start);
+        return parts;
+      }
+      i++;
+      start = i;
       continue;
     }
     i++;
   }
+  return parts;
+}
+function maskCookieBody(body, setCookie) {
+  const parts = cookieSegments(body);
+  let out = '';
+  for (let n = 0; n < parts.length; n++) {
+    const part = parts[n];
+    if (part.rest != null) return out + marker(part.rest);
+    const segment = part.text;
+    const eq = segment.indexOf('=');
+    const trimmed = segment.trim();
+    if (eq < 0) {
+      if (!n) return marker(body);
+      if (setCookie && COOKIE_ATTRS.has(trimmed.toLowerCase())) {
+        out += segment;
+        if (n < parts.length - 1) out += ';';
+        continue;
+      }
+      return out + marker(body.slice(part.start));
+    }
+    const name = segment.slice(0, eq);
+    if (isPassShape(segment.trim())) {
+      out += segment;
+      if (n < parts.length - 1) out += ';';
+      continue;
+    }
+    const value = segment.slice(eq + 1);
+    const attr = name.trim().toLowerCase();
+    const keepAttr = n > 0 && setCookie && COOKIE_ATTRS.has(attr);
+    if (keepAttr || !value || isPassShape(value)) out += segment;
+    else out += name + '=' + marker(value);
+    if (n < parts.length - 1) out += ';';
+  }
+  return out;
+}
+function applyCookies(text) {
+  let out = '';
+  let i = 0;
+  while (i < text.length) {
+    const end = eol(text, i);
+    const line = text.slice(i, end);
+    const m = COOKIE_RE.exec(line);
+    out += m ? m[1] + m[2] + m[3] + maskCookieBody(m[4], m[2].toLowerCase() === 'set-cookie') : line;
+    if (end >= text.length) break;
+    const br = lineBreakEnd(text, end);
+    out += text.slice(end, br);
+    i = br;
+  }
+  return out;
+}
+function maskPair(part, query) {
+  const hash = part.indexOf('#');
+  const eq = part.indexOf('=');
+  if (eq < 0 || (hash >= 0 && hash < eq)) return part;
+  const vend = hash > eq ? hash : part.length;
+  const key = part.slice(0, eq);
+  const value = part.slice(eq + 1, vend);
+  const tail = part.slice(vend);
+  if (!value || !isSensitiveKey(key, query) || isPassShape(value)) return part;
+  return key + '=' + marker(value) + tail;
+}
+function maskAmpList(body, query) {
+  let out = '';
+  let i = 0;
+  while (i < body.length) {
+    let j = i;
+    while (j < body.length && body[j] !== '&') j++;
+    out += maskPair(body.slice(i, j), query);
+    if (j < body.length) { out += '&'; j++; }
+    i = j;
+  }
+  return out;
+}
+function nextRunEnd(text, i) {
+  let j = i;
+  while (j < text.length) {
+    const mk = readMarkerAt(text, j);
+    if (mk) { j += mk.length; continue; }
+    const c = text[j];
+    if (c === ' ' || c === '\t' || c === '\n' || c === '\r') break;
+    j++;
+  }
+  return j;
+}
+function isFormRun(run) {
+  if (run.includes('://') || !run.includes('&') || !run.includes('=')) return false;
+  const parts = run.split('&');
+  if (parts.length < 2) return false;
+  for (let i = 0; i < parts.length; i++) if (!parts[i].includes('=')) return false;
+  return true;
+}
+function applyQueryAndForm(text) {
+  const ranges = [];
+  const urls = queryUrlRanges(text);
+  for (let u = 0; u < urls.length; u++) ranges.push([urls[u][0], urls[u][1], 'url']);
+  let i = 0;
+  while (i < text.length) {
+    const ch = text[i];
+    if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') { i++; continue; }
+    const j = nextRunEnd(text, i);
+    if (isFormRun(text.slice(i, j))) ranges.push([i, j, 'form']);
+    i = j;
+  }
+  ranges.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const kept = [];
+  let last = 0;
+  for (let n = 0; n < ranges.length; n++) {
+    if (ranges[n][0] < last) continue;
+    kept.push(ranges[n]);
+    last = ranges[n][1];
+  }
+  return applyRanges(text, kept, (slice, s, e) => {
+    const kind = kept.find((r) => r[0] === s && r[1] === e);
+    if (kind && kind[2] === 'url') {
+      const q = slice.indexOf('?');
+      return slice.slice(0, q + 1) + maskAmpList(slice.slice(q + 1), true);
+    }
+    return maskAmpList(slice, false);
+  });
+}
+function mergeRanges(ranges) {
+  if (!ranges.length) return [];
+  ranges.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const out = [ranges[0].slice()];
+  for (let i = 1; i < ranges.length; i++) {
+    const prev = out[out.length - 1];
+    if (ranges[i][0] <= prev[1]) prev[1] = Math.max(prev[1], ranges[i][1]);
+    else out.push(ranges[i].slice());
+  }
+  return out;
+}
+function protectedRanges(text) {
+  const ranges = jsonSpanList(text).map((r) => [r[0], r[1]]);
+  let i = 0;
+  while (i < text.length) {
+    const end = eol(text, i);
+    if (COOKIE_RE.test(text.slice(i, end))) ranges.push([i, end]);
+    i = end >= text.length ? end : lineBreakEnd(text, end);
+  }
+  i = 0;
+  while (i < text.length) {
+    const ch = text[i];
+    if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') { i++; continue; }
+    const j = nextRunEnd(text, i);
+    if (isFormRun(text.slice(i, j))) ranges.push([i, j]);
+    i = j;
+  }
+  return mergeRanges(ranges);
+}
+function readKeyAt(text, i) {
+  let j = i;
+  while (j < text.length && /[A-Za-z0-9_.%-]/.test(text[j])) j++;
+  if (j === i) return null;
+  return { text: text.slice(i, j), end: j };
+}
+function readSepAt(text, i) {
+  let j = i;
+  while (text[j] === ' ' || text[j] === '\t') j++;
+  if (text[j] !== ':' && text[j] !== '=') return null;
+  const ch = text[j];
+  j++;
+  while (text[j] === ' ' || text[j] === '\t') j++;
+  return { ch: ch, valueStart: j };
+}
+function matchKey(text, i) {
+  if (i > 0 && /[A-Za-z0-9_.%-]/.test(text[i - 1])) return null;
+  let start = i;
+  let key = null;
+  let sep = null;
+  const qch = text[i];
+  if (qch === '"' || qch === "'" || qch === '`') {
+    const wrapped = readKeyAt(text, i + 1);
+    if (wrapped && text[wrapped.end] === qch) {
+      const wrappedSep = readSepAt(text, wrapped.end + 1);
+      if (wrappedSep) {
+        key = wrapped;
+        sep = wrappedSep;
+        start = i + 1;
+      }
+    }
+  }
+  if (!key) {
+    key = readKeyAt(text, i);
+    if (!key) return null;
+    sep = readSepAt(text, key.end);
+    if (!sep) return null;
+    start = i;
+  }
+  const prev = start > 0 ? text[start - 1] : '';
+  return { key: key.text, sep: sep.ch, valueStart: sep.valueStart, query: prev === '?' || prev === '&' || prev === '#' };
+}
+function classifyScheme(first) {
+  const m = /^([A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*)([ \t]*)([\s\S]*)$/.exec(first);
+  if (!m || !isKeyedSchemeWord(m[1])) return null;
+  if (!m[3]) return { lone: true, word: m[1], ws: m[2] };
+  if (!m[2]) return null;
+  return { lone: false, word: m[1], restSkip: m[1].length + m[2].length };
+}
+function formatLoneTail(text, nlAt, parentIndent) {
+  if (nlAt >= text.length || (text[nlAt] !== '\n' && text[nlAt] !== '\r')) return null;
+  const j = lineBreakEnd(text, nlAt);
+  if (j >= text.length) return null;
+  const indent = leadingWs(text, j);
+  const content = j + indent;
+  if (content >= text.length || text[content] === '\n' || text[content] === '\r') return null;
+  if (text.startsWith('<masked len=', content)) return null;
+  const name = headerNameAt(text, content);
+  if (name && (isReadableHeaderName(name) || isSensitiveKey(name))) return null;
+  const lineEnd = eol(text, content);
+  const end = extendFolds(text, lineEnd, parentIndent);
+  const chunk = text.slice(content, end);
+  return { end: end, out: text.slice(nlAt, content) + (chunk ? marker(chunk) : '') };
+}
+function queryValueEnd(text, valueStart) {
+  let i = valueStart;
+  const scheme = /^([A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*)([ \t]+)/.exec(text.slice(i));
+  if (scheme && isKeyedSchemeWord(scheme[1])) i += scheme[1].length + scheme[2].length;
+  while (i < text.length) {
+    const mk = readMarkerAt(text, i);
+    if (mk) { i += mk.length; continue; }
+    const c = text[i];
+    if (c === '&' || c === '#' || c === ' ' || c === '\t' || c === '\n' || c === '\r') break;
+    i++;
+  }
   return i;
 }
-// Authorization prose ("header is missing") keeps the letter tail readable.
-// Any other sensitive key takes the whole phrase, including a short first word such as "my".
-function schemeProseStays(key, token, text, tokenEnd) {
-  const name = String(key);
-  if (token.length < 3) return false;
-  if (!/authorization/i.test(name) && !/^auth$/i.test(name)) return false;
-  const tail = text.slice(tokenEnd, unquotedValueEnd(text, tokenEnd));
-  return /^[ \t]+[A-Za-z]+(?:[ \t]+[A-Za-z]+)+[ \t]*$/.test(tail);
-}
-// Indented continuation lines (space or tab) after a value. A non-indented line stops the fold.
-function extendIndentedFolds(text, end) {
-  let j = end;
-  while (text[j] === ' ' || text[j] === '\t') j++;
-  if (text[j] !== '\n' && text[j] !== '\r') return end;
-  let i = j;
-  let consumed = false;
-  while (i < text.length && (text[i] === '\n' || text[i] === '\r')) {
-    const k = lineBreakEnd(text, i);
-    if (k >= text.length || (text[k] !== ' ' && text[k] !== '\t') || foldLineIsKey(text, k)) break;
-    consumed = true;
-    i = k;
-    while (i < text.length && text[i] !== '\n' && text[i] !== '\r') i++;
+function maskKeyedValue(text, valueStart, parentIndent, sep, query) {
+  const lineEnd = eol(text, valueStart);
+  const bound = query ? queryValueEnd(text, valueStart) : lineEnd;
+  const first = text.slice(valueStart, Math.min(lineEnd, bound));
+  const scheme = classifyScheme(first);
+  if (!query && scheme && scheme.lone) {
+    const low = scheme.word.toLowerCase();
+    const keep = sep === ':' && (low === 'bearer' || low === 'basic');
+    let out = (keep ? scheme.word : marker(scheme.word)) + scheme.ws;
+    const tail = formatLoneTail(text, lineEnd, parentIndent);
+    if (!tail) return { end: lineEnd, out: out };
+    return { end: tail.end, out: out + tail.out };
   }
-  return consumed ? i : end;
-}
-function withFold(text, span) {
-  const after = span.close ? span.end + 1 : span.end;
-  const folded = extendIndentedFolds(text, after);
-  if (folded > after) return { start: span.start, end: folded };
-  return span;
-}
-// Lone scheme: the next line is masked, including an indented fold.
-// A non-indented header (`Name:[ \t]`) stays readable.
-function loneSchemeTail(text, breakAt) {
-  const j = lineBreakEnd(text, breakAt);
-  if (j >= text.length) return null;
-  if (text[j] === ' ' || text[j] === '\t') {
-    const end = valueEnd(text, breakAt);
-    if (end <= j) return null;
-    let s = j;
-    while (s < end && (text[s] === ' ' || text[s] === '\t')) s++;
-    if (s >= end || text.startsWith('<masked len=', s)) return null;
-    return { start: s, end };
+  const fullEnd = query ? bound : extendFolds(text, lineEnd, parentIndent);
+  const full = text.slice(valueStart, fullEnd);
+  if (isPassShape(full)) return { end: fullEnd, out: full };
+  if (full.includes('<masked')) return { end: fullEnd, out: marker(full) };
+  if (scheme && !scheme.lone) {
+    const low = scheme.word.toLowerCase();
+    const keep = sep === ':' && (low === 'bearer' || low === 'basic');
+    const rest = text.slice(valueStart + scheme.restSkip, fullEnd);
+    const head = keep ? scheme.word : marker(scheme.word);
+    return { end: fullEnd, out: head + ' ' + marker(rest) };
   }
-  const lineEnd = lineContentEnd(text, j);
-  if (lineEnd <= j) return null;
-  if (HEADER_LINE.test(text.slice(j, lineEnd))) return null;
-  if (text.startsWith('<masked len=', j)) return null;
-  return { start: j, end: lineEnd };
+  return { end: fullEnd, out: full ? marker(full) : '' };
 }
-// Auth scheme (Bearer, Basic, Token, …), keyed or keyless. Rest of the line and every
-// indented fold are masked. No letter-tail exception on this path.
-function authSchemeTail(text, schemeEnd) {
-  let start = schemeEnd;
-  if (text[start] === ' ' || text[start] === '\t') {
-    start = skipBws(text, start);
-    if (start === schemeEnd || text.startsWith('<masked len=', start)) return null;
-  } else if (text[start] !== '\n' && text[start] !== '\r') return null;
-  if (start >= text.length) return null;
-  if (text[start] === '\n' || text[start] === '\r') return loneSchemeTail(text, start);
-  const end = valueEnd(text, start);
-  if (end <= start) return null;
-  return { start, end };
-}
-// Non-auth scheme words only. A single credential token on the next line is the value.
-// A normal next line stays readable. Auth schemes use authSchemeTail instead.
-function nextLineCredential(text, breakAt) {
-  const j = lineBreakEnd(text, breakAt);
-  if (j >= text.length) return null;
-  if (text[j] === ' ' || text[j] === '\t') {
-    const end = valueEnd(text, breakAt);
-    if (end <= j || !tailIsCredential(text.slice(j, end))) return null;
-    return { start: j, end };
+function applyKeys(text) {
+  const ranges = protectedRanges(text);
+  let ri = 0;
+  function covered(i) {
+    while (ri < ranges.length && ranges[ri][1] <= i) ri++;
+    if (ri < ranges.length && ranges[ri][0] <= i) return ranges[ri][1];
+    return -1;
   }
-  TOKEN68_RE.lastIndex = j;
-  const token = TOKEN68_RE.exec(text);
-  if (!token || !credentialToken(token[0]) || NUMBER.test(token[0])) return null;
-  let end = j + token[0].length;
-  let k = end;
-  while (text[k] === ' ' || text[k] === '\t') k++;
-  if (k < text.length && text[k] !== '\n' && text[k] !== '\r') return null;
-  return { start: j, end };
-}
-function schemeCredential(text, schemeEnd) {
-  let start = schemeEnd;
-  if (text[start] === ' ' || text[start] === '\t') {
-    start = skipBws(text, start);
-    if (start === schemeEnd || text.startsWith('<masked len=', start)) return null;
-  } else if (text[start] !== '\n' && text[start] !== '\r') return null;
-  if (start >= text.length) return null;
-  if (text[start] === '\n' || text[start] === '\r') return nextLineCredential(text, start);
-  const lineEnd = lineContentEnd(text, start);
-  const end = valueEnd(text, start);
-  if (end <= start) return null;
-  // The first line decides a short credential. A folded prose line must not excuse it.
-  // The whole tail, folds included, still fails closed when the fold itself is the credential.
-  const firstLine = text.slice(start, lineEnd);
-  if (!tailIsCredential(firstLine) && !tailIsCredential(text.slice(start, end))) return null;
-  return { start, end };
-}
-function keyAnchored(text, spans) {
-  ASSIGN_RE.lastIndex = 0;
-  let m;
-  while ((m = ASSIGN_RE.exec(text)) !== null) {
-    const [whole, prefix, kq, key, sep] = m;
-    const vStart = m.index + whole.length;
-    const eq = sep.includes('=');
-    if (prefix === '#' && !eq) continue;
-    if (!eq && !kq && CSS_PSEUDO.test(text.slice(vStart - sep.length + sep.indexOf(':')))) continue;
-    const q = eq && !kq && (prefix === '?' || prefix === '&' || prefix === '#');
-    if (!isSensitiveKey(key, q)) { ASSIGN_RE.lastIndex = m.index + whole.trimEnd().length; continue; }
-    let span;
-    let bare = false;
-    let bareScheme = false;
-    if (text[vStart] === '"' || text[vStart] === "'" || text[vStart] === '`') span = scanQuoted(text, vStart);
-    else if (text[vStart] === '\\' && (text[vStart + 1] === '"' || text[vStart + 1] === "'" || text[vStart + 1] === '`')) {
-      const close = '\\' + text[vStart + 1];
-      const from = vStart + 2;
-      const at = text.indexOf(close, from);
-      // A closer past MAX_QUOTED is still the end of the value. None: the rest of the input.
-      span = { start: from, end: at >= 0 ? at : text.length };
-    } else if (text[vStart] === '{' || text[vStart] === '[') {
-      span = scanNested(text, vStart); // object/array under a secret key: mask it whole
-    } else {
-      bare = true;
-      BARE_RE.lastIndex = vStart;
-      const b = BARE_RE.exec(text);
-      if (!b) continue;
-      span = { start: vStart, end: vStart + b[0].length };
-      if (text.startsWith('<masked len=', span.end)) { ASSIGN_RE.lastIndex = span.end; continue; } // a shape already owns it
-      // A long or digit-heavy token is the credential, not a scheme name. Hyphenated names (AWS4-HMAC-SHA256) stay schemes.
-      bareScheme = SCHEME_WORD.test(b[0]) && (b[0].includes('-') || !credentialToken(b[0]));
+  let out = '';
+  let i = 0;
+  while (i < text.length) {
+    const jump = covered(i);
+    if (jump > i) { out += text.slice(i, jump); i = jump; continue; }
+    const mk = readMarkerAt(text, i);
+    if (mk) { out += mk; i += mk.length; continue; }
+    if (TRUNC_RE.test(text.slice(i))) {
+      const t = TRUNC_RE.exec(text.slice(i))[0];
+      out += t;
+      i += t.length;
+      continue;
     }
-    if (span.end <= span.start) continue;
-    if (PLACEHOLDER.test(text.slice(span.start, span.end + 1))) { ASSIGN_RE.lastIndex = span.end; continue; }
-    const token = text.slice(span.start, span.end);
-    if (/^(?:Bearer|Basic)$/i.test(token)) {
-      // Same-line Bearer/Basic is masked in maskAuthSameLine. A lone scheme uses this path.
-      const cred = authSchemeTail(text, span.end);
-      if (!cred) continue;
-      span = cred;
-    } else if (bareScheme) {
-      const cred = isAuthScheme(token) ? authSchemeTail(text, span.end) : schemeCredential(text, span.end);
-      if (cred) {
-        spans.push([span.start, span.end]);
-        span = cred;
-      } else if (!schemeProseStays(key, token, text, span.end)) {
-        span = { start: span.start, end: unquotedValueEnd(text, span.start) };
+    const found = matchKey(text, i);
+    if (!found || !isSensitiveKey(found.key, found.query)) {
+      out += text[i];
+      i++;
+      continue;
+    }
+    const masked = maskKeyedValue(text, found.valueStart, lineIndentAt(text, i), found.sep, found.query);
+    out += text.slice(i, found.valueStart) + masked.out;
+    i = masked.end;
+  }
+  return out;
+}
+function applyKeyless(text) {
+  let out = '';
+  let i = 0;
+  while (i < text.length) {
+    const mk = readMarkerAt(text, i);
+    if (mk) { out += mk; i += mk.length; continue; }
+    if (TRUNC_RE.test(text.slice(i))) {
+      const t = TRUNC_RE.exec(text.slice(i))[0];
+      out += t;
+      i += t.length;
+      continue;
+    }
+    const prev = i > 0 ? text[i - 1] : '';
+    if (/[A-Za-z0-9-]/.test(prev) || !/[A-Za-z]/.test(text[i] || '')) {
+      out += text[i];
+      i++;
+      continue;
+    }
+    let j = i + 1;
+    while (j < text.length && /[A-Za-z0-9-]/.test(text[j])) j++;
+    const word = text.slice(i, j);
+    const low = word.toLowerCase();
+    if ((low === 'bearer' || low === 'basic') && (text[j] === ' ' || text[j] === '\t')) {
+      let k = j;
+      while (text[k] === ' ' || text[k] === '\t') k++;
+      if (!text.startsWith('<masked len=', k)) {
+        TOKEN68_RE.lastIndex = k;
+        const tok = TOKEN68_RE.exec(text);
+        if (tok && tok.index === k && tok[0]) {
+          out += text.slice(i, k) + marker(tok[0]);
+          i = k + tok[0].length;
+          continue;
+        }
       }
-    } else if (bare) {
-      const end = unquotedValueEnd(text, span.start);
-      if (end > span.end) span = { start: span.start, end };
     }
-    if (span.end <= span.start) continue;
-    span = withFold(text, span);
-    if (span.end <= span.start) continue;
-    spans.push([span.start, span.end]);
-    ASSIGN_RE.lastIndex = Math.max(span.end, ASSIGN_RE.lastIndex);
+    if (isKeylessScheme(word)) {
+      let k = j;
+      while (text[k] === ' ' || text[k] === '\t') k++;
+      if (k >= text.length || text[k] === '\n' || text[k] === '\r') {
+        const tail = k < text.length ? formatLoneTail(text, k, lineIndentAt(text, i)) : null;
+        if (tail) {
+          out += text.slice(i, k) + tail.out;
+          i = tail.end;
+          continue;
+        }
+      }
+    }
+    out += word;
+    i = j;
   }
+  return out;
 }
 const DELIM = /[\s"'`|,;!<>()[\]{}\\]|[^\x00-\x7f]/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -360,9 +784,9 @@ function pathOpaque(t) {
 }
 function maskPairs(body, query) {
   return body.split('&').map((pair) => {
-    const i = pair.indexOf('=');
-    if (i < 0) return pathOpaque(pair) ? marker(pair) : pair;
-    const k = pair.slice(0, i); const v = pair.slice(i + 1);
+    const eq = pair.indexOf('=');
+    if (eq < 0) return pathOpaque(pair) ? marker(pair) : pair;
+    const k = pair.slice(0, eq); const v = pair.slice(eq + 1);
     if (!v || PLACEHOLDER.test(v)) return pair;
     return (isSensitiveKey(k, query) || pathOpaque(v)) ? k + '=' + marker(v) : pair;
   }).join('&');
@@ -370,7 +794,7 @@ function maskPairs(body, query) {
 function maskUrl(t) {
   const m = /^([a-z][a-z0-9+.-]*:\/\/)([^/?#]*)([^?#]*)(\?[^#]*)?(#.*)?$/i.exec(t);
   if (!m) return marker(t);
-  const [, scheme, auth, path, query, hash] = m;
+  const scheme = m[1]; const auth = m[2]; const path = m[3]; const query = m[4]; const hash = m[5];
   const host = auth.replace(/^.*@/, '').replace(/:\d+$/, '');
   let out = scheme + (host.split('.').some(chunkOpaque) ? marker(auth) : auth);
   out += path.split('/').map((s) => (segmentOpaque(s) ? marker(s) : s)).join('/');
@@ -388,142 +812,43 @@ function maskToken(t) {
   if (eq > 0 && eq < t.length - 1 && !/^[A-Za-z0-9+/]+={1,2}$/.test(t)) return maskPairs(t, false);
   return pathOpaque(t) ? marker(t) : t;
 }
-function tokenPass(text) {
+const ASSIGNMENT_KEY = /^[A-Za-z][A-Za-z0-9_.%-]*(?::[A-Za-z0-9_.%-]+)*=$/;
+// keepAssignment: this slice ends immediately before an existing placeholder.
+// A bare key= there is the key name, not a padded secret. Leave it.
+function tokenPass(text, keepAssignment) {
   let out = ''; let i = 0;
   while (i < text.length) {
     if (DELIM.test(text[i])) { out += text[i++]; continue; }
     let j = i;
     while (j < text.length && !DELIM.test(text[j])) j++;
-    out += maskToken(text.slice(i, j));
+    const tok = text.slice(i, j);
+    if (keepAssignment && j === text.length && ASSIGNMENT_KEY.test(tok)) out += tok;
+    else out += maskToken(tok);
     i = j;
   }
   return out;
 }
-function applySpans(text, spans) {
-  spans.sort((a, b) => a[0] - b[0]);
-  let out = ''; let last = 0;
-  for (const [s, e] of spans) {
-    if (s < last) continue;
-    out += text.slice(last, s) + marker(text.slice(s, e));
-    last = e;
-  }
-  return out + text.slice(last);
-}
-const COOKIE_LINE = /^([ \t]*(?:- )?)(cookie|set-cookie)([ \t]*:[ \t]*)([^\n]*)$/gim;
-function maskCookieLine(all, lead, name, sep, body) {
-  let first = true;
-  const out = body.replace(/(^|;\s*)([^=;\s]+)=([^;]*)/g, (m, pre, k, v) => {
-    if (!first && name.toLowerCase() === 'set-cookie') return m;
-    first = false;
-    return v && !PLACEHOLDER.test(v) ? pre + k + '=' + marker(v) : m;
-  });
-  return lead + name + sep + out;
-}
-// Keyless auth scheme at end of line. Keyed schemes are already in the spans from keyAnchored.
-function scanKeylessSchemes(text, spans) {
-  const re = /\b(Bearer|Basic|Token|Digest|Negotiate|NTLM|ApiKey|SharedKey|OAuth|HOBA|Mutual|AWS4-HMAC-SHA256)\b/gi;
-  let m;
-  while ((m = re.exec(text)) !== null) {
-    const schemeEnd = m.index + m[1].length;
-    let i = schemeEnd;
-    if (text[i] === ' ' || text[i] === '\t') i = skipBws(text, i);
-    if (text[i] !== '\n' && text[i] !== '\r') continue;
-    const tail = authSchemeTail(text, schemeEnd);
-    if (!tail) continue;
-    let covered = false;
-    for (let n = 0; n < spans.length; n++) {
-      if (spans[n][0] <= tail.start && spans[n][1] >= tail.end) { covered = true; break; }
-    }
-    if (covered || text.startsWith('<masked len=', tail.start)) {
-      re.lastIndex = tail.end;
-      continue;
-    }
-    spans.push([tail.start, tail.end]);
-    re.lastIndex = tail.end;
-  }
-}
-function quoteIsEscaped(text, at) {
-  let n = 0;
-  for (let k = at - 1; k >= 0 && text[k] === '\\'; k--) n++;
-  return n % 2 === 1;
-}
-// Quoted value (opening " or ') whose content starts with this scheme.
-// End is the closing quote, or the end of the input when that quote is missing.
-function quotedSchemeEnd(text, schemeStart) {
-  let i = schemeStart - 1;
-  while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) i--;
-  if (i < 0) return null;
-  const q = text[i];
-  if ((q !== '"' && q !== "'") || quoteIsEscaped(text, i)) return null;
-  let k = i - 1;
-  while (k >= 0 && (text[k] === ' ' || text[k] === '\t')) k--;
-  if (k >= 0) {
-    const prev = text[k];
-    if (prev !== ':' && prev !== '=' && prev !== ',' && prev !== '[' && prev !== '{' && prev !== '(') return null;
-  }
-  const scanned = scanQuoted(text, i);
-  return { end: scanned.end, closed: scanned.close !== '' };
-}
-function schemeAfterSensitiveKey(text, schemeStart) {
-  let i = schemeStart - 1;
-  while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) i--;
-  if (i >= 0 && (text[i] === '"' || text[i] === "'" || text[i] === '`') && !quoteIsEscaped(text, i)) i--;
-  while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) i--;
-  if (i < 0 || (text[i] !== ':' && text[i] !== '=')) return false;
-  i--;
-  while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) i--;
-  if (i >= 0 && (text[i] === '"' || text[i] === "'" || text[i] === '`') && !quoteIsEscaped(text, i)) i--;
-  const keyEnd = i + 1;
-  while (i >= 0 && /[A-Za-z0-9_.%-]/.test(text[i])) i--;
-  const key = text.slice(i + 1, keyEnd);
-  if (!key) return false;
-  const prev = i >= 0 ? text[i] : '';
-  return isSensitiveKey(key, prev === '?' || prev === '&' || prev === '#');
-}
-function firstSchemeTokenEnd(text, at) {
-  const m = /^[A-Za-z0-9._~+/=-]*/.exec(text.slice(at));
-  return at + (m ? m[0].length : 0);
-}
-// Bearer or Basic on the same line. A quoted value that starts with the scheme ends at
-// the matching closing quote; escaped quotes count. No closer: mask through the end of
-// the input. Keyless prose masks only the first token. A keyed value masks the rest,
-// including an indented fold that is not a key line. A placeholder already there stays.
-function maskAuthSameLine(text) {
-  const re = /\b(Bearer|Basic)[ \t]+/gi;
-  let out = '';
-  let last = 0;
-  let m;
-  while ((m = re.exec(text)) !== null) {
-    const schemeStart = m.index;
-    const content = schemeStart + m[0].length;
-    if (content >= text.length || text.startsWith('<masked len=', content)) continue;
-    const quoted = quotedSchemeEnd(text, schemeStart);
-    const keyed = schemeAfterSensitiveKey(text, schemeStart);
-    let end;
-    if (quoted && !quoted.closed) end = text.length;
-    else if (!keyed) end = firstSchemeTokenEnd(text, content);
-    else if (quoted) end = quoted.end;
-    else end = valueEnd(text, content);
-    if (quoted && quoted.closed && end > quoted.end) end = quoted.end;
-    if (end <= content) continue;
-    out += text.slice(last, content) + marker(text.slice(content, end));
-    last = end;
-    re.lastIndex = end;
-  }
-  return out + text.slice(last);
+function maskBodyOnce(text) {
+  let s = applyJson(text);
+  s = applyCookies(s);
+  s = applyQueryAndForm(s);
+  s = applyKeys(s);
+  s = applyKeyless(s);
+  s = s.replace(JWT_RE, (j) => marker(j)).replace(VENDOR_RE, (v) => marker(v))
+    .replace(USERINFO_RE, (all, a, v, at) => a + marker(v) + at);
+  const parts = s.split(/(<masked len=\d+>)/);
+  return parts.map((part, n) => (n % 2 ? part : tokenPass(part, n + 1 < parts.length))).join('');
 }
 function maskBody(text) {
-  let s = text.replace(COOKIE_LINE, maskCookieLine).replace(JWT_RE, (j) => marker(j)).replace(VENDOR_RE, (v) => marker(v))
-    .replace(USERINFO_RE, (all, a, v, at) => a + marker(v) + at);
-  s = maskAuthSameLine(s);
-  const spans = [];
-  keyAnchored(s, spans);
-  scanKeylessSchemes(s, spans);
-  s = applySpans(s, spans);
-  return s.split(/(<masked len=\d+>)/).map((part, i) => (i % 2 ? part : tokenPass(part))).join('');
+  const once = maskBodyOnce(text);
+  if (!/<masked len=\d+>(?:<masked|[^<\s])/.test(once)) return once;
+  const twice = maskBodyOnce(once);
+  return twice === once ? once : maskBodyOnce(twice);
 }
 function maskText(text) {
   const t = String(text);
+  const already = /…<truncated len=\d+>$/.exec(t);
+  if (already) return maskBody(t.slice(0, t.length - already[0].length)) + already[0];
   return t.length > TRUNCATE_AT ? maskBody(t.slice(0, TRUNCATE_AT)) + '…<truncated len=' + t.length + '>' : maskBody(t);
 }
 function mask(key, value) {
@@ -602,4 +927,5 @@ globalThis.__frontendQaMaskEvaluateResult = maskEvaluateResult;
 globalThis.__frontendQaMaskText = maskText;
 globalThis.__frontendQaMaskBody = maskBody;
 globalThis.__frontendQaIsSensitiveKey = isSensitiveKey;
+globalThis.__frontendQaReadableHeaders = READABLE_HEADERS;
 })();

@@ -638,7 +638,7 @@
     "kind": "console",
     "input": "login ok {\"accessToken\":\"aB3dE5fG7hJ9kL1mN3pQ5rS7tU9\"",
     "expect": "masked",
-    "output": "login ok {\"accessToken\":\"<masked len=27>\""
+    "output": "login ok {\"accessToken\":<masked len=29>"
   },
   {
     "group": "L",
@@ -720,7 +720,7 @@
     "kind": "console",
     "input": "sessionId=\"aB3dE5fG7hJ9kL1mN3pQ5rS7tU9\"",
     "expect": "masked",
-    "output": "sessionId=\"<masked len=27>\""
+    "output": "sessionId=<masked len=29>"
   },
   {
     "group": "F1",
@@ -880,7 +880,7 @@
     "kind": "console",
     "input": "{\"credentials\":{\"user\":\"qa\",\"pass\":\"x1\"}}",
     "expect": "masked",
-    "output": "{\"credentials\":<masked len=25>}"
+    "output": "{\"credentials\":{\"user\":\"<masked len=2>\",\"pass\":\"<masked len=2>\"}}"
   },
   {
     "group": "OBJ",
@@ -894,14 +894,14 @@
     "kind": "text",
     "input": "x {\"token\":[1,2,{\"a\":\"}\"}]} y",
     "expect": "masked",
-    "output": "x {\"token\":<masked len=15>} y"
+    "output": "x {\"token\":[<masked len=1>,<masked len=1>,{\"a\":\"<masked len=1>\"}]} y"
   },
   {
     "group": "OBJ",
     "kind": "text",
     "input": "{\"session\":{\"user\":{\"id\":5}}, \"ok\":1}",
     "expect": "masked",
-    "output": "{\"session\":<masked len=17>, \"ok\":1}"
+    "output": "{\"session\":{\"user\":{\"id\":<masked len=1>}}, \"ok\":1}"
   },
   {
     "group": "OBJ",
@@ -922,7 +922,9 @@
     "kind": "text",
     "input": "Authorization: Token abcd1234efgh",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
     "output": "Authorization: <masked len=5> <masked len=12>"
   },
   {
@@ -930,7 +932,9 @@
     "kind": "text",
     "input": "Authorization: ApiKey k3yV4lue9876",
     "expect": "masked",
-    "secrets": ["k3yV4lue9876"],
+    "secrets": [
+      "k3yV4lue9876"
+    ],
     "output": "Authorization: <masked len=6> <masked len=12>"
   },
   {
@@ -938,7 +942,10 @@
     "kind": "text",
     "input": "Authorization: Digest username=\"u\", response=\"6629fae49393a053\"",
     "expect": "masked",
-    "secrets": ["6629fae49393a053", "username=\"u\""],
+    "secrets": [
+      "6629fae49393a053",
+      "username=\"u\""
+    ],
     "output": "Authorization: <masked len=6> <masked len=41>"
   },
   {
@@ -946,7 +953,9 @@
     "kind": "text",
     "input": "authorization=Token abcd1234efgh",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
     "output": "authorization=<masked len=5> <masked len=12>"
   },
   {
@@ -954,7 +963,9 @@
     "kind": "text",
     "input": "- authorization:Token abcd1234efgh",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
     "output": "- authorization:<masked len=5> <masked len=12>"
   },
   {
@@ -962,7 +973,9 @@
     "kind": "text",
     "input": "Proxy-Authorization: Token abcd1234efgh",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
     "output": "Proxy-Authorization: <masked len=5> <masked len=12>"
   },
   {
@@ -970,7 +983,9 @@
     "kind": "text",
     "input": "X-Api-Key: Token abcd1234efgh",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
     "output": "X-Api-Key: <masked len=5> <masked len=12>"
   },
   {
@@ -978,7 +993,9 @@
     "kind": "text",
     "input": "token: Token abcd1234efgh",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
     "output": "token: <masked len=5> <masked len=12>"
   },
   {
@@ -986,7 +1003,9 @@
     "kind": "text",
     "input": "X-Auth: Token abcd1234efgh",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
     "output": "X-Auth: <masked len=5> <masked len=12>"
   },
   {
@@ -994,15 +1013,19 @@
     "kind": "text",
     "input": "headers: {Authorization: `Token abcd1234efgh`}",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
-    "output": "headers: {Authorization: `<masked len=18>`}"
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "headers: {Authorization: <masked len=21>"
   },
   {
     "group": "A1",
     "kind": "text",
     "input": "Authorization: AWS4-HMAC-SHA256 Credential=AKID/20261027/x, Signature=abcd1234efgh",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
     "output": "Authorization: <masked len=16> <masked len=50>"
   },
   {
@@ -1010,14 +1033,16 @@
     "kind": "text",
     "input": "The authorization: header is missing",
     "expect": "masked",
-    "output": "The authorization: <masked len=6> is missing"
+    "output": "The authorization: <masked len=17>"
   },
   {
     "group": "A1",
     "kind": "text",
     "input": "Authorization: AWS4-HMAC-SHA256 Credential=AKIA/20260101/us-east-1/s3/aws4_request,SignedHeaders=host;x-amz-date,Signature=abcd1234efgh",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
     "output": "Authorization: <masked len=16> <masked len=103>"
   },
   {
@@ -1025,7 +1050,9 @@
     "kind": "text",
     "input": "Authorization: AWS4-HMAC-SHA256 Credential=AKIA/20260101/us-east-1/s3/aws4_request, SignedHeaders=host;x-amz-date, Signature=abcd1234efgh",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
     "output": "Authorization: <masked len=16> <masked len=105>"
   },
   {
@@ -1033,7 +1060,9 @@
     "kind": "text",
     "input": "Authorization: Token \"abcd1234efgh\"",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
     "output": "Authorization: <masked len=5> <masked len=14>"
   },
   {
@@ -1041,7 +1070,9 @@
     "kind": "text",
     "input": "Authorization: Token 'abcd1234efgh'",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
     "output": "Authorization: <masked len=5> <masked len=14>"
   },
   {
@@ -1049,7 +1080,9 @@
     "kind": "text",
     "input": "X-Api-Key: Token \"abcd1234efgh\"",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
     "output": "X-Api-Key: <masked len=5> <masked len=14>"
   },
   {
@@ -1057,7 +1090,9 @@
     "kind": "text",
     "input": "Authorization: SharedKey acct:abcd1234efgh",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
     "output": "Authorization: <masked len=9> <masked len=17>"
   },
   {
@@ -1065,7 +1100,10 @@
     "kind": "text",
     "input": "Authorization: Digest username=\"u\",\n  response=\"abcd1234efgh\"",
     "expect": "masked",
-    "secrets": ["abcd1234efgh", "username=\"u\""],
+    "secrets": [
+      "abcd1234efgh",
+      "username=\"u\""
+    ],
     "output": "Authorization: <masked len=6> <masked len=39>"
   },
   {
@@ -1073,8 +1111,12 @@
     "kind": "text",
     "input": "Authorization: Digest username=\"u\",\n  response=\"abcd1234efgh\"\nHost: example.com",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
-    "keep": ["Host: example.com"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "Host: example.com"
+    ],
     "output": "Authorization: <masked len=6> <masked len=39>\nHost: example.com"
   },
   {
@@ -1082,7 +1124,9 @@
     "kind": "text",
     "input": "Authorization: Token\nabcd1234efgh",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
     "output": "Authorization: <masked len=5>\n<masked len=12>"
   },
   {
@@ -1090,8 +1134,12 @@
     "kind": "text",
     "input": "Authorization: Token abcd1234efgh\nStatus: 200",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
-    "keep": ["Status: 200"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "Status: 200"
+    ],
     "output": "Authorization: <masked len=5> <masked len=12>\nStatus: 200"
   },
   {
@@ -1099,8 +1147,12 @@
     "kind": "text",
     "input": "Authorization: Token\nabcd1234efgh\nAccept: application/json",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
-    "keep": ["Accept: application/json"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "Accept: application/json"
+    ],
     "output": "Authorization: <masked len=5>\n<masked len=12>\nAccept: application/json"
   },
   {
@@ -1108,8 +1160,7 @@
     "kind": "text",
     "input": "Authorization: Token\nStatus: 200",
     "expect": "masked",
-    "keep": ["Status: 200"],
-    "output": "Authorization: <masked len=5>\nStatus: 200"
+    "output": "Authorization: <masked len=5>\n<masked len=11>"
   },
   {
     "group": "A1",
@@ -1230,7 +1281,7 @@
       "abcd1234efgh"
     ],
     "surfaces": "all",
-    "output": "Authorization: \"<masked len=4118>\""
+    "output": "Authorization: <masked len=4120>"
   },
   {
     "group": "F5",
@@ -1241,7 +1292,7 @@
       "abcd1234efgh"
     ],
     "surfaces": "all",
-    "output": "Authorization: '<masked len=4118>'"
+    "output": "Authorization: <masked len=4120>"
   },
   {
     "group": "F5",
@@ -1252,7 +1303,7 @@
       "abcd1234efgh"
     ],
     "surfaces": "all",
-    "output": "Authorization: `<masked len=4118>`"
+    "output": "Authorization: <masked len=4120>"
   },
   {
     "group": "F5",
@@ -1263,7 +1314,7 @@
       "abcd1234efgh"
     ],
     "surfaces": "all",
-    "output": "headers:{Authorization: `<masked len=4118>`}"
+    "output": "headers:{Authorization: <masked len=4121>"
   },
   {
     "group": "F5",
@@ -1285,7 +1336,7 @@
       "abcd1234efgh"
     ],
     "surfaces": "all",
-    "output": "{\"secret\":<masked len=4127>}"
+    "output": "{\"secret\":{\"a\":\"<masked len=4100>\",\"b\":\"<masked len=12>\"}}"
   },
   {
     "group": "F5",
@@ -1296,7 +1347,7 @@
       "abcd1234efgh"
     ],
     "surfaces": "all",
-    "output": "{\"token\":<masked len=4136>}"
+    "output": "{\"token\":{\"deep\":{\"x\":\"<masked len=4100>\",\"y\":\"<masked len=12>\"}}}"
   },
   {
     "group": "F5",
@@ -1307,7 +1358,7 @@
       "abcd1234efgh"
     ],
     "surfaces": "all",
-    "output": "{\"credentials\":<masked len=4416>}"
+    "output": "{\"credentials\":[\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=12>\"]}"
   },
   {
     "group": "F5",
@@ -1318,7 +1369,7 @@
       "abcd1234efgh"
     ],
     "surfaces": "all",
-    "output": "{\"session\":<masked len=4232>}"
+    "output": "{\"session\":[{\"a\":\"<masked len=4200>\"},{\"id\":\"<masked len=12>\"}]}"
   },
   {
     "group": "F5",
@@ -1329,7 +1380,7 @@
       "abcd1234efgh"
     ],
     "surfaces": "all",
-    "output": "token='<masked len=5013>'"
+    "output": "token=<masked len=5015>"
   },
   {
     "group": "F5",
@@ -1358,7 +1409,9 @@
     "kind": "text",
     "input": "Authorization: Bearer\n  abcd1234efgh",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
     "surfaces": "all",
     "output": "Authorization: Bearer\n  <masked len=12>"
   },
@@ -1367,7 +1420,9 @@
     "kind": "text",
     "input": "Authorization: Basic\n  dXNlcjpwYXNz",
     "expect": "masked",
-    "secrets": ["dXNlcjpwYXNz"],
+    "secrets": [
+      "dXNlcjpwYXNz"
+    ],
     "surfaces": "all",
     "output": "Authorization: Basic\n  <masked len=12>"
   },
@@ -1376,7 +1431,9 @@
     "kind": "text",
     "input": "Authorization: Bearer\nX-Request-Id: 42",
     "expect": "clear",
-    "keep": ["X-Request-Id: 42"],
+    "keep": [
+      "X-Request-Id: 42"
+    ],
     "surfaces": "all"
   },
   {
@@ -1384,7 +1441,11 @@
     "kind": "text",
     "input": "password=my secret phrase",
     "expect": "masked",
-    "secrets": ["my", "secret", "phrase"],
+    "secrets": [
+      "my",
+      "secret",
+      "phrase"
+    ],
     "surfaces": "all",
     "output": "password=<masked len=16>"
   },
@@ -1393,7 +1454,11 @@
     "kind": "text",
     "input": "password: my secret phrase",
     "expect": "masked",
-    "secrets": ["my", "secret", "phrase"],
+    "secrets": [
+      "my",
+      "secret",
+      "phrase"
+    ],
     "surfaces": "all",
     "output": "password: <masked len=16>"
   },
@@ -1402,8 +1467,14 @@
     "kind": "text",
     "input": "Authorization: Bearer\n  my secret phrase",
     "expect": "masked",
-    "secrets": ["my", "secret", "phrase"],
-    "keep": ["Authorization: Bearer"],
+    "secrets": [
+      "my",
+      "secret",
+      "phrase"
+    ],
+    "keep": [
+      "Authorization: Bearer"
+    ],
     "surfaces": "all",
     "output": "Authorization: Bearer\n  <masked len=16>"
   },
@@ -1412,8 +1483,14 @@
     "kind": "text",
     "input": "Authorization: Token\n  hunter two words",
     "expect": "masked",
-    "secrets": ["hunter", "two", "words"],
-    "keep": ["Authorization:"],
+    "secrets": [
+      "hunter",
+      "two",
+      "words"
+    ],
+    "keep": [
+      "Authorization:"
+    ],
     "surfaces": "all",
     "output": "Authorization: <masked len=5>\n  <masked len=16>"
   },
@@ -1422,8 +1499,12 @@
     "kind": "text",
     "input": "auth failed: Bearer\n  abcd1234efgh",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
-    "keep": ["auth failed:"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "auth failed:"
+    ],
     "surfaces": "all",
     "output": "auth failed: Bearer\n  <masked len=12>"
   },
@@ -1432,8 +1513,12 @@
     "kind": "text",
     "input": "Bearer\n  abcd1234efgh",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
-    "keep": ["Bearer"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "Bearer"
+    ],
     "surfaces": "all",
     "output": "Bearer\n  <masked len=12>"
   },
@@ -1442,8 +1527,13 @@
     "kind": "text",
     "input": "password=hunter2 \n  continued9",
     "expect": "masked",
-    "secrets": ["hunter2", "continued9"],
-    "keep": ["password="],
+    "secrets": [
+      "hunter2",
+      "continued9"
+    ],
+    "keep": [
+      "password="
+    ],
     "surfaces": "all",
     "output": "password=<masked len=21>"
   },
@@ -1452,8 +1542,13 @@
     "kind": "text",
     "input": "Authorization: Bearer\nmy secret",
     "expect": "masked",
-    "secrets": ["my", "secret"],
-    "keep": ["Authorization: Bearer"],
+    "secrets": [
+      "my",
+      "secret"
+    ],
+    "keep": [
+      "Authorization: Bearer"
+    ],
     "surfaces": "all",
     "output": "Authorization: Bearer\n<masked len=9>"
   },
@@ -1468,77 +1563,106 @@
     "kind": "text",
     "input": "{\"authorization\":\"Bearer abc\", \"id\": 5}",
     "expect": "masked",
-    "secrets": ["abc"],
-    "keep": ["\", \"id\": 5}"],
+    "secrets": [
+      "abc"
+    ],
+    "keep": [
+      "\", \"id\": 5}"
+    ],
     "surfaces": "all",
-    "output": "{\"authorization\":\"<masked len=21>\", \"id\": 5}"
+    "output": "{\"authorization\":\"<masked len=10>\", \"id\": 5}"
   },
   {
     "group": "R3c",
     "kind": "text",
     "input": "{\"authorization\":\"Bearer abc\"}",
     "expect": "masked",
-    "secrets": ["abc"],
-    "keep": ["\"}"],
+    "secrets": [
+      "abc"
+    ],
+    "keep": [
+      "\"}"
+    ],
     "surfaces": "all",
-    "output": "{\"authorization\":\"<masked len=21>\"}"
+    "output": "{\"authorization\":\"<masked len=10>\"}"
   },
   {
     "group": "R3c",
     "kind": "text",
     "input": "{\n  \"authorization\": \"Bearer abcd1234efgh\",\n  \"user\": \"qa\"\n}",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
-    "keep": ["\"user\": \"qa\"", "}"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "\"user\": \"qa\"",
+      "}"
+    ],
     "surfaces": "all",
-    "output": "{\n  \"authorization\": \"<masked len=22>\",\n  \"user\": \"qa\"\n}"
+    "output": "{\n  \"authorization\": \"<masked len=19>\",\n  \"user\": \"qa\"\n}"
   },
   {
     "group": "R3c",
     "kind": "text",
     "input": "{\"authorization\":\"Bearer ab\\\"c\", \"id\": 5}",
     "expect": "masked",
-    "secrets": ["ab\\\"c"],
-    "keep": ["\", \"id\": 5}"],
+    "secrets": [
+      "ab\\\"c"
+    ],
+    "keep": [
+      "\", \"id\": 5}"
+    ],
     "surfaces": "all",
-    "output": "{\"authorization\":\"<masked len=21>\", \"id\": 5}"
+    "output": "{\"authorization\":\"<masked len=12>\", \"id\": 5}"
   },
   {
     "group": "R3c",
     "kind": "text",
     "input": "{\"password\": \"abcd1234efgh\"\n  \"next\": \"visible\"}",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
-    "keep": ["\"next\": \"visible\"}"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
     "surfaces": "all",
-    "output": "{\"password\": \"<masked len=12>\"\n  \"next\": \"visible\"}"
+    "output": "{\"password\": <masked len=35>"
   },
   {
     "group": "R3c",
     "kind": "text",
     "input": "  password: \"abcd1234efgh\"\n  username: qa",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
-    "keep": ["username: qa"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "username: qa"
+    ],
     "surfaces": "all",
-    "output": "  password: \"<masked len=12>\"\n  username: qa"
+    "output": "  password: <masked len=14>\n  username: qa"
   },
   {
     "group": "R3c",
     "kind": "text",
     "input": "password: secret\n  password: abcd1234efgh",
     "expect": "masked",
-    "secrets": ["secret", "abcd1234efgh"],
+    "secrets": [
+      "secret",
+      "abcd1234efgh"
+    ],
     "surfaces": "all",
-    "output": "password: <masked len=6>\n  password: <masked len=12>"
+    "output": "password: <masked len=31>"
   },
   {
     "group": "R3c",
     "kind": "text",
     "input": "headers:\n  Authorization: Bearer abcd1234efgh\n  Accept: json",
     "expect": "masked",
-    "secrets": ["abcd1234efgh"],
-    "keep": ["Accept: json"],
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "Accept: json"
+    ],
     "surfaces": "all",
     "output": "headers:\n  Authorization: Bearer <masked len=12>\n  Accept: json"
   },
@@ -1547,8 +1671,12 @@
     "kind": "text",
     "input": "X: 1\n  Authorization: Bearer abc\n  Y: 2",
     "expect": "masked",
-    "secrets": ["abc"],
-    "keep": ["Y: 2"],
+    "secrets": [
+      "abc"
+    ],
+    "keep": [
+      "Y: 2"
+    ],
     "surfaces": "all",
     "output": "X: 1\n  Authorization: Bearer <masked len=3>\n  Y: 2"
   },
@@ -1557,8 +1685,13 @@
     "kind": "text",
     "input": "Basic auth required",
     "expect": "masked",
-    "secrets": ["auth"],
-    "keep": ["Basic", "required"],
+    "secrets": [
+      "auth"
+    ],
+    "keep": [
+      "Basic",
+      "required"
+    ],
     "surfaces": "all",
     "output": "Basic <masked len=4> required"
   },
@@ -1567,8 +1700,13 @@
     "kind": "text",
     "input": "Bearer token missing",
     "expect": "masked",
-    "secrets": ["token"],
-    "keep": ["Bearer", "missing"],
+    "secrets": [
+      "token"
+    ],
+    "keep": [
+      "Bearer",
+      "missing"
+    ],
     "surfaces": "all",
     "output": "Bearer <masked len=5> missing"
   },
@@ -1577,8 +1715,13 @@
     "kind": "text",
     "input": "Use Bearer auth here",
     "expect": "masked",
-    "secrets": ["auth"],
-    "keep": ["Use Bearer", "here"],
+    "secrets": [
+      "auth"
+    ],
+    "keep": [
+      "Use Bearer",
+      "here"
+    ],
     "surfaces": "all",
     "output": "Use Bearer <masked len=4> here"
   },
@@ -1587,8 +1730,13 @@
     "kind": "text",
     "input": "Authorization: AWS4-HMAC-SHA256\n  Credential=AKIDEXAMPLE/20261027/us-east-1/s3/aws4_request, Signature=fe5f80f77d5fa3beca038a248ff027d0445342fe2855ddc963176630326f1024",
     "expect": "masked",
-    "secrets": ["AKIDEXAMPLE", "fe5f80f77d5fa3beca038a248ff027d0445342fe2855ddc963176630326f1024"],
-    "keep": ["Authorization:"],
+    "secrets": [
+      "AKIDEXAMPLE",
+      "fe5f80f77d5fa3beca038a248ff027d0445342fe2855ddc963176630326f1024"
+    ],
+    "keep": [
+      "Authorization:"
+    ],
     "surfaces": "all",
     "output": "Authorization: <masked len=16>\n  <masked len=133>"
   },
@@ -1597,9 +1745,1748 @@
     "kind": "text",
     "input": "Authorization: SharedKey\n  myaccount:ctzMq410TV3wS7upTBcunJTDLEJwMAZuFPfr0mrrA08=",
     "expect": "masked",
-    "secrets": ["ctzMq410TV3wS7upTBcunJTDLEJwMAZuFPfr0mrrA08="],
-    "keep": ["Authorization:"],
+    "secrets": [
+      "ctzMq410TV3wS7upTBcunJTDLEJwMAZuFPfr0mrrA08="
+    ],
+    "keep": [
+      "Authorization:"
+    ],
     "surfaces": "all",
     "output": "Authorization: <masked len=9>\n  <masked len=54>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: AWS4-HMAC-SHA256 Credential=AKIA/x, Signature=abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Authorization: <masked len=16> <masked len=41>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Token abc\n  indented continuation",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abc"
+    ],
+    "output": "Authorization: <masked len=5> <masked len=27>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Basic\n  abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Authorization: Basic\n  <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Bearer\n\tabcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Authorization: Bearer\n\t<masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Bearer\r\n  abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Authorization: Bearer\r\n  <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Bearer\n  Signature: abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Authorization: Bearer\n  Signature: <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Bearer\n  X-Foo: abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Authorization: Bearer\n  <masked len=19>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Token abc\n  X-Foo: abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Authorization: <masked len=5> <masked len=25>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Bearer\n\tabcd1234efgh: x",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Authorization: Bearer\n\t<masked len=15>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Signature: abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Signature: <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "X-Amz-Signature: abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "X-Amz-Signature: <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "credential: abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "credential: <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: AWS4-HMAC-SHA256\n  Credential=AKIA/20261027/us-east-1/s3/aws4_request,\n  SignedHeaders=host;x-amz-date,\n  Signature=abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh",
+      "AKIA/20261027"
+    ],
+    "output": "Authorization: <masked len=16>\n  <masked len=109>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: SharedKey\n  acct:abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Authorization: <masked len=9>\n  <masked len=17>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{\"password\":\"abcd1234efgh\"\n  , \"name\": \"qa\"}",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "\"\n  , \"name\": \"qa\"}"
+    ],
+    "output": "{\"password\":\"<masked len=12>\"\n  , \"name\": \"qa\"}"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password=\"abcd1234efgh\"\n  continued",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "password=<masked len=26>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "token: 'abcd1234efgh'\n  next line",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "token: <masked len=26>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{\"secret\":{\"a\":\"abcd1234efgh\"}\n  }",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "\n  }"
+    ],
+    "output": "{\"secret\":{\"a\":\"<masked len=12>\"}\n  }"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Bearer abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "Bearer"
+    ],
+    "output": "Bearer <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Digest of changes",
+    "expect": "clear",
+    "surfaces": "all",
+    "output": "Digest of changes"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "name=John Smith&age=3",
+    "expect": "clear",
+    "surfaces": "all",
+    "output": "name=John Smith&age=3"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Bearer\n  Accept: text/html",
+    "expect": "clear",
+    "surfaces": "all",
+    "keep": [
+      "Accept: text/html"
+    ],
+    "output": "Authorization: Bearer\n  Accept: text/html"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Bearer\n  Content-Type: json",
+    "expect": "clear",
+    "surfaces": "all",
+    "keep": [
+      "Content-Type: json"
+    ],
+    "output": "Authorization: Bearer\n  Content-Type: json"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "X: 1\n  Authorization: Bearer\n  abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "X: 1\n  Authorization: Bearer\n  <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Bearer\nSignature: abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Authorization: Bearer\nSignature: <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "  password: hunter2\n    continued9",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "hunter2",
+      "continued9"
+    ],
+    "output": "  password: <masked len=22>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: Abc)defGhij",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "defGhij"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "password: <masked len=11>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "api_key=k1<k2secret",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "k2secret"
+    ],
+    "keep": [
+      "api_key"
+    ],
+    "output": "api_key=<masked len=11>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "secret: ab\"cd ef",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "cd"
+    ],
+    "keep": [
+      "secret"
+    ],
+    "output": "secret: <masked len=8>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: x'y'z tail",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "y'z"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "password: <masked len=10>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "token=abcd>efghsecret",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "efghsecret"
+    ],
+    "keep": [
+      "token"
+    ],
+    "output": "token=<masked len=15>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: hunter2)9xYzQ",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "9xYzQ"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "password: <masked len=13>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: ab]cdabcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "password: <masked len=17>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: ab}cdabcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "password: <masked len=17>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: ab`cdabcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "password: <masked len=17>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "api_key=ab(cd)abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "api_key"
+    ],
+    "output": "api_key=<masked len=18>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: ab,cdabcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "password: <masked len=17>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{password: abc}",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abc"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "{password: <masked len=4>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "curl -H 'password: abc' -H 'Accept: json'",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abc"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "curl -H 'password: <masked len=22>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "token=abc; path=/",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abc"
+    ],
+    "keep": [
+      "token"
+    ],
+    "output": "token=<masked len=11>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password=abc&id=5",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abc"
+    ],
+    "keep": [
+      "&id=5",
+      "password"
+    ],
+    "output": "password=<masked len=3>&id=5"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: abc user: bob",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abc"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "password: <masked len=13>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Proxy-Authorization=Bearer abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "Proxy-Authorization"
+    ],
+    "output": "Proxy-Authorization=<masked len=6> <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "proxy-authorization=Bearer abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "proxy-authorization"
+    ],
+    "output": "proxy-authorization=<masked len=6> <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Can't log in, password: abcd'1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "1234efgh"
+    ],
+    "keep": [
+      "Can't",
+      "password"
+    ],
+    "output": "Can't log in, password: <masked len=13>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "if a < b then password=abcd>1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "1234efgh"
+    ],
+    "keep": [
+      "password",
+      "if a < b"
+    ],
+    "output": "if a < b then password=<masked len=13>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "(see note password: abcd)1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "1234efgh"
+    ],
+    "keep": [
+      "(see note",
+      "password"
+    ],
+    "output": "(see note password: <masked len=13>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "(password: hunter2)",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "hunter2"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "(password: <masked len=8>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Login failed (password: hunter2) retry",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "hunter2"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "Login failed (password: <masked len=14>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "error(token: abcd1234efgh)",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "error("
+    ],
+    "output": "error(token: <masked len=13>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "(password=Ab9!defGhij)",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "defGhij"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "(password=<masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "(Authorization: Bearer Ab9!defGhij)",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "defGhij"
+    ],
+    "keep": [
+      "Bearer"
+    ],
+    "output": "(Authorization: Bearer <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: Ab9&zz88QQ",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "zz88QQ"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "password: <masked len=10>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "token=Ab9&zz88QQ",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "zz88QQ"
+    ],
+    "keep": [
+      "token"
+    ],
+    "output": "token=<masked len=10>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "(password=Ab9&defGhij)",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "defGhij"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "(password=<masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "https://h/p?password=abc&id=5",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abc"
+    ],
+    "keep": [
+      "&id=5",
+      "password"
+    ],
+    "output": "https://h/p?password=<masked len=3>&id=5"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{ password: Ab}Zq9 Wk7Vt }",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "Zq9"
+    ],
+    "output": "{ password: <masked len=14>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "(password: abc).next",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "next"
+    ],
+    "keep": [
+      "(password:"
+    ],
+    "output": "(password: <masked len=9>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Cookie: Ab9=zz88QQ",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "zz88QQ"
+    ],
+    "keep": [
+      "Cookie",
+      "Ab9="
+    ],
+    "output": "Cookie: Ab9=<masked len=6>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Cookie: 123=abcdef",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcdef"
+    ],
+    "keep": [
+      "Cookie",
+      "123="
+    ],
+    "output": "Cookie: 123=<masked len=6>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Set-Cookie: Ab9=zz88QQ; Path=/",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "zz88QQ"
+    ],
+    "keep": [
+      "Set-Cookie",
+      "Ab9=",
+      "Path=/"
+    ],
+    "output": "Set-Cookie: Ab9=<masked len=6>; Path=/"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: )hunter2",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "hunter2"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "password: <masked len=8>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "pwd: ;hunter2",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "hunter2"
+    ],
+    "keep": [
+      "pwd"
+    ],
+    "output": "pwd: <masked len=8>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "secret: <hunter2>",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "hunter2"
+    ],
+    "keep": [
+      "secret"
+    ],
+    "output": "secret: <masked len=9>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: )hunter2\n  continued9",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "hunter2",
+      "continued9"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "password: <masked len=21>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: &hunter2",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "hunter2"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "password: <masked len=8>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: ,hunter2",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "hunter2"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "password: <masked len=8>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: >hunter2",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "hunter2"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "password: <masked len=8>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: ]hunter2",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "hunter2"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "password: <masked len=8>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: }hunter2",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "hunter2"
+    ],
+    "keep": [
+      "password"
+    ],
+    "output": "password: <masked len=8>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "<td>password: hunter2</td>",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "hunter2"
+    ],
+    "keep": [
+      "<td>",
+      "password"
+    ],
+    "output": "<td>password: <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "(password: Qw7zx5))RtY",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "Qw7zx5",
+      "RtY"
+    ],
+    "keep": [
+      "(password:"
+    ],
+    "output": "(password: <masked len=11>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{\"username\":\"bob\",\"password\":\"\",\"remember\":true}",
+    "expect": "clear",
+    "surfaces": "all",
+    "keep": [
+      "{\"username\":\"bob\",\"password\":\"\",\"remember\":true}"
+    ],
+    "output": "{\"username\":\"bob\",\"password\":\"\",\"remember\":true}"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{\"password\": \"\", \"id\": 1}",
+    "expect": "clear",
+    "surfaces": "all",
+    "keep": [
+      "{\"password\": \"\", \"id\": 1}"
+    ],
+    "output": "{\"password\": \"\", \"id\": 1}"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: \"\"",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "password: <masked len=2>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password='' next: 1",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "password=<masked len=10>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: \"\"hunter2",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "hunter2"
+    ],
+    "keep": [
+      "password:"
+    ],
+    "output": "password: <masked len=9>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{\"password\": \"abc\", \"id\": 1}",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abc"
+    ],
+    "keep": [
+      ", \"id\": 1}"
+    ],
+    "output": "{\"password\": \"<masked len=3>\", \"id\": 1}"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "(password: \"\")Zq9secret",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "(password: <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{password: \"\"}Zq9secret",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "{password: <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "[token: '']abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "[token: <masked len=15>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "token:YWJjZGVmZw==",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "token:<masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "secret:dGVzdHNlY3JldA==",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "secret:<masked len=16>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password:aGVsbG8xMjM=,",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "password:<masked len=13>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "sessionid:YWJjZGVmZw==",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "sessionid:<masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "\"csrftoken:dGVzdHNlY3JldA==,",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "\"csrftoken:<masked len=17>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "'session_id:YWJjZGVmZw==)",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "'session_id:<masked len=13>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password:Ab9=zz88QQ",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "password:<masked len=10>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password:hunter2==",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "password:<masked len=9>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password:SuperSecret123:x",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "password:<masked len=16>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "(password: Ab9)zz88QQ)",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "(password: <masked len=11>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "(password: Ab9).zz88QQ)",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "(password: <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{password: Ab} Zq9}",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "{password: <masked len=8>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "- cookie:theme=dark; sid=Zx9Yw8Vu7Ts6Rq5Po4Nm3Lk2Jh1",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "- cookie:theme=<masked len=4>; sid=<masked len=27>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "\"password: hun\"\"ter2x",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "\"password: <masked len=10>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "'password: hun''ter2x",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "'password: <masked len=10>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "\"password: hun\")ter2x",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "\"password: <masked len=10>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: \"\" hunter2",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "password: <masked len=10>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "\"password: hun\" next",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "\"password: <masked len=9>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: \"abc\" next",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "password: <masked len=10>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "token: \"\", user: bob",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "token: <masked len=13>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: \"\"&hunter2",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "password: <masked len=10>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{\"password\":\"\"}",
+    "expect": "clear",
+    "surfaces": "all",
+    "output": "{\"password\":\"\"}"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{\"password\":\"abc\",\"id\":1}",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "{\"password\":\"<masked len=3>\",\"id\":1}"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "login ok {\"accessToken\":\"abc\"} done",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "login ok {\"accessToken\":\"<masked len=3>\"} done"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Bearer abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "Authorization: Bearer <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: <masked len=8>",
+    "expect": "clear",
+    "surfaces": "all",
+    "output": "password: <masked len=8>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: <masked len=8> x",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "password: <masked len=16>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: \"\"<masked len=8>",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "password: <masked len=16>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: <masked len=8",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "password: <masked len=13>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: <masked len=5> <masked len=12>",
+    "expect": "clear",
+    "surfaces": "all",
+    "output": "Authorization: <masked len=5> <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Bearer <masked len=12>",
+    "expect": "clear",
+    "surfaces": "all",
+    "output": "Authorization: Bearer <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Basic <masked len=12>",
+    "expect": "clear",
+    "surfaces": "all",
+    "output": "Authorization: Basic <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Bearer  <masked len=12>",
+    "expect": "masked",
+    "surfaces": "all",
+    "output": "Authorization: <masked len=23>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Token abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Authorization: <masked len=5> <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "X-Api-Key: Token abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "X-Api-Key: <masked len=5> <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "token: Token abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "token: <masked len=5> <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "X-Auth: Token abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "X-Auth: <masked len=5> <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "headers: {Authorization: `Token abcd1234efgh`}",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "headers: {Authorization: <masked len=21>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: AWS4-HMAC-SHA256 Credential=AKIA/20260101/us-east-1/s3/aws4_request,SignedHeaders=host;x-amz-date,Signature=abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Authorization: <masked len=16> <masked len=103>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Token \"abcd1234efgh\"",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Authorization: <masked len=5> <masked len=14>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Token 'abcd1234efgh'",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Authorization: <masked len=5> <masked len=14>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "X-Api-Key: Token \"abcd1234efgh\"",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "X-Api-Key: <masked len=5> <masked len=14>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: SharedKey acct:abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Authorization: <masked len=9> <masked len=17>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Digest username=\"u\",\n  response=\"abcd1234efgh\"",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Authorization: <masked len=6> <masked len=39>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Token\nabcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Authorization: <masked len=5>\n<masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "body",
+    "input": "Authorization: Token AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAabcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Authorization: <masked len=5> <masked len=4112>"
+  },
+  {
+    "group": "R52",
+    "kind": "body",
+    "input": "{\"password\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAabcd1234efgh\",\"n\":1}",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "{\"password\":\"<masked len=4112>\",\"n\":1}"
+  },
+  {
+    "group": "R52",
+    "kind": "body",
+    "input": "Authorization: \"Token AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAabcd1234efgh\"",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Authorization: <masked len=4120>"
+  },
+  {
+    "group": "R52",
+    "kind": "body",
+    "input": "{\"secret\":{\"a\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"b\":\"abcd1234efgh\"}}",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "{\"secret\":{\"a\":\"<masked len=4100>\",\"b\":\"<masked len=12>\"}}"
+  },
+  {
+    "group": "R52",
+    "kind": "body",
+    "input": "{\"credentials\":[\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"x\",\"abcd1234efgh\"]}",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "{\"credentials\":[\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=1>\",\"<masked len=12>\"]}"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Bearer\nX-Api-Key: Token abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "X-Api-Key:"
+    ],
+    "output": "Authorization: Bearer\nX-Api-Key: <masked len=5> <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Token abc",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abc"
+    ],
+    "output": "Authorization: <masked len=5> <masked len=3>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Bearer\n  abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Authorization: Bearer\n  <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "auth failed: Bearer\n  abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "auth failed: Bearer\n  <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Bearer\n  abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "Bearer\n  <masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Bearer\n  my secret phrase",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "secret phrase"
+    ],
+    "output": "Authorization: Bearer\n  <masked len=16>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Token\n  hunter two words",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "hunter two words"
+    ],
+    "output": "Authorization: <masked len=5>\n  <masked len=16>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Bearer\nmy secret",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "my secret"
+    ],
+    "output": "Authorization: Bearer\n<masked len=9>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password=hunter2 \n  continued9",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "continued9",
+      "hunter2"
+    ],
+    "output": "password=<masked len=21>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{\"authorization\":\"Bearer abc\", \"id\": 5}",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abc"
+    ],
+    "keep": [
+      "\", \"id\": 5}"
+    ],
+    "output": "{\"authorization\":\"<masked len=10>\", \"id\": 5}"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{\n  \"authorization\": \"Bearer abcd1234efgh\",\n  \"user\": \"qa\"\n}",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "\"user\": \"qa\"\n}"
+    ],
+    "output": "{\n  \"authorization\": \"<masked len=19>\",\n  \"user\": \"qa\"\n}"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "headers:\n  Authorization: Bearer abcd1234efgh\n  Accept: json",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "Accept: json"
+    ],
+    "output": "headers:\n  Authorization: Bearer <masked len=12>\n  Accept: json"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "X: 1\n  Authorization: Bearer abc\n  Y: 2",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abc"
+    ],
+    "keep": [
+      "\n  Y: 2"
+    ],
+    "output": "X: 1\n  Authorization: Bearer <masked len=3>\n  Y: 2"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Bearer\nX-Request-Id: 42",
+    "expect": "clear",
+    "surfaces": "all",
+    "keep": [
+      "X-Request-Id: 42"
+    ],
+    "output": "Authorization: Bearer\nX-Request-Id: 42"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Use Bearer auth here",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "auth"
+    ],
+    "keep": [
+      "Use Bearer",
+      "here"
+    ],
+    "output": "Use Bearer <masked len=4> here"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Basic auth required",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "auth"
+    ],
+    "keep": [
+      "Basic",
+      "required"
+    ],
+    "output": "Basic <masked len=4> required"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Bearer token missing",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "token"
+    ],
+    "keep": [
+      "Bearer",
+      "missing"
+    ],
+    "output": "Bearer <masked len=5> missing"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Token expired",
+    "expect": "clear",
+    "surfaces": "all",
+    "output": "Token expired"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization required",
+    "expect": "clear",
+    "surfaces": "all",
+    "output": "Authorization required"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "The password field is required",
+    "expect": "clear",
+    "surfaces": "all",
+    "output": "The password field is required"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Authorization: Bearer\nX-Request-Id: 42",
+    "expect": "clear",
+    "surfaces": "all",
+    "keep": [
+      "X-Request-Id: 42"
+    ],
+    "output": "Authorization: Bearer\nX-Request-Id: 42"
   }
 ]

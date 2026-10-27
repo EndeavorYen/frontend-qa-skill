@@ -28,3 +28,4 @@ export const maskEvaluateResult = context.__frontendQaMaskEvaluateResult;
 export const maskText = context.__frontendQaMaskText;
 export const maskBody = context.__frontendQaMaskBody;
 export const isSensitiveKey = context.__frontendQaIsSensitiveKey;
+export const READABLE_HEADERS = context.__frontendQaReadableHeaders;

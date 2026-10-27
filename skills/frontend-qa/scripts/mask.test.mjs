@@ -4,6 +4,7 @@ import { performance } from 'node:perf_hooks';
 import { after, test } from 'node:test';
 import {
   MASK_SOURCE,
+  READABLE_HEADERS,
   isSensitiveKey,
   mask,
   maskBody,
@@ -31,7 +32,9 @@ for (const row of cases) {
 const maskSource = readFileSync(new URL('./mask.js', import.meta.url), 'utf8');
 const KEY_SAMPLE = 'kept';
 const TRUNCATE_AT = 2000;
-const GROUP_ORDER = ['old70', 'L', 'O', 'six', 'LH', 'F1', 'F2', 'V', 'E1', 'I1', 'K', 'KA', 'OBJ', 'CK', 'A1', 'F5', 'R3', 'R3c', 'P1'];
+const GROUP_ORDER = ['old70', 'L', 'O', 'six', 'LH', 'F1', 'F2', 'V', 'E1', 'I1', 'K', 'KA', 'OBJ', 'CK', 'A1', 'F5', 'R3', 'R3c', 'R52', 'P1'];
+const ALLOWED_DIFF = [114, 125, 128, 134, 145, 147, 148, 160, 162, 174, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 210, 211, 212, 213, 214, 215, 216];
+const baseline = JSON.parse(readFileSync(new URL('./mask.baseline.json', import.meta.url), 'utf8'));
 const groupStats = new Map();
 
 test('mask.mjs loads the mask.js installer', () => {
@@ -131,6 +134,9 @@ function assertClear(row, out) {
 function assertSurfaces(row) {
   if (row.surfaces !== 'all') return;
   const outputs = [maskText(row.input), maskConsole(row.input), maskBody(row.input)];
+  if (typeof row.output === 'string' && row.input.length <= TRUNCATE_AT) {
+    for (const got of outputs) assert.equal(got, row.output);
+  }
   for (const got of outputs) {
     for (const secret of row.secrets || []) assert.equal(got.includes(secret), false, secret);
     for (const keep of row.keep || []) assert.equal(got.includes(keep), true, keep);
@@ -210,6 +216,57 @@ test('maskResult keeps a Date as ISO and emits [Circular] for a repeated object'
   assert.deepEqual(maskResult(self), { a: 1, self: '[Circular]' });
   assert.deepEqual(maskResult({ when: new Date(0) }), { when: '1970-01-01T00:00:00.000Z' });
   assert.deepEqual(maskResult({ password: new Date(0) }), { password: '<masked len=24>' });
+});
+
+test('readable header list is exactly the closed list', () => {
+  assert.deepEqual(Array.from(READABLE_HEADERS), [
+    'accept',
+    'accept-*',
+    'content-*',
+    'user-agent',
+    'host',
+    'x-request-id',
+    'cache-control',
+    'connection',
+    'origin',
+    'referer',
+    'date',
+  ]);
+});
+
+test('non-R52 rows match the c908bc0 baseline except ALLOWED_DIFF', () => {
+  const allowed = new Set(ALLOWED_DIFF);
+  const diffs = [];
+  const unchanged = [];
+  let seenR52 = false;
+  for (let i = 0; i < cases.length; i++) {
+    if (cases[i].group === 'R52') {
+      seenR52 = true;
+      continue;
+    }
+    assert.equal(seenR52, false, 'R52 rows are appended after the baseline rows');
+    const old = baseline[i];
+    const same = maskText(cases[i].input) === old.maskText
+      && maskConsole(cases[i].input) === old.maskConsole
+      && maskBody(cases[i].input) === old.maskBody;
+    if (!same && !allowed.has(i)) diffs.push(i);
+    if (same && allowed.has(i)) unchanged.push(i);
+  }
+  assert.deepEqual(diffs, []);
+  assert.deepEqual(unchanged, []);
+  assert.equal(baseline.length, cases.filter((row) => row.group !== 'R52').length);
+});
+
+test('maskText, maskConsole, and maskBody are idempotent on every row', () => {
+  let n = 0;
+  for (const row of cases) {
+    for (const fn of [maskText, maskConsole, maskBody]) {
+      const once = fn(row.input);
+      assert.equal(fn(once), once);
+    }
+    n += 1;
+  }
+  console.log(`idempotence ${n}`);
 });
 
 test('maskResult and maskEvaluateResult share cycle and Date handling', () => {
