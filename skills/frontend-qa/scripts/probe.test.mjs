@@ -402,7 +402,7 @@ describe('secret masking', () => {
     assert.equal(mask('note', jwt), `<masked len=${jwt.length}>`);
     assert.equal(mask('note', hex), '<masked len=40>');
 
-    assert.deepEqual(maskResult({
+    assert.equal(JSON.stringify(maskResult({
       inside: 'kept',
       author: 'Alice',
       sidebar: 'open',
@@ -416,7 +416,7 @@ describe('secret masking', () => {
       Authorization: 'abc',
       note: jwt,
       digest: hex,
-    }), {
+    })), JSON.stringify({
       inside: 'kept',
       author: 'Alice',
       sidebar: 'open',
@@ -430,6 +430,6 @@ describe('secret masking', () => {
       Authorization: '<masked len=3>',
       note: `<masked len=${jwt.length}>`,
       digest: '<masked len=40>',
-    });
+    }));
   });
 });
