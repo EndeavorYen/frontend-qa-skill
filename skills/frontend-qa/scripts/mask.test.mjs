@@ -31,6 +31,7 @@ for (const row of cases) {
 }
 const maskSource = readFileSync(new URL('./mask.js', import.meta.url), 'utf8');
 const KEY_SAMPLE = 'kept';
+const WALKER_SECRET = 'abcd1234efgh';
 const TRUNCATE_AT = 2000;
 const GROUP_ORDER = ['old70', 'L', 'O', 'six', 'LH', 'F1', 'F2', 'V', 'E1', 'I1', 'K', 'KA', 'OBJ', 'CK', 'A1', 'F5', 'R3', 'R3c', 'R52', 'P1'];
 const ALLOWED_DIFF = [174, 216];
@@ -255,6 +256,170 @@ test('maskResult and maskEvaluateResult share cycle and Date handling', () => {
   );
 });
 
+function walkerInputs() {
+  const cycle = { n: 'x' };
+  cycle.self = cycle;
+  const cycleArray = [1];
+  cycleArray.push(cycleArray);
+  const shared = { v: 1 };
+  const sharedTwice = { a: shared, b: shared };
+  const sharedMany = { v: 1 };
+  const sharedThree = [sharedMany, [sharedMany], { k: sharedMany }];
+  const nested = {};
+  nested.a = { b: nested };
+  return [
+    ['cycle object', cycle],
+    ['cycle array', cycleArray],
+    ['shared object', sharedTwice],
+    ['shared three paths', sharedThree],
+    ['nested cycle', nested],
+    ['date epoch', new Date(0)],
+    ['date invalid', new Date(NaN)],
+    ['date invalid nested', { d: [new Date(NaN)] }],
+    ['password date', { password: new Date(0) }],
+    ['password invalid date', { password: new Date(NaN) }],
+    ['password leaves', { password: { a: WALKER_SECRET, n: 5, ok: true } }],
+    ['auth note', { note: `Authorization: Token ${WALKER_SECRET}` }],
+    ['bearer array', [`Bearer ${WALKER_SECRET}`]],
+  ];
+}
+
+test('walker CASE outputs match the maskResult and maskEvaluateResult rows', () => {
+  let n = 0;
+  function expect(actual, expected) {
+    n += 1;
+    assert.deepEqual(actual, expected);
+  }
+  const inputs = new Map(walkerInputs());
+  expect(maskResult(inputs.get('cycle object')), { n: 'x', self: '[Circular]' });
+  expect(maskResult(inputs.get('cycle array')), [1, '[Circular]']);
+  expect(maskResult(inputs.get('shared object')), { a: { v: 1 }, b: { v: 1 } });
+  expect(maskResult(inputs.get('shared three paths')), [{ v: 1 }, [{ v: 1 }], { k: { v: 1 } }]);
+  expect(maskResult(inputs.get('nested cycle')), { a: { b: '[Circular]' } });
+  expect(maskResult(inputs.get('date epoch')), '1970-01-01T00:00:00.000Z');
+  expect(maskResult(inputs.get('date invalid')), 'Invalid Date');
+  expect(maskResult(inputs.get('date invalid nested')), { d: ['Invalid Date'] });
+  expect(maskResult(inputs.get('password date')), { password: '<masked len=24>' });
+  expect(maskResult(inputs.get('password invalid date')), { password: '<masked len=12>' });
+  expect(maskResult(inputs.get('password leaves')), {
+    password: { a: '<masked len=12>', n: '<masked len=1>', ok: '<masked len=4>' },
+  });
+  const note = JSON.stringify(maskResult(inputs.get('auth note')));
+  const bearer = JSON.stringify(maskResult(inputs.get('bearer array')));
+  n += 1;
+  assert.equal(note.includes(WALKER_SECRET), false, note);
+  n += 1;
+  assert.equal(bearer.includes(WALKER_SECRET), false, bearer);
+  expect(maskEvaluateResult(null), null);
+  expect(maskEvaluateResult({ type: 'undefined' }), undefined);
+  expect(maskEvaluateResult({ type: 'object', value: { token: WALKER_SECRET, d: new Date(0) } }), {
+    token: '<masked len=12>',
+    d: '1970-01-01T00:00:00.000Z',
+  });
+  expect(maskEvaluateResult({ value: inputs.get('cycle object') }), { n: 'x', self: '[Circular]' });
+  assert.equal(n, 17);
+  console.log(`walker cases ${n}`);
+});
+
+test('walker CASE inputs are unchanged', () => {
+  const cycle = { n: 'x' };
+  cycle.self = cycle;
+  maskResult(cycle);
+  assert.equal(cycle.self, cycle);
+  assert.equal(cycle.n, 'x');
+
+  const cycleArray = [1];
+  cycleArray.push(cycleArray);
+  maskResult(cycleArray);
+  assert.equal(cycleArray[1], cycleArray);
+  assert.equal(cycleArray[0], 1);
+  assert.equal(cycleArray.length, 2);
+
+  const shared = { v: 1 };
+  const sharedTwice = { a: shared, b: shared };
+  const sharedClone = structuredClone(sharedTwice);
+  maskResult(sharedTwice);
+  assert.deepEqual(sharedTwice, sharedClone);
+  assert.equal(sharedTwice.a, shared);
+  assert.equal(sharedTwice.b, shared);
+
+  const sharedMany = { v: 1 };
+  const sharedThree = [sharedMany, [sharedMany], { k: sharedMany }];
+  const threeClone = structuredClone(sharedThree);
+  maskResult(sharedThree);
+  assert.deepEqual(sharedThree, threeClone);
+  assert.equal(sharedThree[0], sharedMany);
+  assert.equal(sharedThree[1][0], sharedMany);
+  assert.equal(sharedThree[2].k, sharedMany);
+
+  const nested = {};
+  nested.a = { b: nested };
+  maskResult(nested);
+  assert.equal(nested.a.b, nested);
+
+  const epoch = new Date(0);
+  const epochClone = structuredClone(epoch);
+  maskResult(epoch);
+  assert.deepEqual(epoch, epochClone);
+
+  const invalid = new Date(NaN);
+  maskResult(invalid);
+  assert.equal(Number.isNaN(invalid.getTime()), true);
+
+  const nestedInvalid = new Date(NaN);
+  const nestedInvalidRow = { d: [nestedInvalid] };
+  maskResult(nestedInvalidRow);
+  assert.equal(nestedInvalidRow.d[0], nestedInvalid);
+  assert.equal(Number.isNaN(nestedInvalidRow.d[0].getTime()), true);
+
+  const passwordDate = new Date(0);
+  const passwordRow = { password: passwordDate };
+  const passwordClone = structuredClone(passwordRow);
+  maskResult(passwordRow);
+  assert.deepEqual(passwordRow, passwordClone);
+  assert.equal(passwordRow.password, passwordDate);
+
+  const passwordInvalid = new Date(NaN);
+  const passwordInvalidRow = { password: passwordInvalid };
+  maskResult(passwordInvalidRow);
+  assert.equal(passwordInvalidRow.password, passwordInvalid);
+  assert.equal(Number.isNaN(passwordInvalidRow.password.getTime()), true);
+
+  const leaves = { password: { a: WALKER_SECRET, n: 5, ok: true } };
+  const leavesClone = structuredClone(leaves);
+  maskResult(leaves);
+  assert.deepEqual(leaves, leavesClone);
+
+  const note = { note: `Authorization: Token ${WALKER_SECRET}` };
+  const noteClone = structuredClone(note);
+  maskResult(note);
+  assert.deepEqual(note, noteClone);
+
+  const bearer = [`Bearer ${WALKER_SECRET}`];
+  const bearerClone = structuredClone(bearer);
+  maskResult(bearer);
+  assert.deepEqual(bearer, bearerClone);
+
+  const remote = { type: 'object', value: { token: WALKER_SECRET, d: new Date(0) } };
+  const remoteClone = structuredClone(remote);
+  maskEvaluateResult(remote);
+  assert.deepEqual(remote, remoteClone);
+  const undefinedRemote = { type: 'undefined' };
+  const undefinedClone = structuredClone(undefinedRemote);
+  assert.equal(maskEvaluateResult(undefinedRemote), undefined);
+  assert.deepEqual(undefinedRemote, undefinedClone);
+  assert.equal(maskEvaluateResult(null), null);
+});
+
+test('walker CASE outputs are idempotent', () => {
+  const rows = walkerInputs();
+  for (const [name, input] of rows) {
+    const once = maskResult(input);
+    assert.deepEqual(maskResult(once), once, name);
+  }
+  console.log(`walker idempotence ${rows.length}`);
+});
+
 test('non-R52 rows match the c908bc0 baseline except ALLOWED_DIFF', () => {
   const allowed = new Set(ALLOWED_DIFF);
   const diffs = [];
@@ -328,6 +493,37 @@ test('P1 maskConsole and maskBody stay under 50ms at 20k chars', () => {
     if (err) errors.push(err);
   }
   if (errors.length) throw errors[0];
+});
+
+test('P1 walker stays under 50ms for a 20k shared array and a 1000-deep object', () => {
+  const shared = { v: 1 };
+  const wide = new Array(20000);
+  for (let i = 0; i < wide.length; i += 1) wide[i] = shared;
+  let deep = { leaf: 1 };
+  for (let i = 0; i < 1000; i += 1) deep = { n: deep };
+  const wideOut = maskResult(wide);
+  assert.equal(wideOut.length, 20000);
+  assert.equal(wideOut.includes('[Circular]'), false);
+  assert.deepEqual(wideOut[0], { v: 1 });
+  assert.deepEqual(wideOut[19999], { v: 1 });
+  let cursor = maskResult(deep);
+  for (let i = 0; i < 1000; i += 1) cursor = cursor.n;
+  assert.deepEqual(cursor, { leaf: 1 });
+  const wideSamples = [];
+  const deepSamples = [];
+  for (let run = 0; run < 5; run += 1) {
+    const wideStart = performance.now();
+    maskResult(wide);
+    wideSamples.push(performance.now() - wideStart);
+    const deepStart = performance.now();
+    maskResult(deep);
+    deepSamples.push(performance.now() - deepStart);
+  }
+  const wideMs = medianMs(wideSamples);
+  const deepMs = medianMs(deepSamples);
+  console.log(`P1 walker wide median ${wideMs.toFixed(3)} deep median ${deepMs.toFixed(3)}`);
+  assert.ok(wideMs < 50, `wide ${wideMs}`);
+  assert.ok(deepMs < 50, `deep ${deepMs}`);
 });
 
 after(() => {

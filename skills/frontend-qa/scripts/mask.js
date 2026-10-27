@@ -592,17 +592,40 @@ function isDate(value) {
   return Object.prototype.toString.call(value) === '[object Date]';
 }
 const INVALID_DATE = 'Invalid Date';
+const EXACT_MARKER = /^<masked len=\d+>$/;
+// One key-sensitivity map per top-level walk. Cleared when that walk returns.
+let walkCache = null;
 function dateText(value) {
   if (Number.isNaN(value.getTime())) return INVALID_DATE;
   return value.toISOString();
 }
+function cachedSensitive(keyText) {
+  const known = walkCache.get(keyText);
+  if (known !== undefined) return known;
+  const sensitive = isSensitiveKey(keyText);
+  walkCache.set(keyText, sensitive);
+  return sensitive;
+}
 function maskResult(value, key, hidden, seen) {
+  if (walkCache !== null) return maskWalk(value, key, hidden, seen);
+  walkCache = new Map();
+  try {
+    return maskWalk(value, key, hidden, seen);
+  } finally {
+    walkCache = null;
+  }
+}
+function maskWalk(value, key, hidden, seen) {
   const keyText = key == null ? '' : String(key);
-  const hide = hidden === true || isSensitiveKey(keyText);
+  const hide = hidden === true || cachedSensitive(keyText);
   if (value == null) return value;
   const tag = typeof value;
   if (tag === 'number' || tag === 'boolean') return hide ? marker(String(value)) : value;
-  if (tag === 'string') return hide ? marker(value) : mask(keyText, value);
+  // A finished marker keeps its original length. Remeasuring it would change a second walk.
+  if (tag === 'string') {
+    if (EXACT_MARKER.test(value)) return value;
+    return hide ? marker(value) : mask(keyText, value);
+  }
   if (tag !== 'object') return hide ? marker(String(value)) : mask(keyText, String(value));
   if (isDate(value)) {
     const iso = dateText(value);
@@ -612,10 +635,10 @@ function maskResult(value, key, hidden, seen) {
   const nextSeen = seen || new Set();
   nextSeen.add(value);
   let out;
-  if (Array.isArray(value)) out = value.map((item) => maskResult(item, keyText, hide, nextSeen));
+  if (Array.isArray(value)) out = value.map((item) => maskWalk(item, keyText, hide, nextSeen));
   else {
     out = new Object();
-    for (const entry of Object.entries(value)) out[entry[0]] = maskResult(entry[1], entry[0], hide, nextSeen);
+    for (const entry of Object.entries(value)) out[entry[0]] = maskWalk(entry[1], entry[0], hide, nextSeen);
   }
   nextSeen.delete(value);
   return out;

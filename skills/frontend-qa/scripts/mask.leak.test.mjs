@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { performance } from 'node:perf_hooks';
 import { test } from 'node:test';
-import { mask, maskBody, maskConsole, maskText } from './mask.mjs';
+import { mask, maskBody, maskConsole, maskResult, maskText } from './mask.mjs';
 
 const SECRET = 'abcd1234efgh';
 const LETTER_SECRET = 'mysecretphrase';
@@ -99,4 +99,28 @@ test('planted secret is absent for every sensitive key form, length, and positio
   assert.equal(count, FORMS.length * LENGTHS.length * POSITIONS.length);
   assert.ok(ms < 2000, `property ${ms}`);
   console.log(`property cases ${count} ${ms.toFixed(3)}ms`);
+});
+
+function nest(depth, leaf) {
+  let node = leaf;
+  for (let level = 1; level < depth; level += 1) node = { child: node };
+  return node;
+}
+
+test('secret at depth 1..5 is absent under a sensitive key, in an array, behind a shared object, and in an auth leaf', () => {
+  let n = 0;
+  function hidden(value, label) {
+    n += 1;
+    const out = JSON.stringify(maskResult(value));
+    assert.equal(out.includes(SECRET), false, `${label} ${out}`);
+  }
+  for (let depth = 1; depth <= 5; depth += 1) {
+    hidden({ password: nest(depth, SECRET) }, `sensitive depth ${depth}`);
+    hidden({ password: nest(depth, [SECRET]) }, `array depth ${depth}`);
+    const shared = { v: SECRET };
+    hidden({ password: nest(depth, { left: shared, right: shared }) }, `shared depth ${depth}`);
+    hidden(nest(depth, { note: `Authorization: Token ${SECRET}` }), `leaf depth ${depth}`);
+  }
+  assert.equal(n, 20);
+  console.log(`walker property ${n}`);
 });
