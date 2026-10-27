@@ -301,5 +301,67 @@
     "input": "aB3dE5fG7hJ9kL1mN2pQ",
     "kind": "value",
     "expect": "masked"
+  },
+  {
+    "input": "aB3dE5fG7h/J9kL1mN3pQ5r",
+    "kind": "value",
+    "expect": "masked"
+  },
+  {
+    "input": "session token aB3dE5fG7h/J9kL1mN3pQ5r rejected",
+    "kind": "console",
+    "expect": "masked",
+    "output": "session token <masked len=23> rejected"
+  },
+  {
+    "input": "k3j9f8a2m1q7z0x5c4v6b2n8l1",
+    "kind": "value",
+    "expect": "masked"
+  },
+  {
+    "input": "session k3j9f8a2m1q7z0x5c4v6b2n8l1 rejected",
+    "kind": "console",
+    "expect": "masked",
+    "output": "session <masked len=26> rejected"
+  },
+  {
+    "input": "A3F9K2M8Q1Z7X4C6V5B0N9",
+    "kind": "value",
+    "expect": "masked"
+  },
+  {
+    "input": "token A3F9K2M8Q1Z7X4C6V5B0N9 seen",
+    "kind": "console",
+    "expect": "masked",
+    "output": "token <masked len=22> seen"
+  },
+  {
+    "input": "aB3dE5fG7h_J9kL1mN3pQ5rS7",
+    "kind": "value",
+    "expect": "masked"
+  },
+  {
+    "input": "blob aB3dE5fG7h_J9kL1mN3pQ5rS7 end",
+    "kind": "console",
+    "expect": "masked",
+    "output": "blob <masked len=25> end"
+  },
+  {
+    "input": "{\"accessToken\":\"abc123secretvalue\"}",
+    "kind": "console",
+    "expect": "masked",
+    "output": "{\"accessToken\":\"<masked len=17>\"}"
+  },
+  {
+    "input": "auth body {\"accessToken\":\"abc123secretvalue\"} end",
+    "kind": "console",
+    "expect": "masked",
+    "output": "auth body {\"accessToken\":\"<masked len=17>\"} end"
+  },
+  {
+    "input": "ids [\"k3j9f8a2m1q7z0x5c4v6b2n8l1\"] tail",
+    "kind": "console",
+    "expect": "masked",
+    "output": "ids [\"<masked len=26>\"] tail"
   }
 ]

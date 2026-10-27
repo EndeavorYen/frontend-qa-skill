@@ -17,11 +17,19 @@
 //    Each capital in a hump is followed by at least two lowercase letters. A
 //    final hump may be a capital plus 1-3 digits (OrderFormContainerV2) or 1-3
 //    digits. Word, SKU, host, and every member dot-part must also be not opaque.
-// 6. A token of at least 20 characters from [A-Za-z0-9+/=_-] -> mask; otherwise keep.
+//    A host is localhost, an IPv4 address, or a name with at least one dot.
+//    A word chunk is letters only (camel, kebab, or snake), plus that same short
+//    digit suffix. A digit between letters is not a word.
+// 6. A whole run of at least 20 characters from [A-Za-z0-9+/=_-] that is not a
+//    release class -> mask the whole run. Do not split it on /, _, or - to release
+//    the pieces. Otherwise keep.
+// Console first tries JSON.parse on the whole line, then on an object or array
+// embedded in the line. On success, mask each value with the key and value rules
+// and print JSON again. If parsing fails, use the tokenizer above.
 // Segment rule: every path segment must be a name, number, UUID, bundle, or
-// file:line:col, otherwise the whole token is masked. A name is a lowercase word,
-// an identifier, or camel/kebab/snake with one capital or separator per chunk.
-// One leading @ (npm scope) or one leading . (.vite, .pnpm) is allowed when the
+// file:line:col, otherwise the whole token is masked. A name is a lowercase word
+// (not a 20+ letter-and-digit run), an identifier, or a word-like camel/kebab/snake
+// chunk. One leading @ (npm scope) or one leading . (.vite, .pnpm) is allowed when the
 // rest passes the name rule. Opaque: length at least 16 with no -_. and both
 // cases plus a digit, a "=" pad, or hex of at least 20 characters that contains
 // a digit.
@@ -54,8 +62,11 @@
   const TRUNCATE_AT = 2000;
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const NUMBER = /^-?\d+(\.\d+)?$/;
-  const WORD = /^[A-Za-z][a-z0-9]*([A-Z_-][A-Za-z0-9]+)*$/;
-  const STRICT_NAME = /^[A-Za-z][a-z0-9]*([A-Z_-][a-z0-9]+)*$/;
+  // Letters-only chunks. A trailing 1-3 digits, or a capital plus 1-3 digits, is allowed.
+  // Digits between letters are not a word, so a session id is not released.
+  const WORD_LIKE = /^[A-Za-z][a-z]*(?:[A-Z_-][a-z]+)*(?:[A-Z]\d{1,3}|\d{1,3})?$/;
+  const WORD = WORD_LIKE;
+  const STRICT_NAME = WORD_LIKE;
   // Word humps, plus an optional V2-style suffix. Exempt from the opaque check.
   const IDENTIFIER = /^[A-Za-z][a-z]+(?:[A-Z][a-z]{2,})*(?:[A-Z]\d{1,3}|\d{1,3})?$/;
   // Whitespace plus fullwidth colon/semicolon/comma/parentheses and ideographic quotes.
@@ -140,7 +151,11 @@
   function isName(part) {
     if (isIdentifier(part)) return true;
     if (STRICT_NAME.test(part) && !partOpaque(part)) return true;
-    if (/^[a-z0-9]+$/.test(part) && !isOpaque(part)) return true;
+    // A 20+ letter-and-digit run is not a lowercase word. Do not release it as a name.
+    if (/^[a-z0-9]+$/.test(part) && !isOpaque(part)) {
+      if (part.length >= 20 && /[a-z]/.test(part) && /\d/.test(part)) return false;
+      return true;
+    }
     return false;
   }
 
@@ -235,20 +250,25 @@
     return path.indexOf('/') !== -1;
   }
 
-  function maskPathToken(text) {
+  function pathHead(text) {
     const hashAt = text.indexOf('#');
     const queryAt = text.indexOf('?');
     let cut = text.length;
     if (queryAt >= 0) cut = Math.min(cut, queryAt);
     if (hashAt >= 0) cut = Math.min(cut, hashAt);
-    if (!segmentsOk(text.slice(0, cut))) return marker(text);
+    return text.slice(0, cut);
+  }
+
+  function maskPathToken(text) {
+    if (!segmentsOk(pathHead(text))) return marker(text);
     return rewriteQueryAndHash(text);
   }
 
   function isHost(text) {
     if (/^localhost$/i.test(text)) return true;
     if (/^\d{1,3}(\.\d{1,3}){3}$/.test(text)) return true;
-    return /^[a-z0-9-]+(\.[a-z0-9-]+)*$/i.test(text);
+    // A single label is not a host. A 20+ session id must not be released here.
+    return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(text);
   }
 
   function hostOk(text) {
@@ -280,6 +300,7 @@
     if (NUMBER.test(text) || isUuid(text) || isBundle(text) || isFileLine(text)) return true;
     if (isIdentifier(text)) return true;
     if (isSku(text) && !partOpaque(text)) return true;
+    // Judge the whole run. Do not split on _ or - and release the pieces.
     if (WORD.test(text) && !partOpaque(text)) return true;
     if (memberOk(text)) return true;
     if (hostOk(text)) return true;
@@ -292,6 +313,14 @@
     return match[1] + core.charAt(match[1].length) + marker(match[2]);
   }
 
+  // A 20+ run is kept only when the whole run is a release class (a valid path
+  // counts). Splitting on /, _, or - must not rescue the pieces.
+  function longRunReleased(text) {
+    if (released(text)) return true;
+    if (!isPlainPath(text)) return false;
+    return segmentsOk(pathHead(text));
+  }
+
   function maskCore(core) {
     const assigned = maskAssignment(core);
     if (assigned != null) return assigned;
@@ -299,10 +328,10 @@
     if (url != null) return url;
     if (core.charAt(0) === '?') return '?' + maskPairs(core.slice(1));
     if (core.charAt(0) === '#') return maskHash(core);
+    if (LONG_RUN.test(core) && !longRunReleased(core)) return marker(core);
     if (isPlainPath(core)) return maskPathToken(core);
     if (isJwt(core)) return marker(core);
     if (released(core)) return core;
-    if (LONG_RUN.test(core)) return marker(core);
     return core;
   }
 
@@ -419,9 +448,82 @@
     return maskControl(type, key, raw);
   }
 
+  function jsonStructure(text) {
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed !== null && typeof parsed === 'object') return parsed;
+    } catch {
+      // Not JSON. The caller falls through to the tokenizer.
+    }
+    return undefined;
+  }
+
+  function maskJsonValue(parsed, original) {
+    const masked = maskSecrets(parsed);
+    if (JSON.stringify(parsed) === JSON.stringify(masked)) return original;
+    return JSON.stringify(masked);
+  }
+
+  function balancedJsonEnd(text, start) {
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    for (let i = start; i < text.length; i++) {
+      const ch = text.charAt(i);
+      if (inString) {
+        if (escape) {
+          escape = false;
+          continue;
+        }
+        if (ch === '\\') {
+          escape = true;
+          continue;
+        }
+        if (ch === '"') inString = false;
+        continue;
+      }
+      if (ch === '"') {
+        inString = true;
+        continue;
+      }
+      if (ch === '{' || ch === '[') depth += 1;
+      else if (ch === '}' || ch === ']') {
+        depth -= 1;
+        if (depth === 0) return i + 1;
+        if (depth < 0) return -1;
+      }
+    }
+    return -1;
+  }
+
+  function maskConsoleBody(text) {
+    const whole = jsonStructure(text);
+    if (whole !== undefined) return maskJsonValue(whole, text);
+    let out = '';
+    let cursor = 0;
+    let found = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text.charAt(i);
+      if (ch !== '{' && ch !== '[') continue;
+      const end = balancedJsonEnd(text, i);
+      if (end < 0) continue;
+      const slice = text.slice(i, end);
+      const parsed = jsonStructure(slice);
+      if (parsed === undefined) continue;
+      if (i > cursor) out += maskText(text.slice(cursor, i));
+      out += maskJsonValue(parsed, slice);
+      found = true;
+      cursor = end;
+      i = end - 1;
+    }
+    if (!found) return maskText(text);
+    if (cursor < text.length) out += maskText(text.slice(cursor));
+    return out;
+  }
+
   function maskConsole(text) {
     const original = text == null ? '' : String(text);
-    return truncate(maskText(original), original.length);
+    return truncate(maskConsoleBody(original), original.length);
   }
 
   function maskConsoleArg(arg) {
