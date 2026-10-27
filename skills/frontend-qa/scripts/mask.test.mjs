@@ -29,6 +29,14 @@ function applyRow(row) {
   }
 }
 
+function assertOutput(row, out) {
+  if (typeof row.output === 'string') {
+    assert.equal(out, row.output);
+    return true;
+  }
+  return false;
+}
+
 function assertMasked(row, out) {
   if (row.kind === 'key') {
     assert.equal(out, `<masked len=${KEY_SAMPLE.length}>`);
@@ -83,6 +91,7 @@ for (const row of cases) {
   const preview = row.input.length > 48 ? `${row.input.slice(0, 45)}...` : row.input;
   test(`mask.mjs ${row.kind} ${row.expect}: ${JSON.stringify(preview)}`, () => {
     const out = applyRow(row);
+    if (assertOutput(row, out)) return;
     if (row.expect === 'masked') {
       assertMasked(row, out);
       return;

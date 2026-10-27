@@ -178,5 +178,93 @@
     "input": "log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log e3b0c44298fc1c149afbf4c8996fb92427ae41e4",
     "kind": "console",
     "expect": "clear"
+  },
+  {
+    "input": "ok QWxhZGRp/bjpvcGVuIHNlc2FtZQ12",
+    "kind": "value",
+    "expect": "masked",
+    "output": "ok <masked len=29>"
+  },
+  {
+    "input": "got QWxhZGRp/bjpvcGVu+IHNlc2FtZQ==",
+    "kind": "console",
+    "expect": "masked",
+    "output": "got <masked len=30>"
+  },
+  {
+    "input": "/api/x/QWxhZGRpbjpvcGVuIHNlc2FtZQ12",
+    "kind": "value",
+    "expect": "masked"
+  },
+  {
+    "input": "https://a.io/#access_token=ya29Abc123def456",
+    "kind": "console",
+    "expect": "masked",
+    "output": "https://a.io/#access_token=<masked len=16>"
+  },
+  {
+    "input": "https://a.io/#id_token=eyJhbGciOi.eyJzdWIi.sig",
+    "kind": "value",
+    "expect": "masked",
+    "output": "https://a.io/#id_token=<masked len=23>"
+  },
+  {
+    "input": "http://localhost:4173/x?token=abc123def",
+    "kind": "console",
+    "expect": "masked",
+    "output": "http://localhost:4173/x?token=<masked len=9>"
+  },
+  {
+    "input": "?code=4/0AbCdEf123GhIjK456LmNo",
+    "kind": "value",
+    "expect": "masked",
+    "output": "?code=<masked len=24>"
+  },
+  {
+    "input": "aGVsbG8gd29ybGQ/MTIzNDU2Nzg5MA",
+    "kind": "console",
+    "expect": "masked",
+    "output": "<masked len=30>"
+  },
+  {
+    "input": "token eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+    "kind": "console",
+    "expect": "masked",
+    "output": "token <masked len=84>"
+  },
+  {
+    "input": "3f2a9c1e7b4d6f8a0c2e4b6d8f1a3c5e7b9d0f2a",
+    "kind": "value",
+    "expect": "masked"
+  },
+  {
+    "input": "http://localhost:5173/src/components/OrderForm.tsx:42:13",
+    "kind": "console",
+    "expect": "clear"
+  },
+  {
+    "input": "at f (http://h:4173/assets/index-B7xQ2kLm9aZ3.js:1:2)",
+    "kind": "console",
+    "expect": "clear"
+  },
+  {
+    "input": "/orders/12345/edit-form",
+    "kind": "value",
+    "expect": "clear"
+  },
+  {
+    "input": "/orders/8c1f7a4e-2b3d-4c5e-9f60-1a2b3c4d5e6f",
+    "kind": "value",
+    "expect": "clear"
+  },
+  {
+    "input": "SKU-ABC12345XYZ",
+    "kind": "value",
+    "expect": "clear"
+  },
+  {
+    "input": "http://a.io/list?page=2&sort=created_at#top",
+    "kind": "console",
+    "expect": "clear"
   }
 ]

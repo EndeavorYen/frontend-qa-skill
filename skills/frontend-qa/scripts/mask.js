@@ -2,16 +2,26 @@
 // Keys: case-insensitive substring match on secret stems, after an allowlist
 // (author, inside, sidebar, consider, residual). "sid" matches only as a whole word.
 // Allowlisted words are removed before the stem scan, so authorName stays clear.
-// Values: JWTs whose segments are base64url and whose first segment starts with "eyJ",
-// and an opaque run of at least 20 characters from [A-Za-z0-9+/=_-] with both a letter
-// and a digit. UUIDs, whitespace, paths starting with "/", URLs, plain numbers, and
-// SKU-like ids (sku- / sku_) stay clear.
+// Values default to masked. A token is kept only when a release class matches.
+// Order, per value (console walks whitespace-separated tokens the same way):
+// 1. Sensitive key -> mask the whole value.
+// 2. "Bearer <v>", "<stem>=<v>", "<stem>: <v>" -> mask v.
+// 3. URL (^[a-z][a-z0-9+.-]*://, parsed with new URL) -> keep scheme, host, and port.
+//    Path uses the segment rule. Each query or fragment k=v masks v when k has a
+//    stem or v is opaque. A bare fragment #x uses the segment rule.
+// 4. Plain path (^/ or a/b) -> segment rule.
+// 5. Release classes below -> keep. JWT shape eyJ<b64>.<b64>.<b64> is masked
+//    before those classes. Word, SKU, host, and every member dot-part must also
+//    be not opaque.
+// 6. A token of at least 20 characters from [A-Za-z0-9+/=_-] -> mask; otherwise keep.
+// Segment rule: every path segment must be a name, number, UUID, bundle, or
+// file:line:col, otherwise the whole token is masked. A name is a lowercase word
+// or camel/kebab/snake with one capital or separator per chunk. Opaque: length
+// at least 16 with no -_. and both cases plus a digit, a "=" pad, or hex of at
+// least 20 characters that contains a digit.
 // Other strings stay intact up to 2000 characters. Longer ones keep the first 2000
 // and append "…<truncated len=N>", where N is the original length before masking.
 // Pass key "cookie" so every cookie value is masked and the name can be kept separately.
-// Console text masks "Bearer <token>", those JWTs, and standalone opaque runs.
-// URLs (including host:port and the path), path segments, and file names (including
-// hashed bundle names) are not opaque tokens. Dotted member names stay intact.
 (function installFrontendQaMask() {
   const BENIGN_WORDS = {
     author: true,
@@ -36,9 +46,15 @@
     'jwt',
   ];
   const TRUNCATE_AT = 2000;
-  const OPAQUE = /^[A-Za-z0-9+/=_-]{20,}$/;
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  const B64URL = /^[A-Za-z0-9_-]+$/;
+  const NUMBER = /^-?\d+(\.\d+)?$/;
+  const WORD = /^[A-Za-z][a-z0-9]*([A-Z_-][A-Za-z0-9]+)*$/;
+  const STRICT_NAME = /^[A-Za-z][a-z0-9]*([A-Z_-][a-z0-9]+)*$/;
+  const JWT = /^eyJ[\w-]+\.[\w-]+\.[\w-]+$/;
+  const BUNDLE = /^[\w.-]+-[A-Za-z0-9_]{6,24}\.(?:js|mjs|css|map)$/;
+  const FILE_LINE = /^[\w./-]+\.\w+(?::\d+){1,2}$/;
+  const LONG_RUN = /^[A-Za-z0-9+/=_-]{20,}$/;
+  const URL_SCHEME = /^[a-z][a-z0-9+.-]*:\/\//;
 
   // Separators are _ - . and camelCase / PascalCase boundaries.
   function keyWords(key) {
@@ -67,51 +83,272 @@
     return false;
   }
 
+  function marker(text) {
+    return '<masked len=' + text.length + '>';
+  }
+
+  function isOpaque(text) {
+    if (!text) return false;
+    if (text.indexOf('=') !== -1) return true;
+    if (/[-_.]/.test(text)) return false;
+    const hasUpper = /[A-Z]/.test(text);
+    const hasLower = /[a-z]/.test(text);
+    const hasDigit = /\d/.test(text);
+    if (text.length >= 16 && hasUpper && hasLower && hasDigit) return true;
+    if (text.length >= 20 && hasDigit && /[A-Fa-f]/.test(text) && /^[0-9A-Fa-f]+$/.test(text)) return true;
+    return false;
+  }
+
+  function partOpaque(text) {
+    const parts = String(text).split(/[-_]/);
+    for (let i = 0; i < parts.length; i++) {
+      if (isOpaque(parts[i])) return true;
+    }
+    return false;
+  }
+
   function isUuid(text) {
     return UUID.test(text);
   }
 
-  function isUrl(text) {
-    return /^https?:\/\//i.test(text);
+  function isJwt(text) {
+    return JWT.test(text);
   }
 
-  function isJwt(text) {
+  function isSku(text) {
+    return /^[A-Z]+[-_][A-Z0-9]+$/.test(text) || /^sku[-_][A-Za-z0-9_-]*$/i.test(text);
+  }
+
+  function isBundle(text) {
+    return BUNDLE.test(text);
+  }
+
+  function simpleSegmentOk(part) {
+    if (!part) return false;
+    if (isUuid(part) || NUMBER.test(part)) return true;
+    if (STRICT_NAME.test(part) && !partOpaque(part)) return true;
+    if (/^[a-z0-9]+$/.test(part) && !isOpaque(part)) return true;
+    return false;
+  }
+
+  function isFileName(text) {
+    if (isBundle(text)) return true;
+    if (text.indexOf('.') === -1) return false;
     const parts = text.split('.');
-    if (parts.length !== 3 || !parts[0].startsWith('eyJ')) return false;
     for (let i = 0; i < parts.length; i++) {
-      if (!B64URL.test(parts[i])) return false;
+      if (!simpleSegmentOk(parts[i])) return false;
     }
     return true;
   }
 
-  function isSkuLike(text) {
-    return /^sku[-_][A-Za-z0-9_-]*$/i.test(text);
+  function isFileLine(text) {
+    if (!FILE_LINE.test(text)) return false;
+    const name = text.replace(/(?::\d+){1,2}$/, '');
+    return isFileName(name);
   }
 
-  function isPathLike(text) {
-    return /^[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)+$/.test(text);
+  function segmentOk(seg) {
+    if (seg === '') return true;
+    if (isUuid(seg) || isBundle(seg) || isFileLine(seg) || NUMBER.test(seg)) return true;
+    if (isFileName(seg)) return true;
+    return simpleSegmentOk(seg);
   }
 
-  function isOpaqueToken(text) {
-    if (!OPAQUE.test(text)) return false;
-    if (!/[A-Za-z]/.test(text) || !/\d/.test(text)) return false;
-    if (isUuid(text) || text.charAt(0) === '/' || isUrl(text) || /^\d+$/.test(text)) return false;
-    if (isSkuLike(text)) return false;
+  function segmentsOk(pathname) {
+    const parts = String(pathname).split('/');
+    for (let i = 0; i < parts.length; i++) {
+      if (!segmentOk(parts[i])) return false;
+    }
     return true;
   }
 
-  function looksLikeCredential(text) {
-    if (/\s/.test(text) || isUuid(text) || text.charAt(0) === '/' || isUrl(text) || /^\d+$/.test(text)) return false;
-    if (isJwt(text) || isOpaqueToken(text)) return true;
+  function maskPairs(body) {
+    return body.split('&').map((pair) => {
+      const eq = pair.indexOf('=');
+      if (eq < 0) return pair;
+      const key = pair.slice(0, eq);
+      const value = pair.slice(eq + 1);
+      if (!value) return pair;
+      if (isSensitiveKey(key) || isOpaque(value) || isJwt(value)) return key + '=' + marker(value);
+      return pair;
+    }).join('&');
+  }
+
+  function maskHash(hashWithMark) {
+    const body = hashWithMark.slice(1);
+    if (body.indexOf('=') === -1) {
+      if (segmentsOk(body.charAt(0) === '/' ? body : '/' + body)) return hashWithMark;
+      return '#' + marker(body);
+    }
+    return '#' + maskPairs(body);
+  }
+
+  function rewriteQueryAndHash(raw) {
+    const hashAt = raw.indexOf('#');
+    const queryAt = raw.indexOf('?');
+    let out = raw;
+    if (queryAt >= 0 && (hashAt < 0 || queryAt < hashAt)) {
+      const qEnd = hashAt < 0 ? raw.length : hashAt;
+      out = raw.slice(0, queryAt + 1) + maskPairs(raw.slice(queryAt + 1, qEnd)) + raw.slice(qEnd);
+    }
+    const hashAt2 = out.indexOf('#');
+    if (hashAt2 >= 0) out = out.slice(0, hashAt2) + maskHash(out.slice(hashAt2));
+    return out;
+  }
+
+  function maskUrl(raw) {
+    if (!URL_SCHEME.test(raw)) return null;
+    let parsed;
+    try {
+      parsed = new URL(raw);
+    } catch {
+      return null;
+    }
+    if (!segmentsOk(parsed.pathname)) return marker(raw);
+    return rewriteQueryAndHash(raw);
+  }
+
+  function isPlainPath(text) {
+    if (URL_SCHEME.test(text)) return false;
+    const path = text.split(/[?#]/)[0];
+    return path.indexOf('/') !== -1;
+  }
+
+  function maskPathToken(text) {
+    const hashAt = text.indexOf('#');
+    const queryAt = text.indexOf('?');
+    let cut = text.length;
+    if (queryAt >= 0) cut = Math.min(cut, queryAt);
+    if (hashAt >= 0) cut = Math.min(cut, hashAt);
+    if (!segmentsOk(text.slice(0, cut))) return marker(text);
+    return rewriteQueryAndHash(text);
+  }
+
+  function isHost(text) {
+    if (/^localhost$/i.test(text)) return true;
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(text)) return true;
+    return /^[a-z0-9-]+(\.[a-z0-9-]+)*$/i.test(text);
+  }
+
+  function hostOk(text) {
+    if (!isHost(text)) return false;
+    const labels = text.split('.');
+    for (let i = 0; i < labels.length; i++) {
+      const bits = labels[i].split('-');
+      for (let j = 0; j < bits.length; j++) {
+        if (bits[j] && isOpaque(bits[j])) return false;
+      }
+    }
+    return true;
+  }
+
+  function isMember(text) {
+    return /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)+$/.test(text);
+  }
+
+  function memberOk(text) {
+    if (!isMember(text)) return false;
+    const parts = text.split('.');
+    for (let i = 0; i < parts.length; i++) {
+      if (!parts[i] || isOpaque(parts[i])) return false;
+    }
+    return true;
+  }
+
+  function released(text) {
+    if (NUMBER.test(text) || isUuid(text) || isBundle(text) || isFileLine(text)) return true;
+    if (isSku(text) && !partOpaque(text)) return true;
+    if (WORD.test(text) && !partOpaque(text)) return true;
+    if (memberOk(text)) return true;
+    if (hostOk(text)) return true;
     return false;
+  }
+
+  function maskAssignment(core) {
+    const match = /^([A-Za-z_][\w.-]*)[:=]([\s\S]+)$/.exec(core);
+    if (!match || !isSensitiveKey(match[1])) return null;
+    return match[1] + core.charAt(match[1].length) + marker(match[2]);
+  }
+
+  function maskCore(core) {
+    const assigned = maskAssignment(core);
+    if (assigned != null) return assigned;
+    const url = maskUrl(core);
+    if (url != null) return url;
+    if (core.charAt(0) === '?') return '?' + maskPairs(core.slice(1));
+    if (core.charAt(0) === '#') return maskHash(core);
+    if (isPlainPath(core)) return maskPathToken(core);
+    if (isJwt(core)) return marker(core);
+    if (released(core)) return core;
+    if (LONG_RUN.test(core)) return marker(core);
+    return core;
+  }
+
+  function splitEdge(token) {
+    const leadMatch = /^[([{'"]+/.exec(token);
+    const lead = leadMatch ? leadMatch[0] : '';
+    const rest = token.slice(lead.length);
+    const trailMatch = /[)\]}'",;.]+$/.exec(rest);
+    const trail = trailMatch ? trailMatch[0] : '';
+    const core = rest.slice(0, rest.length - trail.length);
+    return { lead: lead, core: core, trail: trail };
+  }
+
+  function maskToken(token) {
+    const edge = splitEdge(token);
+    if (!edge.core) return token;
+    return edge.lead + maskCore(edge.core) + edge.trail;
+  }
+
+  function maskWholeToken(token) {
+    const edge = splitEdge(token);
+    if (!edge.core) return marker(token);
+    return edge.lead + marker(edge.core) + edge.trail;
+  }
+
+  function isBearer(token) {
+    return /^bearer$/i.test(splitEdge(token).core);
+  }
+
+  function isStemPrefix(token) {
+    const core = splitEdge(token).core;
+    const match = /^(.*?)[:=]$/.exec(core);
+    if (!match) return false;
+    return isSensitiveKey(match[1]);
+  }
+
+  function previousToken(parts, index) {
+    for (let i = index - 1; i >= 0; i--) {
+      if (i % 2 === 0 && parts[i]) return parts[i];
+    }
+    return '';
+  }
+
+  function maskText(text) {
+    if (!/\s/.test(text)) return maskToken(text);
+    const parts = text.split(/(\s+)/);
+    for (let i = 0; i < parts.length; i++) {
+      if (i % 2 === 1 || parts[i] === '') continue;
+      const prev = previousToken(parts, i);
+      if (isBearer(prev) || (isStemPrefix(prev) && !isBearer(parts[i]))) {
+        parts[i] = maskWholeToken(parts[i]);
+        continue;
+      }
+      parts[i] = maskToken(parts[i]);
+    }
+    return parts.join('');
+  }
+
+  function truncate(out, originalLength) {
+    if (out.length > TRUNCATE_AT) return out.slice(0, TRUNCATE_AT) + '…<truncated len=' + originalLength + '>';
+    return out;
   }
 
   function mask(key, value) {
     const text = value == null ? '' : String(value);
     const keyText = key == null ? '' : String(key);
-    if (isSensitiveKey(keyText) || looksLikeCredential(text)) return '<masked len=' + text.length + '>';
-    if (text.length > TRUNCATE_AT) return text.slice(0, TRUNCATE_AT) + '…<truncated len=' + text.length + '>';
-    return text;
+    if (isSensitiveKey(keyText)) return marker(text);
+    return truncate(maskText(text), text.length);
   }
 
   function maskResult(value, key) {
@@ -132,8 +369,8 @@
     const keyText = key == null ? '' : String(key);
     if (value == null || typeof value === 'number' || typeof value === 'boolean') return value;
     if (typeof value === 'string') {
-      if (isSensitiveKey(keyText) || looksLikeCredential(value)) return '<masked len=' + value.length + '>';
-      return value;
+      if (isSensitiveKey(keyText)) return marker(value);
+      return maskText(value);
     }
     if (Array.isArray(value)) return value.map((item) => maskSecrets(item, keyText));
     if (typeof value === 'object') {
@@ -147,7 +384,7 @@
   function maskControl(type, key, value) {
     const text = value == null ? '' : String(value);
     const kind = String(type || '').toLowerCase();
-    if (kind === 'password' || kind === 'hidden') return '<masked len=' + text.length + '>';
+    if (kind === 'password' || kind === 'hidden') return marker(text);
     return mask(key, text);
   }
 
@@ -159,69 +396,9 @@
     return maskControl(type, key, raw);
   }
 
-  function enclosingSpan(whole, offset, length) {
-    let start = offset;
-    let end = offset + length;
-    while (start > 0 && !/\s/.test(whole.charAt(start - 1))) start -= 1;
-    while (end < whole.length && !/\s/.test(whole.charAt(end))) end += 1;
-    return whole.slice(start, end);
-  }
-
-  function isHashedFileTail(whole, offset, length) {
-    const after = whole.slice(offset + length);
-    return /^\.(?:js|mjs|cjs|jsx|ts|tsx|css|map|vue|html|htm|json|wasm|svg)(?::\d+)?(?=$|[\s:)\],;])/i.test(after);
-  }
-
-  // Keep URL / host:port / path segments and hashed bundle file names.
-  // Standalone tokens and values after a credential key or Bearer still mask.
-  function keepConsoleRun(whole, offset, token) {
-    if (isPathLike(token) || isSkuLike(token)) return true;
-    if (isHashedFileTail(whole, offset, token.length)) return true;
-    if (offset > 0 && whole.charAt(offset - 1) === '/') return true;
-    const span = enclosingSpan(whole, offset, token.length)
-      .replace(/^[('"[]+/, '')
-      .replace(/[)'"\],;]+$/g, '');
-    return /^https?:\/\//i.test(span);
-  }
-
-  function maskUrlQuery(url) {
-    const q = url.indexOf('?');
-    if (q < 0) return url;
-    const hash = url.indexOf('#', q);
-    const head = url.slice(0, q + 1);
-    const query = url.slice(q + 1, hash < 0 ? url.length : hash);
-    const tail = hash < 0 ? '' : url.slice(hash);
-    const masked = query.split('&').map((pair) => {
-      const eq = pair.indexOf('=');
-      if (eq < 0) return pair;
-      const key = pair.slice(0, eq);
-      const value = pair.slice(eq + 1);
-      if (!value) return pair;
-      if (isSensitiveKey(key) || isJwt(value) || isOpaqueToken(value)) {
-        return key + '=<masked len=' + value.length + '>';
-      }
-      return pair;
-    }).join('&');
-    return head + masked + tail;
-  }
-
   function maskConsole(text) {
     const original = text == null ? '' : String(text);
-    let out = original.replace(/\bBearer\s+[A-Za-z0-9+/=_.-]+/gi, (match) => {
-      const token = match.replace(/^Bearer\s+/i, '');
-      return 'Bearer <masked len=' + token.length + '>';
-    });
-    out = out.replace(/https?:\/\/[^\s)]+/gi, (url) => maskUrlQuery(url));
-    out = out.replace(/eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, (token, offset, whole) => {
-      if (!isJwt(token) || keepConsoleRun(whole, offset, token)) return token;
-      return '<masked len=' + token.length + '>';
-    });
-    out = out.replace(/[A-Za-z0-9+/=_-]{20,}/g, (token, offset, whole) => {
-      if (!isOpaqueToken(token) || keepConsoleRun(whole, offset, token)) return token;
-      return '<masked len=' + token.length + '>';
-    });
-    if (out.length > TRUNCATE_AT) return out.slice(0, TRUNCATE_AT) + '…<truncated len=' + original.length + '>';
-    return out;
+    return truncate(maskText(original), original.length);
   }
 
   function maskConsoleArg(arg) {

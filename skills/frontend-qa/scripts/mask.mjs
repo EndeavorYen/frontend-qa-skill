@@ -9,6 +9,8 @@ export const MASK_SOURCE = readFileSync(sourcePath, 'utf8');
 
 const context = {};
 context.globalThis = context;
+// The page provides URL. The Node sandbox does not.
+context.URL = URL;
 vm.createContext(context);
 vm.runInContext(MASK_SOURCE, context);
 
