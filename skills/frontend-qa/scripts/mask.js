@@ -1,29 +1,44 @@
 // Browser installer for evaluate_script. Secret values stay out of the tool result.
-// Sensitive keys and credential-shaped values become "<masked len=N>".
+// Keys: case-insensitive substring match on secret stems, after an allowlist
+// (author, inside, sidebar, consider, residual). "sid" matches only as a whole word.
+// Values: JWTs whose segments are base64url and whose first segment starts with "eyJ",
+// and an opaque run of at least 20 characters from [A-Za-z0-9+/=_-] with both a letter
+// and a digit. UUIDs, whitespace, paths starting with "/", URLs, and plain numbers stay clear.
 // Other strings stay intact up to 2000 characters. Longer ones keep the first 2000
 // and append "…<truncated len=N>", where N is the original length.
 // Pass key "cookie" so every cookie value is masked and the name can be kept separately.
+// Console text masks "Bearer <token>", those JWTs, and the same opaque runs.
+// Dotted member names, hostnames, and file names stay intact.
 (function installFrontendQaMask() {
-  const SENSITIVE_WORDS = {
-    pass: true,
-    password: true,
-    pwd: true,
-    secret: true,
-    token: true,
-    auth: true,
-    authorization: true,
-    session: true,
-    sid: true,
-    jwt: true,
-    bearer: true,
-    apikey: true,
-    csrf: true,
-    xsrf: true,
-    cookie: true,
+  const BENIGN_WORDS = {
+    author: true,
+    inside: true,
+    sidebar: true,
+    consider: true,
+    residual: true,
   };
+  const SECRET_STEMS = [
+    'sess',
+    'csrf',
+    'xsrf',
+    'passw',
+    'passwd',
+    'pwd',
+    'secret',
+    'token',
+    'bearer',
+    'apikey',
+    'api_key',
+    'auth',
+    'cookie',
+    'jwt',
+  ];
   const TRUNCATE_AT = 2000;
+  const OPAQUE = /^[A-Za-z0-9+/=_-]{20,}$/;
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const B64URL = /^[A-Za-z0-9_-]+$/;
 
-  // Whole words only: separators are _ - . and camelCase / PascalCase boundaries.
+  // Separators are _ - . and camelCase / PascalCase boundaries.
   function keyWords(key) {
     const raw = key == null ? '' : String(key);
     const spaced = raw
@@ -33,23 +48,49 @@
   }
 
   function isSensitiveKey(key) {
-    const words = keyWords(key);
-    for (let i = 0; i < words.length; i++) {
-      if (SENSITIVE_WORDS[words[i]]) return true;
-      if (words[i] === 'api' && words[i + 1] === 'key') return true;
+    const raw = key == null ? '' : String(key);
+    const lower = raw.toLowerCase();
+    const words = keyWords(raw);
+    if (BENIGN_WORDS[lower]) return false;
+    if (words.length > 0 && words.every((word) => BENIGN_WORDS[word])) return false;
+    if (words.some((word) => word === 'sid')) return true;
+    const collapsed = lower.replace(/[^a-z0-9]/g, '');
+    for (let i = 0; i < SECRET_STEMS.length; i++) {
+      const stem = SECRET_STEMS[i];
+      if (lower.includes(stem)) return true;
+      const folded = stem.replace(/[^a-z0-9]/g, '');
+      if (folded && collapsed.includes(folded)) return true;
     }
     return false;
   }
 
-  function looksLikeCredential(text) {
-    if (/[\s/?&]/.test(text)) return false;
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(text)) return false;
-    if (/^\d+$/.test(text)) return false;
-    if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(text)) {
-      return /[A-Za-z]/.test(text) || text.length >= 20;
+  function isUuid(text) {
+    return UUID.test(text);
+  }
+
+  function isUrl(text) {
+    return /^https?:\/\//i.test(text);
+  }
+
+  function isJwt(text) {
+    const parts = text.split('.');
+    if (parts.length !== 3 || !parts[0].startsWith('eyJ')) return false;
+    for (let i = 0; i < parts.length; i++) {
+      if (!B64URL.test(parts[i])) return false;
     }
-    if (text.length >= 32 && /^[A-Fa-f0-9]+$/.test(text)) return true;
-    if (text.length >= 32 && /^[A-Za-z0-9+_=-]+$/.test(text)) return true;
+    return true;
+  }
+
+  function isOpaqueToken(text) {
+    if (!OPAQUE.test(text)) return false;
+    if (!/[A-Za-z]/.test(text) || !/\d/.test(text)) return false;
+    if (isUuid(text) || text.charAt(0) === '/' || isUrl(text) || /^\d+$/.test(text)) return false;
+    return true;
+  }
+
+  function looksLikeCredential(text) {
+    if (/\s/.test(text) || isUuid(text) || text.charAt(0) === '/' || isUrl(text) || /^\d+$/.test(text)) return false;
+    if (isJwt(text) || isOpaqueToken(text)) return true;
     return false;
   }
 
@@ -106,14 +147,18 @@
     return maskControl(type, key, raw);
   }
 
-  function maskCredentialToken(token) {
-    return looksLikeCredential(token) ? '<masked len=' + token.length + '>' : token;
-  }
-
   function maskConsole(text) {
     let out = text == null ? '' : String(text);
-    out = out.replace(/[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, maskCredentialToken);
-    out = out.replace(/[A-Za-z0-9+_=-]{32,}/g, maskCredentialToken);
+    out = out.replace(/\bBearer\s+[A-Za-z0-9+/=_.-]+/gi, (match) => {
+      const token = match.replace(/^Bearer\s+/i, '');
+      return 'Bearer <masked len=' + token.length + '>';
+    });
+    out = out.replace(/eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, (token) => {
+      return isJwt(token) ? '<masked len=' + token.length + '>' : token;
+    });
+    out = out.replace(/[A-Za-z0-9+/=_-]{20,}/g, (token) => {
+      return isOpaqueToken(token) ? '<masked len=' + token.length + '>' : token;
+    });
     if (out.length > TRUNCATE_AT) return out.slice(0, TRUNCATE_AT) + '…<truncated len=' + out.length + '>';
     return out;
   }
