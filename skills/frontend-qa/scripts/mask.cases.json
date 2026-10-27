@@ -266,5 +266,40 @@
     "input": "http://a.io/list?page=2&sort=created_at#top",
     "kind": "console",
     "expect": "clear"
+  },
+  {
+    "input": "at OrderFormContainerV2 (http://localhost:5173/src/OrderFormContainerV2.tsx:12:5)",
+    "kind": "console",
+    "expect": "clear"
+  },
+  {
+    "input": "Error in OrderFormContainerV2 render",
+    "kind": "console",
+    "expect": "clear"
+  },
+  {
+    "input": "at http://localhost:5173/node_modules/.vite/deps/react-dom.js:16670:28",
+    "kind": "console",
+    "expect": "clear"
+  },
+  {
+    "input": "/node_modules/@scope/pkg-name/dist/index.js",
+    "kind": "console",
+    "expect": "clear"
+  },
+  {
+    "input": "網址：http://localhost:4173/#/orders/undefined",
+    "kind": "console",
+    "expect": "clear"
+  },
+  {
+    "input": "h1::工單 #undefined:",
+    "kind": "console",
+    "expect": "clear"
+  },
+  {
+    "input": "aB3dE5fG7hJ9kL1mN2pQ",
+    "kind": "value",
+    "expect": "masked"
   }
 ]

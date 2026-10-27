@@ -3,22 +3,28 @@
 // (author, inside, sidebar, consider, residual). "sid" matches only as a whole word.
 // Allowlisted words are removed before the stem scan, so authorName stays clear.
 // Values default to masked. A token is kept only when a release class matches.
-// Order, per value (console walks whitespace-separated tokens the same way):
+// Order, per value (console splits on whitespace and on ：；，。「」（）):
 // 1. Sensitive key -> mask the whole value.
 // 2. "Bearer <v>", "<stem>=<v>", "<stem>: <v>" -> mask v.
 // 3. URL (^[a-z][a-z0-9+.-]*://, parsed with new URL) -> keep scheme, host, and port.
 //    Path uses the segment rule. Each query or fragment k=v masks v when k has a
-//    stem or v is opaque. A bare fragment #x uses the segment rule.
+//    stem or v is opaque. A bare fragment #x uses the segment rule. A fragment
+//    whose segments are plain words stays, including a trailing colon (#undefined:).
 // 4. Plain path (^/ or a/b) -> segment rule.
 // 5. Release classes below -> keep. JWT shape eyJ<b64>.<b64>.<b64> is masked
-//    before those classes. Word, SKU, host, and every member dot-part must also
-//    be not opaque.
+//    before those classes. An identifier of word humps is kept even when opaque:
+//    ^[A-Za-z][a-z]+(?:[A-Z][a-z]{2,})*(?:[A-Z]\d{1,3}|\d{1,3})?$
+//    Each capital in a hump is followed by at least two lowercase letters. A
+//    final hump may be a capital plus 1-3 digits (OrderFormContainerV2) or 1-3
+//    digits. Word, SKU, host, and every member dot-part must also be not opaque.
 // 6. A token of at least 20 characters from [A-Za-z0-9+/=_-] -> mask; otherwise keep.
 // Segment rule: every path segment must be a name, number, UUID, bundle, or
-// file:line:col, otherwise the whole token is masked. A name is a lowercase word
-// or camel/kebab/snake with one capital or separator per chunk. Opaque: length
-// at least 16 with no -_. and both cases plus a digit, a "=" pad, or hex of at
-// least 20 characters that contains a digit.
+// file:line:col, otherwise the whole token is masked. A name is a lowercase word,
+// an identifier, or camel/kebab/snake with one capital or separator per chunk.
+// One leading @ (npm scope) or one leading . (.vite, .pnpm) is allowed when the
+// rest passes the name rule. Opaque: length at least 16 with no -_. and both
+// cases plus a digit, a "=" pad, or hex of at least 20 characters that contains
+// a digit.
 // Other strings stay intact up to 2000 characters. Longer ones keep the first 2000
 // and append "…<truncated len=N>", where N is the original length before masking.
 // Pass key "cookie" so every cookie value is masked and the name can be kept separately.
@@ -50,6 +56,10 @@
   const NUMBER = /^-?\d+(\.\d+)?$/;
   const WORD = /^[A-Za-z][a-z0-9]*([A-Z_-][A-Za-z0-9]+)*$/;
   const STRICT_NAME = /^[A-Za-z][a-z0-9]*([A-Z_-][a-z0-9]+)*$/;
+  // Word humps, plus an optional V2-style suffix. Exempt from the opaque check.
+  const IDENTIFIER = /^[A-Za-z][a-z]+(?:[A-Z][a-z]{2,})*(?:[A-Z]\d{1,3}|\d{1,3})?$/;
+  // Whitespace plus fullwidth colon/semicolon/comma/parentheses and ideographic quotes.
+  const TOKEN_GAP = /[\s\uFF1A\uFF1B\uFF0C\u3002\u300C\u300D\uFF08\uFF09]/;
   const JWT = /^eyJ[\w-]+\.[\w-]+\.[\w-]+$/;
   const BUNDLE = /^[\w.-]+-[A-Za-z0-9_]{6,24}\.(?:js|mjs|css|map)$/;
   const FILE_LINE = /^[\w./-]+\.\w+(?::\d+){1,2}$/;
@@ -123,12 +133,21 @@
     return BUNDLE.test(text);
   }
 
-  function simpleSegmentOk(part) {
-    if (!part) return false;
-    if (isUuid(part) || NUMBER.test(part)) return true;
+  function isIdentifier(text) {
+    return IDENTIFIER.test(text);
+  }
+
+  function isName(part) {
+    if (isIdentifier(part)) return true;
     if (STRICT_NAME.test(part) && !partOpaque(part)) return true;
     if (/^[a-z0-9]+$/.test(part) && !isOpaque(part)) return true;
     return false;
+  }
+
+  function simpleSegmentOk(part) {
+    if (!part) return false;
+    if (isUuid(part) || NUMBER.test(part)) return true;
+    return isName(part);
   }
 
   function isFileName(text) {
@@ -151,7 +170,9 @@
     if (seg === '') return true;
     if (isUuid(seg) || isBundle(seg) || isFileLine(seg) || NUMBER.test(seg)) return true;
     if (isFileName(seg)) return true;
-    return simpleSegmentOk(seg);
+    if (simpleSegmentOk(seg)) return true;
+    if ((seg.charAt(0) === '@' || seg.charAt(0) === '.') && isName(seg.slice(1))) return true;
+    return false;
   }
 
   function segmentsOk(pathname) {
@@ -257,6 +278,7 @@
 
   function released(text) {
     if (NUMBER.test(text) || isUuid(text) || isBundle(text) || isFileLine(text)) return true;
+    if (isIdentifier(text)) return true;
     if (isSku(text) && !partOpaque(text)) return true;
     if (WORD.test(text) && !partOpaque(text)) return true;
     if (memberOk(text)) return true;
@@ -288,7 +310,7 @@
     const leadMatch = /^[([{'"]+/.exec(token);
     const lead = leadMatch ? leadMatch[0] : '';
     const rest = token.slice(lead.length);
-    const trailMatch = /[)\]}'",;.]+$/.exec(rest);
+    const trailMatch = /[)\]}'",;.:]+$/.exec(rest);
     const trail = trailMatch ? trailMatch[0] : '';
     const core = rest.slice(0, rest.length - trail.length);
     return { lead: lead, core: core, trail: trail };
@@ -311,8 +333,9 @@
   }
 
   function isStemPrefix(token) {
-    const core = splitEdge(token).core;
-    const match = /^(.*?)[:=]$/.exec(core);
+    const edge = splitEdge(token);
+    const source = edge.core + (edge.trail.charAt(0) === ':' ? ':' : '');
+    const match = /^(.*?)[:=]$/.exec(source);
     if (!match) return false;
     return isSensitiveKey(match[1]);
   }
@@ -325,8 +348,8 @@
   }
 
   function maskText(text) {
-    if (!/\s/.test(text)) return maskToken(text);
-    const parts = text.split(/(\s+)/);
+    if (!TOKEN_GAP.test(text)) return maskToken(text);
+    const parts = text.split(/([\s\uFF1A\uFF1B\uFF0C\u3002\u300C\u300D\uFF08\uFF09]+)/);
     for (let i = 0; i < parts.length; i++) {
       if (i % 2 === 1 || parts[i] === '') continue;
       const prev = previousToken(parts, i);
