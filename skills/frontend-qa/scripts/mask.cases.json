@@ -759,7 +759,7 @@
     "kind": "text",
     "input": "reqid=12 GET http://localhost:4173/api/orders?page=2&access_token=aB3dE5fG7hJ9kL1mN3pQ5rS7tU9 [200]",
     "expect": "masked",
-    "output": "reqid=12 GET http://localhost:4173/api/orders?page=2&access_token=<masked len=27> [200]"
+    "output": "reqid=12 GET http://localhost:4173/api/orders?page=2&access_token=<masked len=33>"
   },
   {
     "group": "F2",
@@ -2277,5 +2277,167 @@
       "hunter2",
       "continued9"
     ]
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: Abc)defGhij",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["defGhij"],
+    "keep": ["password"]
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "api_key=k1<k2secret",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["k2secret"],
+    "keep": ["api_key"]
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "secret: ab\"cd ef",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["cd"],
+    "keep": ["secret"]
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: x'y'z tail",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["y'z"],
+    "keep": ["password"]
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "token=abcd>efghsecret",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["efghsecret"],
+    "keep": ["token"]
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: hunter2)9xYzQ",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["9xYzQ"],
+    "keep": ["password"]
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: ab]cdabcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["abcd1234efgh"],
+    "keep": ["password"]
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: ab}cdabcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["abcd1234efgh"],
+    "keep": ["password"]
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: ab`cdabcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["abcd1234efgh"],
+    "keep": ["password"]
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "api_key=ab(cd)abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["abcd1234efgh"],
+    "keep": ["api_key"]
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: ab,cdabcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["abcd1234efgh"],
+    "keep": ["password"]
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{password: abc}",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["abc"],
+    "keep": ["}", "password"]
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "curl -H 'password: abc' -H 'Accept: json'",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["abc"],
+    "keep": ["' -H 'Accept: json'", "password"]
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "token=abc; path=/",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["abc"],
+    "keep": ["; path=/", "token"]
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password=abc&id=5",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["abc"],
+    "keep": ["&id=5", "password"]
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: abc user: bob",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["abc"],
+    "keep": ["user: bob", "password"]
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Proxy-Authorization=Bearer abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["abcd1234efgh"],
+    "keep": ["Proxy-Authorization"]
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "proxy-authorization=Bearer abcd1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["abcd1234efgh"],
+    "keep": ["proxy-authorization"]
   }
 ]

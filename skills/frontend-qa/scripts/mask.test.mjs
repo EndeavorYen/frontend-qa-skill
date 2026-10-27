@@ -34,7 +34,7 @@ const maskSource = readFileSync(new URL('./mask.js', import.meta.url), 'utf8');
 const KEY_SAMPLE = 'kept';
 const TRUNCATE_AT = 2000;
 const GROUP_ORDER = ['old70', 'L', 'O', 'six', 'LH', 'F1', 'F2', 'V', 'E1', 'I1', 'K', 'KA', 'OBJ', 'CK', 'A1', 'F5', 'R3', 'R3c', 'R52', 'P1'];
-const ALLOWED_DIFF = [174, 210, 211, 212, 213, 216];
+const ALLOWED_DIFF = [130, 174, 210, 211, 212, 213, 216];
 const baseline = JSON.parse(readFileSync(new URL('./mask.baseline.json', import.meta.url), 'utf8'));
 const groupStats = new Map();
 

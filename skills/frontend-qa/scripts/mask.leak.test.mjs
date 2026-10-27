@@ -31,7 +31,9 @@ function plantLetters(length, position) {
   throw new Error(`unknown position ${position}`);
 }
 
-function wrap(form, value, length, position) {
+const MID_DELIMS = ['"', "'", '`', ')', '<', '>', ']', '}'];
+
+function wrap(form, value, length, position, folded) {
   switch (form) {
     case 'header':
       return `Authorization: ${value}`;
@@ -52,7 +54,7 @@ function wrap(form, value, length, position) {
     case 'lone-scheme-folded':
       return `Authorization: Bearer\n${value}`;
     case 'letters-only-folded':
-      return `Authorization: Bearer\n  ${plantLetters(length, position)}`;
+      return `Authorization: Bearer\n  ${folded == null ? plantLetters(length, position) : folded}`;
     case 'no-key-scheme':
       return `Bearer\n  ${value}`;
     case 'indented-nonsensitive-key-after-scheme':
@@ -99,4 +101,69 @@ test('planted secret is absent for every sensitive key form, length, and positio
   assert.equal(count, FORMS.length * LENGTHS.length * POSITIONS.length);
   assert.ok(ms < 2000, `property ${ms}`);
   console.log(`property cases ${count} ${ms.toFixed(3)}ms`);
+});
+
+function propertyInputs() {
+  const inputs = [];
+  for (const form of FORMS) {
+    for (const length of LENGTHS) {
+      for (const position of POSITIONS) inputs.push(wrap(form, plant(length, position), length, position));
+    }
+  }
+  return inputs;
+}
+
+function formQuote(form) {
+  if (form === 'single') return "'";
+  if (form === 'backtick') return '`';
+  if (form === 'double' || form === 'json' || form === 'nested' || form === 'array' || form === 'quoted+fold') return '"';
+  return '';
+}
+
+function midDelimiterInputs() {
+  const inputs = [];
+  for (const delim of MID_DELIMS) {
+    for (const form of FORMS) {
+      for (const length of LENGTHS) {
+        for (const position of POSITIONS) {
+          const prefix = plant(length, position);
+          const quote = formQuote(form);
+          // A wrapper quote equal to the delimiter would close before S. Escape it so
+          // prefix + delim + S stays inside that form's value.
+          const value = quote && delim === quote ? `${prefix}\\${delim}${SECRET}` : `${prefix}${delim}${SECRET}`;
+          inputs.push(wrap(form, value, length, position, value));
+        }
+      }
+    }
+  }
+  return inputs;
+}
+
+test('mid-value-delimiter keeps the secret masked for every delim, form, length, and position', () => {
+  const started = performance.now();
+  const inputs = midDelimiterInputs();
+  for (const input of inputs) {
+    for (const [name, fn] of FUNCTIONS) {
+      const out = fn(input);
+      assert.equal(out.includes(SECRET), false, `${name} ${input.slice(0, 80)}`);
+    }
+  }
+  const ms = performance.now() - started;
+  assert.equal(inputs.length, MID_DELIMS.length * FORMS.length * LENGTHS.length * POSITIONS.length);
+  assert.ok(ms < 2000, `property ${ms}`);
+  console.log(`mid-value-delimiter ${inputs.length} ${ms.toFixed(3)}ms`);
+});
+
+test('maskText, maskConsole, and maskBody are idempotent on property inputs', () => {
+  const inputs = propertyInputs().concat(midDelimiterInputs());
+  const sample = [];
+  for (let i = 0; i < inputs.length; i++) if (i % 7 === 0) sample.push(inputs[i]);
+  assert.ok(sample.length >= 500, `sample ${sample.length}`);
+  for (const input of sample) {
+    for (const fn of [maskText, maskConsole, maskBody]) {
+      const once = fn(input);
+      assert.equal(fn(once), once);
+    }
+  }
+  console.log(`property idempotence ${sample.length}`);
 });

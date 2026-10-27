@@ -216,23 +216,75 @@ function lineStartAt(text, index) {
   while (i > 0 && text[i - 1] !== '\n' && text[i - 1] !== '\r') i--;
   return i;
 }
-// Unquoted assignment value. Spaces stay inside a letter phrase. Stop at end of line,
-// at & ; , or at a quote or bracket. A space before a non-letter token (for example " [200]") ends it.
-function unquotedValueEnd(text, at, limit) {
+const CLOSER_OF = { '(': ')', '[': ']', '{': '}', '<': '>', '"': '"', "'": "'", '`': '`' };
+const NEXT_KEY = /^[A-Za-z0-9_.%-]+(?::[A-Za-z0-9_.%-]+)*[ \t]*[:=]/;
+// Openers still unmatched at the value start. A quote that only wraps the key
+// has already closed. A quote or bracket with no matching opener is part of the
+// value. Same line only.
+function openersBeforeKey(text, from, to) {
+  const stack = [];
+  for (let i = from; i < to; i++) {
+    const ch = text[i];
+    if (ch === '"' || ch === "'" || ch === '`') {
+      if (quoteIsEscaped(text, i)) continue;
+      if (stack.length && stack[stack.length - 1] === ch) stack.pop();
+      else stack.push(ch);
+      continue;
+    }
+    if (ch === '(' || ch === '[' || ch === '{' || ch === '<') { stack.push(ch); continue; }
+    if (stack.length && CLOSER_OF[stack[stack.length - 1]] === ch) stack.pop();
+  }
+  return stack;
+}
+function nextKeyAt(text, i, limit) {
+  if (i >= limit) return false;
+  return NEXT_KEY.test(text.slice(i, Math.min(limit, i + 256)));
+}
+function clipBeforeNextKey(text, start, end) {
+  let i = start;
+  while (i < end) {
+    if (text[i] === ' ' || text[i] === '\t') {
+      let j = i;
+      while (j < end && (text[j] === ' ' || text[j] === '\t')) j++;
+      if (nextKeyAt(text, j, end)) return i;
+    }
+    i++;
+  }
+  return end;
+}
+function closerEndsValue(stack, ch) {
+  if (!stack.length || CLOSER_OF[stack[stack.length - 1]] !== ch) return false;
+  stack.pop();
+  return true;
+}
+// Sensitive unquoted value. Ends only at end of line, at &, at whitespace before a
+// key:/key= token, or at a closer for an opener seen before the key. "," and ";"
+// end only when a key token follows. Otherwise fail closed through end of line.
+function unquotedValueEnd(text, at, limit, keyStart) {
   const endLimit = limit == null ? text.length : limit;
+  const origin = keyStart == null ? at : keyStart;
+  const stack = openersBeforeKey(text, lineStartAt(text, origin), at);
   let i = at;
   while (i < endLimit) {
     const ch = text[i];
-    if (ch === '\n' || ch === '\r' || ch === '&' || ch === ';' || ch === ',' ||
-        ch === '"' || ch === "'" || ch === '`' || ch === '}' || ch === ']' ||
-        ch === ')' || ch === '<' || ch === '>') break;
+    if (ch === '\n' || ch === '\r' || ch === '&') break;
+    if (ch === ',' || ch === ';') {
+      let j = i + 1;
+      while (j < endLimit && (text[j] === ' ' || text[j] === '\t')) j++;
+      if (nextKeyAt(text, j, endLimit)) break;
+      i++;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`' || ch === ')' || ch === ']' || ch === '}' || ch === '>') {
+      if (closerEndsValue(stack, ch)) break;
+      i++;
+      continue;
+    }
     if (ch === ' ' || ch === '\t') {
       let j = i;
       while (j < endLimit && (text[j] === ' ' || text[j] === '\t')) j++;
-      if (j >= endLimit || !/[A-Za-z]/.test(text[j] || '')) break;
-      let k = j;
-      while (k < endLimit && /[A-Za-z]/.test(text[k])) k++;
-      i = k;
+      if (nextKeyAt(text, j, endLimit)) break;
+      i++;
       continue;
     }
     i++;
@@ -341,8 +393,9 @@ function schemeCredential(text, schemeEnd, limit) {
   } else if (text[start] !== '\n' && text[start] !== '\r') return null;
   if (start >= endLimit) return null;
   if (text[start] === '\n' || text[start] === '\r') return nextLineCredential(text, start, endLimit);
+  if (nextKeyAt(text, start, endLimit)) return null;
   const lineEnd = lineContentEnd(text, start);
-  const end = valueEnd(text, start, endLimit);
+  const end = clipBeforeNextKey(text, start, valueEnd(text, start, endLimit));
   if (end <= start) return null;
   // The first line decides a short credential. A folded prose line must not excuse it.
   // The whole tail, folds included, still fails closed when the fold itself is the credential.
@@ -602,7 +655,7 @@ function scanLines(text, tokens, quotes) {
         line.credEnd = folded.end;
         markFolds(text, wordEnd, folded.start, folded.end, tokens);
       }
-      const full = withFold(text, { start: vStart, end: unquotedValueEnd(text, vStart, endLimit) }, endLimit);
+      const full = withFold(text, { start: vStart, end: unquotedValueEnd(text, vStart, endLimit, keyStart) }, endLimit);
       line.valueEnd = full.end;
       line.end = full.end;
       if (!line.cred) markFolds(text, vStart, vStart, full.end, tokens);
@@ -786,13 +839,18 @@ function maskToken(t) {
   if (eq > 0 && eq < t.length - 1 && !/^[A-Za-z0-9+/]+={1,2}$/.test(t)) return maskPairs(t, false);
   return pathOpaque(t) ? marker(t) : t;
 }
-function tokenPass(text) {
+const ASSIGNMENT_KEY = /^[A-Za-z][A-Za-z0-9_.%-]*(?::[A-Za-z0-9_.%-]+)*=$/;
+// keepAssignment: this slice ends immediately before an existing placeholder.
+// A bare key= there is the key name, not a padded secret. Leave it.
+function tokenPass(text, keepAssignment) {
   let out = ''; let i = 0;
   while (i < text.length) {
     if (DELIM.test(text[i])) { out += text[i++]; continue; }
     let j = i;
     while (j < text.length && !DELIM.test(text[j])) j++;
-    out += maskToken(text.slice(i, j));
+    const tok = text.slice(i, j);
+    if (keepAssignment && j === text.length && ASSIGNMENT_KEY.test(tok)) out += tok;
+    else out += maskToken(tok);
     i = j;
   }
   return out;
@@ -830,7 +888,10 @@ function maskBody(text) {
   const shaped = text.replace(COOKIE_LINE, maskCookieLine).replace(JWT_RE, (j) => marker(j)).replace(VENDOR_RE, (v) => marker(v))
     .replace(USERINFO_RE, (all, a, v, at) => a + marker(v) + at);
   const masked = emit(shaped, classify(tokenize(shaped)));
-  return masked.split(/(<masked len=\d+>)/).map((part, i) => (i % 2 ? part : tokenPass(part))).join('');
+  const parts = masked.split(/(<masked len=\d+>)/);
+  let out = '';
+  for (let i = 0; i < parts.length; i++) out += i % 2 ? parts[i] : tokenPass(parts[i], i + 1 < parts.length);
+  return out;
 }
 const TRUNC_SUFFIX = /…<truncated len=\d+>$/;
 function maskText(text) {
