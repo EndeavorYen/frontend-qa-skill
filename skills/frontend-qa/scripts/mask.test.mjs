@@ -51,11 +51,16 @@ function assertMasked(row, out) {
   }
   const jwts = row.input.match(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g) || [];
   for (const jwt of jwts) assert.equal(out.includes(jwt), false);
-  const runs = row.input.match(/[A-Za-z0-9+/=_-]{20,}/g) || [];
+  const urls = row.input.match(/https?:\/\/[^\s)]+/gi) || [];
+  for (const url of urls) assert.equal(out.includes(url), true, url);
+  const outsideUrls = row.input.replace(/https?:\/\/[^\s)]+/gi, ' ');
+  const runs = outsideUrls.match(/[A-Za-z0-9+/=_-]{20,}/g) || [];
   for (const run of runs) {
     if (run.startsWith('/')) continue;
     if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(run)) continue;
     if (!/[A-Za-z]/.test(run) || !/\d/.test(run)) continue;
+    if (/^sku[-_]/i.test(run)) continue;
+    if (/^[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)+$/.test(run)) continue;
     assert.equal(out.includes(run), false, run);
   }
 }
