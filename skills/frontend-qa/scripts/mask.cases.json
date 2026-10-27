@@ -1011,5 +1011,116 @@
     "input": "The authorization: header is missing",
     "expect": "masked",
     "output": "The authorization: <masked len=6> is missing"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "Authorization: AWS4-HMAC-SHA256 Credential=AKIA/20260101/us-east-1/s3/aws4_request,SignedHeaders=host;x-amz-date,Signature=abcd1234efgh",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "output": "Authorization: <masked len=16> <masked len=103>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "Authorization: AWS4-HMAC-SHA256 Credential=AKIA/20260101/us-east-1/s3/aws4_request, SignedHeaders=host;x-amz-date, Signature=abcd1234efgh",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "output": "Authorization: <masked len=16> <masked len=105>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "Authorization: Token \"abcd1234efgh\"",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "output": "Authorization: <masked len=5> <masked len=14>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "Authorization: Token 'abcd1234efgh'",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "output": "Authorization: <masked len=5> <masked len=14>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "X-Api-Key: Token \"abcd1234efgh\"",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "output": "X-Api-Key: <masked len=5> <masked len=14>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "Authorization: SharedKey acct:abcd1234efgh",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "output": "Authorization: <masked len=9> <masked len=17>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "Authorization: Digest username=\"u\",\n  response=\"abcd1234efgh\"",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh", "username=\"u\""],
+    "output": "Authorization: <masked len=6> <masked len=39>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "Authorization: Digest username=\"u\",\n  response=\"abcd1234efgh\"\nHost: example.com",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "keep": ["Host: example.com"],
+    "output": "Authorization: <masked len=6> <masked len=39>\nHost: example.com"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "Authorization: Token\nabcd1234efgh",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "output": "Authorization: <masked len=5>\n<masked len=12>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "Authorization: Token abcd1234efgh\nStatus: 200",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "keep": ["Status: 200"],
+    "output": "Authorization: <masked len=5> <masked len=12>\nStatus: 200"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "Authorization: Token\nabcd1234efgh\nAccept: application/json",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "keep": ["Accept: application/json"],
+    "output": "Authorization: <masked len=5>\n<masked len=12>\nAccept: application/json"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "Authorization: Token\nStatus: 200",
+    "expect": "masked",
+    "keep": ["Status: 200"],
+    "output": "Authorization: <masked len=5>\nStatus: 200"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "Authorization required",
+    "expect": "clear"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "Token expired",
+    "expect": "clear"
   }
 ]

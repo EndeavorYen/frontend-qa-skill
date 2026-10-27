@@ -42,7 +42,6 @@ function isSensitiveKey(key, q) {
 const JWT_RE = /(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{4,}\.eyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]*/g;
 const AUTH_RE = /\b((?:Bearer|Basic)\s+)([A-Za-z0-9._~+/=-]+)/gi;
 const SCHEME_WORD = /^[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*$/;
-const TCHAR_RE = /[A-Za-z0-9!#$%&'*+\-.^_`|~]+/y;
 const TOKEN68_RE = /[A-Za-z0-9._~+/=-]+/y;
 const VENDOR_RE = /(?<![A-Za-z0-9])(?:AKIA|ASIA)[0-9A-Z]{16}(?![A-Za-z0-9])|(?<![A-Za-z0-9])(?:xox[abposr]-[A-Za-z0-9-]{10,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|[sr]k_(?:live|test)_[A-Za-z0-9]{10,}|AIza[0-9A-Za-z_-]{30,})/g;
 const USERINFO_RE = /(?<![a-z0-9+.-])([a-z][a-z0-9+.-]*:\/\/[^\s/?#@:]*:)([^\s/?#@]+)(@)/gi;
@@ -74,66 +73,69 @@ function skipBws(text, i) {
   while (text[i] === ' ' || text[i] === '\t') i++;
   return i;
 }
-function authDelim(ch) {
-  return ch == null || ch === '\n' || ch === '\r' || ch === ';' || ch === '"' || ch === "'" || ch === '`'
-    || ch === ' ' || ch === '\t' || ch === ',' || ch === ')' || ch === '}' || ch === ']' || ch === '<' || ch === '>';
+function credentialToken(token) {
+  return chunkOpaque(token) || /\d/.test(token) || /[^A-Za-z0-9]/.test(token) || token.length >= 20;
 }
-function authParamEnd(text, at) {
-  let i = at;
-  let end = at;
-  let early = false;
-  while (i < text.length) {
-    TCHAR_RE.lastIndex = i;
-    const name = TCHAR_RE.exec(text);
-    if (!name) break;
-    let k = skipBws(text, i + name[0].length);
-    if (text[k] !== '=') break;
-    k = skipBws(text, k + 1);
-    if (text[k] === '"' || text[k] === "'" || text[k] === '`') {
-      const q = scanQuoted(text, k);
-      if (!q.close) { early = true; break; }
-      k = q.end + 1;
-    } else {
-      TCHAR_RE.lastIndex = k;
-      const value = TCHAR_RE.exec(text);
-      if (!value) { early = true; break; }
-      k += value[0].length;
-      if (!authDelim(text[k])) early = true;
-    }
-    end = k;
-    if (early) break;
-    i = skipBws(text, k);
-    if (text[i] !== ',') break;
-    i = skipBws(text, i + 1);
+// Letter-and-space tails are prose ("header is missing"). Anything else is the credential.
+function tailIsCredential(tail) {
+  if (/[^A-Za-z\s]/.test(tail)) return true;
+  const words = tail.split(/\s+/);
+  for (let i = 0; i < words.length; i++) {
+    if (words[i] && credentialToken(words[i])) return true;
   }
-  return { end, early };
+  return false;
 }
-function valueTailEnd(text, at) {
+// End of an unquoted value: end of line, plus folded lines that start with space or tab. Cap 4096.
+// Do not stop at ; , : / or quotes.
+function valueEnd(text, at) {
   const lim = Math.min(text.length, at + MAX_QUOTED);
   let i = at;
   while (i < lim) {
     const ch = text[i];
-    if (ch === '\n' || ch === '\r' || ch === ';' || ch === '"' || ch === "'" || ch === '`') break;
+    if (ch === '\n' || ch === '\r') {
+      let j = i + 1;
+      if (ch === '\r' && text[j] === '\n') j++;
+      if (j < lim && (text[j] === ' ' || text[j] === '\t')) { i = j; continue; }
+      break;
+    }
     i++;
   }
   return i;
 }
-function credentialToken(token) {
-  return chunkOpaque(token) || /\d/.test(token) || /[^A-Za-z0-9]/.test(token) || token.length >= 20;
+function lineBreakEnd(text, at) {
+  let j = at + 1;
+  if (text[at] === '\r' && text[j] === '\n') j++;
+  return j;
+}
+// A scheme with nothing after it on the line: the next line is part of the value only when
+// that line is a single credential token. A normal next line stays readable.
+function nextLineCredential(text, breakAt) {
+  const j = lineBreakEnd(text, breakAt);
+  if (j >= text.length) return null;
+  if (text[j] === ' ' || text[j] === '\t') {
+    const end = valueEnd(text, breakAt);
+    if (end <= j || !tailIsCredential(text.slice(j, end))) return null;
+    return { start: j, end };
+  }
+  TOKEN68_RE.lastIndex = j;
+  const token = TOKEN68_RE.exec(text);
+  if (!token || !credentialToken(token[0]) || NUMBER.test(token[0])) return null;
+  let end = j + token[0].length;
+  let k = end;
+  while (text[k] === ' ' || text[k] === '\t') k++;
+  if (k < text.length && text[k] !== '\n' && text[k] !== '\r') return null;
+  return { start: j, end: Math.min(end, j + MAX_QUOTED) };
 }
 function schemeCredential(text, schemeEnd) {
-  if (text[schemeEnd] !== ' ' && text[schemeEnd] !== '\t') return null;
-  const start = skipBws(text, schemeEnd);
-  if (start === schemeEnd || start >= text.length || text.startsWith('<masked len=', start)) return null;
-  const parsed = authParamEnd(text, start);
-  let end = parsed.end;
-  if (parsed.early && end > start) end = valueTailEnd(text, end);
-  if (end <= start) {
-    TOKEN68_RE.lastIndex = start;
-    const token = TOKEN68_RE.exec(text);
-    if (!token || !credentialToken(token[0])) return null;
-    end = start + token[0].length;
-  }
+  let start = schemeEnd;
+  if (text[start] === ' ' || text[start] === '\t') {
+    start = skipBws(text, start);
+    if (start === schemeEnd || text.startsWith('<masked len=', start)) return null;
+  } else if (text[start] !== '\n' && text[start] !== '\r') return null;
+  if (start >= text.length) return null;
+  if (text[start] === '\n' || text[start] === '\r') return nextLineCredential(text, start);
+  const end = valueEnd(text, start);
+  if (end <= start || !tailIsCredential(text.slice(start, end))) return null;
   return { start, end };
 }
 function keyAnchored(text, spans) {
@@ -163,13 +165,14 @@ function keyAnchored(text, spans) {
       if (!b) continue;
       span = { start: vStart, end: vStart + b[0].length };
       if (text.startsWith('<masked len=', span.end)) { ASSIGN_RE.lastIndex = span.end; continue; } // a shape already owns it
-      bareScheme = SCHEME_WORD.test(b[0]);
+      // A long or digit-heavy token is the credential, not a scheme name. Hyphenated names (AWS4-HMAC-SHA256) stay schemes.
+      bareScheme = SCHEME_WORD.test(b[0]) && (b[0].includes('-') || !credentialToken(b[0]));
     }
     if (span.end <= span.start) continue;
     if (PLACEHOLDER.test(text.slice(span.start, span.end + 1))) { ASSIGN_RE.lastIndex = span.end; continue; }
     if (/^(?:Bearer|Basic)$/i.test(text.slice(span.start, span.end))) continue; // the AUTH shape owns it
     if (bareScheme) {
-      const cred = schemeCredential(text, span.end); // any sensitive key: scheme word, then the credential
+      const cred = schemeCredential(text, span.end); // scheme word, then the rest of the value
       if (cred) {
         spans.push([span.start, span.end]);
         span = cred;
