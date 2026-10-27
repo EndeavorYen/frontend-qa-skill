@@ -1,0 +1,564 @@
+{
+ "probe": "frontend-qa.probe.v1",
+ "base": "http://localhost:4173",
+ "seconds": 43,
+ "summary": {
+  "small-target": 18,
+  "not-keyboard-reachable": 2,
+  "no-accessible-name": 2,
+  "low-contrast": 2,
+  "console-error": 4,
+  "horizontal-overflow": 1,
+  "failed-request": 2,
+  "stuck-loading": 2,
+  "double-submit": 1,
+  "no-feedback": 1,
+  "no-error-message": 1
+ },
+ "fingerprints": {
+  "/#/orders": {
+   "hash": "599cdcfd",
+   "list": [
+    "a:::#/contact",
+    "a:::#/help",
+    "a:::#/orders",
+    "a:::#/orders/:id",
+    "a:::#/orders/new",
+    "a:::#/settings",
+    "button::全部:",
+    "button::已取消:",
+    "button::已完成:",
+    "button::待處理:",
+    "button:button:登出:",
+    "h1::訂單:",
+    "th::#:",
+    "th:::",
+    "th::品項:",
+    "th::客戶:",
+    "th::小計:",
+    "th::數量:",
+    "th::狀態:"
+   ]
+  },
+  "/#/orders/new": {
+   "hash": "3379ca31",
+   "list": [
+    "a:::#/contact",
+    "a:::#/help",
+    "a:::#/orders",
+    "a:::#/orders/new",
+    "a:::#/settings",
+    "button::送出訂單:",
+    "button:button:登出:",
+    "h1::建立訂單:",
+    "input::customer:",
+    "input::item:",
+    "input:number:price:",
+    "input:number:qty:",
+    "label::備註:",
+    "label::品項:",
+    "label::單價:",
+    "label::客戶名稱:",
+    "label::數量:",
+    "textarea::note:"
+   ]
+  },
+  "/#/settings": {
+   "hash": "1bf3321c",
+   "list": [
+    "a:::#/contact",
+    "a:::#/help",
+    "a:::#/orders",
+    "a:::#/orders/new",
+    "a:::#/settings",
+    "button::儲存:",
+    "button:button:登出:",
+    "h1::設定:",
+    "input::name:",
+    "input:checkbox:notify:",
+    "label::有新訂單時寄 Email 通知我:",
+    "label::每頁筆數:",
+    "label::顯示名稱:",
+    "select::size:"
+   ]
+  },
+  "/#/help": {
+   "hash": "5e214d8e",
+   "list": [
+    "a:::#/contact",
+    "a:::#/help",
+    "a:::#/orders",
+    "a:::#/orders/new",
+    "a:::#/settings",
+    "button:button:登出:"
+   ]
+  },
+  "/#/orders/1": {
+   "hash": "16f638d1",
+   "list": [
+    "a:::#/contact",
+    "a:::#/help",
+    "a:::#/orders",
+    "a:::#/orders/new",
+    "a:::#/settings",
+    "button:button:登出:",
+    "dt::備註:",
+    "dt::品項:",
+    "dt::客戶:",
+    "dt::小計:",
+    "dt::數量:",
+    "dt::狀態:",
+    "h1::工單 ##:"
+   ]
+  },
+  "/#/orders/2": {
+   "hash": "16f638d1",
+   "list": [
+    "a:::#/contact",
+    "a:::#/help",
+    "a:::#/orders",
+    "a:::#/orders/new",
+    "a:::#/settings",
+    "button:button:登出:",
+    "dt::備註:",
+    "dt::品項:",
+    "dt::客戶:",
+    "dt::小計:",
+    "dt::數量:",
+    "dt::狀態:",
+    "h1::工單 ##:"
+   ]
+  },
+  "/#/orders/3": {
+   "hash": "16f638d1",
+   "list": [
+    "a:::#/contact",
+    "a:::#/help",
+    "a:::#/orders",
+    "a:::#/orders/new",
+    "a:::#/settings",
+    "button:button:登出:",
+    "dt::備註:",
+    "dt::品項:",
+    "dt::客戶:",
+    "dt::小計:",
+    "dt::數量:",
+    "dt::狀態:",
+    "h1::工單 ##:"
+   ]
+  },
+  "/#/orders/999": {
+   "hash": "91f95420",
+   "list": [
+    "a:::#/contact",
+    "a:::#/help",
+    "a:::#/orders",
+    "a:::#/orders/new",
+    "a:::#/settings",
+    "button:button:登出:",
+    "dt::備註:",
+    "dt::品項:",
+    "dt::客戶:",
+    "dt::小計:",
+    "dt::數量:",
+    "dt::狀態:",
+    "h1::工單 #undefined:"
+   ]
+  }
+ },
+ "results": [
+  {
+   "check": "small-target",
+   "url": "/#/login",
+   "viewport": "1280x800",
+   "detail": [
+    "input \"帳號\" 480x41",
+    "input \"<masked len=0>\" 480x41",
+    "button.btn.btn-primary \"登入\" 64x41",
+    "a \"說明\" 26x20",
+    "a \"聯絡我們\" 52x20"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/login",
+   "viewport": "390x844",
+   "detail": [
+    "input \"帳號\" 358x41",
+    "input \"<masked len=0>\" 358x41",
+    "button.btn.btn-primary \"登入\" 64x41",
+    "a \"說明\" 26x20",
+    "a \"聯絡我們\" 52x20"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/orders",
+   "viewport": "1280x800",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "a.btn.btn-primary \"建立訂單\" 94x41",
+    "button.btn.btn-secondary \"全部\" 64x41",
+    "button.btn.btn-secondary \"待處理\" 79x41",
+    "button.btn.btn-secondary \"已完成\" 79x41",
+    "…共 14 筆"
+   ]
+  },
+  {
+   "check": "not-keyboard-reachable",
+   "url": "/#/orders",
+   "viewport": "1280x800",
+   "detail": [
+    "div.icon-btn \"🗑\""
+   ]
+  },
+  {
+   "check": "no-accessible-name",
+   "url": "/#/orders",
+   "viewport": "1280x800",
+   "detail": [
+    "div.icon-btn \"🗑\""
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/orders",
+   "viewport": "390x844",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "a.btn.btn-primary \"建立訂單\" 94x41",
+    "button.btn.btn-secondary \"全部\" 64x41",
+    "button.btn.btn-secondary \"待處理\" 79x41",
+    "button.btn.btn-secondary \"已完成\" 79x41",
+    "…共 14 筆"
+   ]
+  },
+  {
+   "check": "not-keyboard-reachable",
+   "url": "/#/orders",
+   "viewport": "390x844",
+   "detail": [
+    "div.icon-btn \"🗑\""
+   ]
+  },
+  {
+   "check": "no-accessible-name",
+   "url": "/#/orders",
+   "viewport": "390x844",
+   "detail": [
+    "div.icon-btn \"🗑\""
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/orders/new",
+   "viewport": "1280x800",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "input \"客戶名稱\" 480x41",
+    "input \"品項\" 480x41",
+    "input \"數量 數量必須是正整數\" 480x41",
+    "input \"單價\" 480x41",
+    "…共 12 筆"
+   ]
+  },
+  {
+   "check": "low-contrast",
+   "url": "/#/orders/new",
+   "viewport": "1280x800",
+   "detail": [
+    "span.hint \"數量必須是正整數\" rgb(200, 200, 200) 1.56:1"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/orders/new",
+   "viewport": "390x844",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "input \"客戶名稱\" 358x41",
+    "input \"品項\" 358x41",
+    "input \"數量 數量必須是正整數\" 358x41",
+    "input \"單價\" 358x41",
+    "…共 12 筆"
+   ]
+  },
+  {
+   "check": "low-contrast",
+   "url": "/#/orders/new",
+   "viewport": "390x844",
+   "detail": [
+    "span.hint \"數量必須是正整數\" rgb(200, 200, 200) 1.56:1"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/settings",
+   "viewport": "1280x800",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "input \"qa\" 480x41",
+    "select \"10 20 50\" 480x40",
+    "input \"on\" 13x13",
+    "button.btn.btn-primary \"儲存\" 64x41",
+    "…共 10 筆"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/settings",
+   "viewport": "390x844",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "input \"qa\" 358x41",
+    "select \"10 20 50\" 358x40",
+    "input \"on\" 13x13",
+    "button.btn.btn-primary \"儲存\" 64x41",
+    "…共 10 筆"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/help",
+   "viewport": "1280x800",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "a \"說明\" 26x20",
+    "a \"聯絡我們\" 52x20"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/help",
+   "viewport": "390x844",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "a \"說明\" 26x20",
+    "a \"聯絡我們\" 52x20"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/orders/1",
+   "viewport": "1280x800",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "a \"← 回列表\" 64x20",
+    "a \"說明\" 26x20",
+    "a \"聯絡我們\" 52x20"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/orders/1",
+   "viewport": "390x844",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "a \"← 回列表\" 64x20",
+    "a \"說明\" 26x20",
+    "a \"聯絡我們\" 52x20"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/orders/2",
+   "viewport": "1280x800",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "a \"← 回列表\" 64x20",
+    "a \"說明\" 26x20",
+    "a \"聯絡我們\" 52x20"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/orders/2",
+   "viewport": "390x844",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "a \"← 回列表\" 64x20",
+    "a \"說明\" 26x20",
+    "a \"聯絡我們\" 52x20"
+   ]
+  },
+  {
+   "check": "console-error",
+   "url": "/#/orders/3",
+   "viewport": "1280x800",
+   "kind": "record",
+   "detail": [
+    "TypeError: Cannot read properties of undefined (reading 'trim')"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/orders/3",
+   "viewport": "1280x800",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "a \"← 回列表\" 64x20",
+    "a \"說明\" 26x20",
+    "a \"聯絡我們\" 52x20"
+   ]
+  },
+  {
+   "check": "console-error",
+   "url": "/#/orders/3",
+   "viewport": "390x844",
+   "kind": "record",
+   "detail": [
+    "TypeError: Cannot read properties of undefined (reading 'trim')"
+   ]
+  },
+  {
+   "check": "horizontal-overflow",
+   "url": "/#/orders/3",
+   "viewport": "390x844",
+   "detail": "scrollWidth 536>390"
+  },
+  {
+   "check": "small-target",
+   "url": "/#/orders/3",
+   "viewport": "390x844",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "a \"← 回列表\" 64x20",
+    "a \"說明\" 26x20",
+    "a \"聯絡我們\" 52x20"
+   ]
+  },
+  {
+   "check": "console-error",
+   "url": "/#/orders/999",
+   "viewport": "1280x800",
+   "kind": "record",
+   "detail": [
+    "TypeError: Cannot read properties of undefined (reading 'trim')"
+   ]
+  },
+  {
+   "check": "failed-request",
+   "url": "/#/orders/999",
+   "viewport": "1280x800",
+   "detail": [
+    "404 http://localhost:4173/api/orders/999"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/orders/999",
+   "viewport": "1280x800",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "a \"← 回列表\" 64x20",
+    "a \"說明\" 26x20",
+    "a \"聯絡我們\" 52x20"
+   ]
+  },
+  {
+   "check": "console-error",
+   "url": "/#/orders/999",
+   "viewport": "390x844",
+   "kind": "record",
+   "detail": [
+    "TypeError: Cannot read properties of undefined (reading 'trim')"
+   ]
+  },
+  {
+   "check": "failed-request",
+   "url": "/#/orders/999",
+   "viewport": "390x844",
+   "detail": [
+    "404 http://localhost:4173/api/orders/999"
+   ]
+  },
+  {
+   "check": "small-target",
+   "url": "/#/orders/999",
+   "viewport": "390x844",
+   "detail": [
+    "a \"訂單\" 30x23",
+    "a \"建立訂單\" 60x23",
+    "a \"設定\" 30x23",
+    "button#logout.btn.btn-secondary \"登出\" 64x41",
+    "a \"← 回列表\" 64x20",
+    "a \"說明\" 26x20",
+    "a \"聯絡我們\" 52x20"
+   ]
+  },
+  {
+   "check": "stuck-loading",
+   "url": "/#/orders",
+   "scenario": "API 500",
+   "detail": "API 500：5000ms 後仍顯示「載入中」，沒有錯誤訊息"
+  },
+  {
+   "check": "stuck-loading",
+   "url": "/#/orders",
+   "scenario": "離線",
+   "detail": "離線：5000ms 後仍顯示「載入中」，沒有錯誤訊息"
+  },
+  {
+   "check": "double-submit",
+   "url": "/#/orders/new",
+   "detail": "連點兩下送出，發出 2 個寫入請求（/api/orders）"
+  },
+  {
+   "check": "no-feedback",
+   "url": "/#/orders/new",
+   "scenario": "離線",
+   "detail": "離線送出後 5000ms 內畫面和網址都沒有變化"
+  },
+  {
+   "check": "no-error-message",
+   "url": "/#/orders/new",
+   "scenario": "API 500 ",
+   "detail": "API 500 送出後沒有出現錯誤訊息；新出現的文字：「找不到頁面」；網址：http://localhost:4173/#/orders/undefined"
+  }
+ ]
+}
