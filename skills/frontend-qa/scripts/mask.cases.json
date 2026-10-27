@@ -1,0 +1,142 @@
+[
+  {
+    "input": "sessionid",
+    "kind": "key",
+    "expect": "masked"
+  },
+  {
+    "input": "PHPSESSID",
+    "kind": "key",
+    "expect": "masked"
+  },
+  {
+    "input": "csrftoken",
+    "kind": "key",
+    "expect": "masked"
+  },
+  {
+    "input": "accesstoken",
+    "kind": "key",
+    "expect": "masked"
+  },
+  {
+    "input": "passwd",
+    "kind": "key",
+    "expect": "masked"
+  },
+  {
+    "input": "session_id",
+    "kind": "key",
+    "expect": "masked"
+  },
+  {
+    "input": "authToken",
+    "kind": "key",
+    "expect": "masked"
+  },
+  {
+    "input": "x-api-key",
+    "kind": "key",
+    "expect": "masked"
+  },
+  {
+    "input": "Authorization",
+    "kind": "key",
+    "expect": "masked"
+  },
+  {
+    "input": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.signaturevalue",
+    "kind": "value",
+    "expect": "masked"
+  },
+  {
+    "input": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4",
+    "kind": "value",
+    "expect": "masked"
+  },
+  {
+    "input": "aB3dE6fG8hJ1kL4mN7pQ9rS2",
+    "kind": "value",
+    "expect": "masked"
+  },
+  {
+    "input": "abC12/def34+GHI56/jkl78==",
+    "kind": "value",
+    "expect": "masked"
+  },
+  {
+    "input": "auth failed: Bearer abc123xyz",
+    "kind": "console",
+    "expect": "masked"
+  },
+  {
+    "input": "login failed eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.signaturevalue then more text",
+    "kind": "console",
+    "expect": "masked"
+  },
+  {
+    "input": "rejected e3b0c44298fc1c149afbf4c8996fb92427ae41e4 for order",
+    "kind": "console",
+    "expect": "masked"
+  },
+  {
+    "input": "seen aB3dE6fG8hJ1kL4mN7pQ9rS2 in log",
+    "kind": "console",
+    "expect": "masked"
+  },
+  {
+    "input": "blob abC12/def34+GHI56/jkl78== end",
+    "kind": "console",
+    "expect": "masked"
+  },
+  {
+    "input": "inside",
+    "kind": "key",
+    "expect": "clear"
+  },
+  {
+    "input": "author",
+    "kind": "key",
+    "expect": "clear"
+  },
+  {
+    "input": "sidebar",
+    "kind": "key",
+    "expect": "clear"
+  },
+  {
+    "input": "consider",
+    "kind": "key",
+    "expect": "clear"
+  },
+  {
+    "input": "residual",
+    "kind": "key",
+    "expect": "clear"
+  },
+  {
+    "input": "123e4567-e89b-12d3-a456-426614174000",
+    "kind": "value",
+    "expect": "clear"
+  },
+  {
+    "input": "/orders/12345/edit-form",
+    "kind": "value",
+    "expect": "clear"
+  },
+  {
+    "input": "Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular ",
+    "kind": "value",
+    "expect": "clear"
+  },
+  {
+    "input": "TypeError: this.props.onChange is not a function\n    at Foo (https://shop.example.com/static/js/main.3f2a1b.js:12:34)",
+    "kind": "console",
+    "expect": "clear"
+  },
+  {
+    "input": "Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. ",
+    "kind": "value",
+    "expect": "clear"
+  }
+]
