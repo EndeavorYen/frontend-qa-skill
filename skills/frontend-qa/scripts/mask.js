@@ -40,7 +40,9 @@ function isSensitiveKey(key, q) {
   return false;
 }
 const JWT_RE = /(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{4,}\.eyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]*/g;
-const AUTH_RE = /\b((?:Bearer|Basic)\s+)([A-Za-z0-9._~+/=-]+)/gi;
+// Space or tab only. A Bearer/Basic scheme with no credential on its line ends at the line end;
+// the next line is a new header, not the credential.
+const AUTH_RE = /\b((?:Bearer|Basic)[ \t]+)([A-Za-z0-9._~+/=-]+)/gi;
 const SCHEME_WORD = /^[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*$/;
 const TOKEN68_RE = /[A-Za-z0-9._~+/=-]+/y;
 const VENDOR_RE = /(?<![A-Za-z0-9])(?:AKIA|ASIA)[0-9A-Z]{16}(?![A-Za-z0-9])|(?<![A-Za-z0-9])(?:xox[abposr]-[A-Za-z0-9-]{10,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|[sr]k_(?:live|test)_[A-Za-z0-9]{10,}|AIza[0-9A-Za-z_-]{30,})/g;
@@ -76,26 +78,27 @@ function skipBws(text, i) {
 function credentialToken(token) {
   return chunkOpaque(token) || /\d/.test(token) || /[^A-Za-z0-9]/.test(token) || token.length >= 20;
 }
-// Letter-and-space tails are prose ("header is missing"). Anything else is the credential.
+// A single token after a scheme is the credential, any length.
+// A longer letter-and-space tail is prose ("header is missing"). Anything else is the credential.
 function tailIsCredential(tail) {
   if (/[^A-Za-z\s]/.test(tail)) return true;
-  const words = tail.split(/\s+/);
+  const words = tail.split(/\s+/).filter(Boolean);
+  if (words.length === 1) return true;
   for (let i = 0; i < words.length; i++) {
-    if (words[i] && credentialToken(words[i])) return true;
+    if (credentialToken(words[i])) return true;
   }
   return false;
 }
-// End of an unquoted value: end of line, plus folded lines that start with space or tab. Cap 4096.
-// Do not stop at ; , : / or quotes.
+// End of an unquoted value: end of line, plus folded lines that start with space or tab.
+// Do not stop at ; , : / or quotes. Run past 4096 to that same end so a cap cannot leave a raw tail.
 function valueEnd(text, at) {
-  const lim = Math.min(text.length, at + MAX_QUOTED);
   let i = at;
-  while (i < lim) {
+  while (i < text.length) {
     const ch = text[i];
     if (ch === '\n' || ch === '\r') {
       let j = i + 1;
       if (ch === '\r' && text[j] === '\n') j++;
-      if (j < lim && (text[j] === ' ' || text[j] === '\t')) { i = j; continue; }
+      if (j < text.length && (text[j] === ' ' || text[j] === '\t')) { i = j; continue; }
       break;
     }
     i++;
@@ -124,7 +127,7 @@ function nextLineCredential(text, breakAt) {
   let k = end;
   while (text[k] === ' ' || text[k] === '\t') k++;
   if (k < text.length && text[k] !== '\n' && text[k] !== '\r') return null;
-  return { start: j, end: Math.min(end, j + MAX_QUOTED) };
+  return { start: j, end };
 }
 function schemeCredential(text, schemeEnd) {
   let start = schemeEnd;

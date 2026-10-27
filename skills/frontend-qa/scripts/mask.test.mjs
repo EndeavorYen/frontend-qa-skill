@@ -53,6 +53,8 @@ function applyRow(row) {
       return maskConsole(row.input);
     case 'text':
       return maskText(row.input);
+    case 'body':
+      return maskBody(row.input);
     case 'both':
       return [mask(row.key ?? 'label', row.input), maskConsole(row.input)];
     default: {
@@ -85,7 +87,7 @@ function assertMasked(row, out) {
     assert.equal(out, `<masked len=${row.input.length}>`);
     return;
   }
-  if (row.kind !== 'console' && row.kind !== 'text' && row.kind !== 'both') {
+  if (row.kind !== 'console' && row.kind !== 'text' && row.kind !== 'both' && row.kind !== 'body') {
     const unknownKind = row.kind;
     throw new Error(`unknown kind ${unknownKind}`);
   }
@@ -126,21 +128,34 @@ function assertClear(row, out) {
   assert.equal(out, row.input);
 }
 
+function assertSurfaces(row) {
+  if (row.surfaces !== 'all') return;
+  const outputs = [maskText(row.input), maskConsole(row.input), maskBody(row.input)];
+  for (const got of outputs) {
+    for (const secret of row.secrets || []) assert.equal(got.includes(secret), false, secret);
+    for (const keep of row.keep || []) assert.equal(got.includes(keep), true, keep);
+  }
+}
+
 function assertRow(row, out) {
   if (assertOutput(row, out)) {
     if (row.secrets) assertSecrets(row, out);
+    assertSurfaces(row);
     return;
   }
   if (row.secrets && row.expect === 'masked') {
     assertSecrets(row, out);
+    assertSurfaces(row);
     return;
   }
   if (row.expect === 'masked') {
     assertMasked(row, out);
+    assertSurfaces(row);
     return;
   }
   if (row.expect === 'clear') {
     assertClear(row, out);
+    assertSurfaces(row);
     return;
   }
   throw new Error(`unknown expect ${row.expect}`);
