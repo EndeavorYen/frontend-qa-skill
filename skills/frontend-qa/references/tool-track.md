@@ -4,7 +4,7 @@
 
 ## 版本
 
-步驟 0 用 `list_pages` 確認工具已連上，見 [SKILL.md](../SKILL.md#0-範圍面項與深度)。工具軌開啟時，把同一組資訊寫進 `tool-track.md` 開頭：驅動是 chrome-devtools-mcp、`list_pages` 已成功。有目標分頁後用 `evaluate_script` 執行 `() => navigator.userAgent`，把 Chrome 版本寫上。沒有 CLI 版本或 commit 可記。
+步驟 0 用 `list_pages` 確認工具已連上，見 [SKILL.md](../SKILL.md#0-範圍面項與深度)。工具軌開啟時，把同一組資訊寫進 `tool-track.md` 開頭：驅動是 chrome-devtools-mcp、`list_pages` 已成功。有目標分頁後照 [SKILL.md](../SKILL.md#密鑰不進對話紀錄) 讀 Chrome 版本並寫上。沒有 CLI 版本或 commit 可記。
 
 ## 歸因
 
@@ -16,7 +16,7 @@
    - 分頁在背景：先 `select_page`（`bringToFront` 為 true）再重試。
 2. **換一條路重試**：
    - 點擊：重新 `take_snapshot` 後 `click` 新的 uid → `evaluate_script` 對該元素呼叫 `.click()`
-   - 輸入：`fill` → `fill_form` → `evaluate_script` 設定值並觸發 `input` 與 `change`。密碼、token 或其他密鑰不走這條路，見 [SKILL.md](../SKILL.md#需求)
+   - 輸入：`fill` → `fill_form` → `evaluate_script` 設定值並觸發 `input` 與 `change`。密碼、token 或其他密鑰不走這條路，見 [SKILL.md](../SKILL.md#密鑰不進對話紀錄)
    - 讀取畫面：`take_snapshot` → `evaluate_script` 讀 DOM → `take_screenshot`（一定帶 `filePath` 存檔當證據；只有還有看圖額度時才打開，見 SKILL.md「截圖規則」）
 3. **判斷**：
 
@@ -66,7 +66,7 @@
    ```
    如果已經有人回報過，就把這次的新資訊（Chrome 版本、重現條件、呼叫了哪個 MCP 工具）準備成留言草稿，而不是開新 issue。
 3. **寫草稿**：照下方範本，把草稿寫在 `tool-track.md` 的 `## Issue 草稿` 底下。
-4. **去除敏感資訊**：被測網站的 URL、網域、帳號、頁面內容、截圖，都要換成通用描述（例如「一個有 sticky footer 的表單頁」）。重現步驟盡量改寫成公開網頁或最小 HTML 就能重現的版本。`checkpoint.json` 含 cookie 和 storage，不能放進 issue，也不能附在草稿裡。
+4. **去除敏感資訊**：被測網站的 URL、網域、帳號、頁面內容、截圖，都要換成通用描述（例如「一個有 sticky footer 的表單頁」）。重現步驟盡量改寫成公開網頁或最小 HTML 就能重現的版本。Checkpoint 的值不能放進 issue，也不能附在草稿裡，見 [SKILL.md](../SKILL.md#密鑰不進對話紀錄)。
 5. **使用者確認**：列出所有草稿（標題 + 新開 issue 或留言既有 issue），等使用者逐筆同意。
 6. **發出**：只發出使用者同意的那些，並把連結寫回對應的 T 編號。使用者決定不報的，標為「不報」。
 

@@ -24,7 +24,7 @@
 
 hash 路由切換不會重新載入頁面，等畫面測完才看，就分不出錯誤是哪一筆觸發的。
 
-畫面出現空白欄位、`undefined`、`NaN`、「非數值」這類異常時，先查 `list_console_messages`（`types` 含 `error`）和 `list_network_requests`（`resourceTypes` 含 `xhr`、`fetch`；狀態不是 2xx 的再用 `get_network_request`），再下結論。有 exception 的話，把畫面異常和錯誤訊息寫成同一筆 finding，等級至少 P2，類別填「bug」。
+畫面出現空白欄位、`undefined`、`NaN`、「非數值」這類異常時，先查 `list_console_messages`（`types` 含 `error`）和 `list_network_requests`（`resourceTypes` 含 `xhr`、`fetch`；狀態不是 2xx、且不是登入或 token 端點時，才用 `get_network_request`），再下結論。有 exception 的話，把畫面異常和錯誤訊息寫成同一筆 finding，等級至少 P2，類別填「bug」。密鑰不要貼出來，見 [SKILL.md](../SKILL.md#密鑰不進對話紀錄)。
 
 ## 資料狀態
 
@@ -65,7 +65,7 @@ hash 路由切換不會重新載入頁面，等畫面測完才看，就分不出
 每個畫面測完時檢查：
 
 - [ ] console 有沒有新的錯誤或 exception（`list_console_messages`，`types` 含 `error`，只算這一輪新的 msgid）
-- [ ] 有沒有失敗的請求（`list_network_requests`，`resourceTypes` 含 `xhr`、`fetch`；狀態不是 2xx 的再用 `get_network_request`）
+- [ ] 有沒有失敗的請求（`list_network_requests`，`resourceTypes` 含 `xhr`、`fetch`；狀態不是 2xx、且不是登入或 token 端點時，才用 `get_network_request`。見 [SKILL.md](../SKILL.md#密鑰不進對話紀錄)）
 - [ ] 有沒有明顯重複或多餘的請求，例如同一支 API 在一次操作中被打了好幾次
 
 如果 console 出錯，但畫面上看不出影響，記為 P2，類別填「bug」，並在證據中附上錯誤訊息。

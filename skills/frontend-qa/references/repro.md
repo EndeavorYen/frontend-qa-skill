@@ -9,13 +9,13 @@ P0 和 P1 除了文字的重現步驟，還要有兩份檔案。斷言寫「**�
 
 ## 什麼時候寫
 
-P0、P1 第二次從乾淨狀態重現成功之後。F 編號和 `findings.md` 相同。乾淨狀態的做法見 [SKILL.md](../SKILL.md) 步驟 1：`evaluate_script` 寫回 `localStorage`、`sessionStorage` 和非 HttpOnly 的 `document.cookie`，再用 `navigate_page`（`type` 為 `url`）打開存下來的網址。HttpOnly cookie 和伺服器狀態還原不了，改請使用者在已接上的瀏覽器自己登入。測試輪中途 app 自己登出、頁面停在 `#/login` 時，storage 寫回後仍要 `navigate_page` 到存下來的網址。
+P0、P1 第二次從乾淨狀態重現成功之後。F 編號和 `findings.md` 相同。乾淨狀態的做法見 [SKILL.md](../SKILL.md#密鑰不進對話紀錄)：`__frontendQaRestoreCheckpoint('clean')` 的 `after` 計數要和儲存時相同，再用 `navigate_page`（`type` 為 `url`）打開存下來的網址。HttpOnly cookie 和伺服器狀態還原不了，或回傳 `missing: true`，改請使用者在已接上的瀏覽器自己登入。測試輪中途 app 自己登出、頁面停在 `#/login` 時，還原之後仍要 `navigate_page` 到存下來的網址。
 
 ## steps 檔
 
 路徑是 `.frontend-qa/<run>/repro/F<n>.steps.md`。編號步驟，每步寫四件事：工具名稱、目標（role + 可及名稱；沒有元素目標的工具改寫 url 或參數）、輸入值、預期觀察。最後一步一定是斷言，見下一節。
 
-密碼、token 或其他密鑰不寫進檔案，也不傳給 `fill`、`fill_form`、`press_key`、`evaluate_script`。這些工具的每個參數都會留在對話紀錄裡，shell 指令裡也不要展開密鑰。steps 檔裡的密鑰寫成佔位符 `<secret QA_PASSWORD: entered by a person, not by a tool>`。重播不執行這個佔位符：登入沿用使用者已經登入的 Chrome（專用設定檔，見 [SKILL.md](../SKILL.md#需求)），否則停止並請使用者在該瀏覽器自己登入，完成後再繼續。Playwright spec 讀 `process.env.QA_PASSWORD`，不要把值寫進 spec。
+密碼、token 或其他密鑰不寫進檔案，也不傳給任何 MCP 工具。規則見 [SKILL.md](../SKILL.md#密鑰不進對話紀錄)。steps 檔裡的密鑰寫成佔位符 `<secret QA_PASSWORD: entered by a person, not by a tool>`。重播不執行這個佔位符：登入沿用使用者已經登入的 Chrome（專用設定檔，見 [SKILL.md](../SKILL.md#需求)），否則停止並請使用者在該瀏覽器自己登入，完成後再繼續。Playwright spec 讀 `process.env.QA_PASSWORD`；沒有設定就失敗，不要把值寫進 spec。
 
 ```markdown
 # F7
@@ -32,7 +32,7 @@ P0、P1 第二次從乾淨狀態重現成功之後。F 編號和 `findings.md` �
    target: { role: button, name: 送出訂單 }
    expect: 網址或畫面有變化
 4. tool: evaluate_script
-   function: () => { const row = document.querySelector("tbody tr"); const text = row ? row.innerText : ""; const pass = text.includes("2026-01-03"); return { pass, detail: pass ? "first row has 2026-01-03" : "first row is " + text }; }
+   function: () => { const maskResult = globalThis.__frontendQaMaskResult; if (typeof maskResult !== "function") return { pass: false, detail: "mask.js is not installed" }; const row = document.querySelector("tbody tr"); const text = row ? row.innerText : ""; const pass = text.includes("2026-01-03"); const detail = pass ? "first row has 2026-01-03" : "first row is " + text; return maskResult({ pass, detail }); }
    expect: 有 bug 的版本回傳 pass false
 ```
 
@@ -40,11 +40,13 @@ P0、P1 第二次從乾淨狀態重現成功之後。F 編號和 `findings.md` �
 
 ```js
 () => {
+  const maskResult = globalThis.__frontendQaMaskResult;
+  if (typeof maskResult !== "function") return { clicked: 0, detail: "mask.js is not installed" };
   const button = [...document.querySelectorAll("button")].find((element) =>
     (element.getAttribute("aria-label") || element.innerText || "").trim() === "送出訂單");
   button.click();
   button.click();
-  return { clicked: 2 };
+  return maskResult({ clicked: 2 });
 }
 ```
 
@@ -71,7 +73,7 @@ P0、P1 第二次從乾淨狀態重現成功之後。F 編號和 `findings.md` �
 ## 重播
 
 1. `new_page` 開一個新分頁，載入 steps 第 1 步的 url（第 1 步若不是導覽，就載入 finding 的起始 URL）。不要沿用測試輪那個分頁的畫面狀態。
-2. 需要已登入的乾淨狀態時，先照 SKILL.md 步驟 1 還原 `checkpoint.json`。HttpOnly cookie 或伺服器狀態還原不了就請使用者在已接上的瀏覽器自己登入，不要把密鑰傳給 `fill`、`fill_form`、`press_key`、`evaluate_script`。會寫入的重現，重播前先把後端重設回乾淨資料，否則舊資料會讓斷言判錯。seeded app 的做法是重啟 `node evals/seeded-app/server.mjs`（要驗證修好的版本時加上 `VARIANT=fix-b1`），再還原 storage，然後 `navigate_page` 到存下來的網址，讓文件換成現在的前端。steps 檔裡的密鑰佔位符不要拿去呼叫工具。
+2. 需要已登入的乾淨狀態時，先照 [SKILL.md](../SKILL.md#密鑰不進對話紀錄) 還原 checkpoint。`after` 計數要和儲存時相同。HttpOnly cookie 或伺服器狀態還原不了，或回傳 `missing: true`，就請使用者在已接上的瀏覽器自己登入，不要把密鑰傳給任何工具。會寫入的重現，重播前先把後端重設回乾淨資料，否則舊資料會讓斷言判錯。seeded app 的做法是重啟 `node evals/seeded-app/server.mjs`（要驗證修好的版本時加上 `VARIANT=fix-b1`），再還原 checkpoint，然後 `navigate_page` 到存下來的網址，讓文件換成現在的前端。steps 檔裡的密鑰佔位符不要拿去呼叫工具。任何回傳資料的 `evaluate_script` 之前先裝 `scripts/mask.js`。
 3. 依編號執行每一步。動作前先 `take_snapshot`，用 role 和可及名稱對到這次的 uid，再呼叫該工具。對不到元素就停止，不要猜 uid。
 4. 跑最後一步的 `evaluate_script`。
 5. 在 `report.md` 該 finding 的重播行寫結果：`repro/F<n>.steps.md`（pass: false，detail: …，符合預期）或 `repro/F<n>.steps.md`（pass: true，detail: …，已修）。重播做不完時寫原因，不要留空白。
@@ -106,9 +108,11 @@ P0、P1 必備 `repro/F<n>.spec.ts`，依 `repro/F<n>.steps.md` 手寫。不要�
 import type { Page } from '@playwright/test';
 export const BASE = process.env.BASE_URL || 'http://localhost:3000';
 export async function login(page: Page) {
+  const password = process.env.QA_PASSWORD;
+  if (!password) throw new Error('QA_PASSWORD is unset. Set it in the environment before running this spec.');
   await page.goto(BASE + '/login');
   await page.locator('[name=email]').fill('qa@example.com');
-  await page.locator('[name=password]').fill(process.env.QA_PASSWORD ?? '');
+  await page.locator('[name=password]').fill(password);
   await page.locator('form button').click();
   await page.waitForURL(/dashboard/);
 }
@@ -136,7 +140,7 @@ MCP 重播仍照上面「重播」執行。沒有 spec 時，P0、P1 的證據�
 
 ## 複驗
 
-跨次執行時，steps 檔和 spec 在 `state/repro/`（見 [memory.md](memory.md#結束前更新狀態檔)）。`_login.ts` 全專案共用一份。`checkpoint.json` 含 cookie 和 storage，不能複製到 `state/`。
+跨次執行時，steps 檔和 spec 在 `state/repro/`（見 [memory.md](memory.md#結束前更新狀態檔)）。`_login.ts` 全專案共用一份。Checkpoint 的值留在頁面裡，不能寫進 `state/`，見 [SKILL.md](../SKILL.md#密鑰不進對話紀錄)。
 
 使用者要確認問題修好了沒有時，不需要重新測試。每個 P0、P1 用上面「重播」的同一組做法：會寫入的項目先重設後端，再還原 storage、`navigate_page` 到存下來的網址、依 steps 重播。前端重新部署或換了 variant 之後，一定要重新載入文件，否則分頁仍跑舊程式，修好的 bug 會被誤判成仍存在。
 

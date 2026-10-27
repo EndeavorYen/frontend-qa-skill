@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 import { describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { anchorPresent, computeFingerprint } from './fingerprint.mjs';
+import { mask, maskControl, maskElement, maskEvaluateResult, maskConsole, maskConsoleArg, maskResult } from './mask.mjs';
 import { buildProbeOutput, normalizePage, noteFailedRequest, notePageLoad, plaintextPasswordFields, resolveEnvRefs } from './probe.mjs';
 
 const script = fileURLToPath(new URL('./probe.mjs', import.meta.url));
@@ -301,5 +302,74 @@ describe('probe.mjs via a symlinked skill directory', () => {
     assert.equal(result.stdout, '');
     assert.equal(existsSync(outPath), false);
     assert.doesNotMatch(output, /連不上|probe-error|登入失敗/);
+  });
+});
+
+describe('secret masking', () => {
+  test('masks password, hidden, token, cookie, and credential-shaped values', () => {
+    const secret = 'super-secret-password';
+    assert.equal(mask('password', secret), `<masked len=${secret.length}>`);
+    assert.equal(mask('cookie', 'ab'), '<masked len=2>');
+    assert.equal(mask('user', 'qa'), 'qa');
+    assert.equal(mask('version', '1.2.3'), '1.2.3');
+    assert.equal(mask('note', 'hello '.repeat(20)).length, 80);
+    const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.signaturevalue';
+    assert.equal(mask('note', jwt), `<masked len=${jwt.length}>`);
+    assert.equal(mask('note', 'a'.repeat(20)), '<masked len=20>');
+    assert.equal(maskControl('password', 'x', 'abc'), '<masked len=3>');
+    assert.equal(maskControl('hidden', 'x', 'abc'), '<masked len=3>');
+    assert.equal(maskControl('text', 'api_key', 'abc'), '<masked len=3>');
+    assert.equal(maskControl('text', 'email', 'qa@example.com'), 'qa@example.com');
+    assert.equal(
+      JSON.stringify(maskResult({ counts: { session: 2, local: 1 }, password: 'abc' })),
+      JSON.stringify({ counts: { session: 2, local: 1 }, password: '<masked len=3>' }),
+    );
+  });
+
+  test('probe masks input values and console values before they are emitted', () => {
+    const probeSource = readFileSync(script, 'utf8');
+    assert.match(probeSource, /maskEvaluateResult\(r\.result\)/);
+    assert.match(probeSource, /maskConsoleArg/);
+    assert.match(probeSource, /MASK_SOURCE/);
+    assert.match(probeSource, /__frontendQaMaskElement/);
+    assert.doesNotMatch(probeSource, /\.value\b/);
+    const secret = 'super-secret-password';
+    const password = {
+      getAttribute(name) {
+        if (name === 'type') return 'password';
+        if (name === 'name') return 'password';
+        return null;
+      },
+      id: 'pw',
+      value: secret,
+    };
+    const hidden = {
+      getAttribute(name) {
+        return name === 'type' ? 'hidden' : null;
+      },
+      id: '',
+      value: 'tok',
+    };
+    const token = {
+      getAttribute(name) {
+        if (name === 'type') return 'text';
+        if (name === 'name') return 'api_key';
+        return null;
+      },
+      id: '',
+      value: 'abc',
+    };
+    assert.equal(maskElement(password), `<masked len=${secret.length}>`);
+    assert.equal(maskElement(hidden), '<masked len=3>');
+    assert.equal(maskElement(token), '<masked len=3>');
+    const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.signaturevalue';
+    assert.equal(maskConsoleArg({ value: jwt }), `<masked len=${jwt.length}>`);
+    const logged = maskConsole(`login failed ${jwt} then more text`);
+    assert.doesNotMatch(logged, new RegExp(jwt));
+    assert.match(logged, /<masked len=/);
+    const emitted = maskEvaluateResult({ value: { password: secret, note: 'hello' } });
+    assert.equal(emitted.password, `<masked len=${secret.length}>`);
+    assert.equal(emitted.note, 'hello');
+    assert.doesNotMatch(JSON.stringify(emitted), new RegExp(secret));
   });
 });

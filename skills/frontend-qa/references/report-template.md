@@ -72,7 +72,7 @@ P3 問題可以省略「預期」和「重現次數」，但截圖不能省。�
 
 ## 環境檢查
 - 驅動：chrome-devtools-mcp（`list_pages` 成功）
-- Chrome：<navigator.userAgent，有分頁後用 `evaluate_script` 執行 `() => navigator.userAgent` 填>
+- Chrome：<版本字串，有分頁後照 [SKILL.md](../SKILL.md#密鑰不進對話紀錄) 的 `evaluate_script` 填>
 
 ## 範圍
 - 日期、環境、URL、測試帳號（只寫身分，不寫密碼）

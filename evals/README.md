@@ -13,7 +13,9 @@
 
    **工作目錄只能隔離答案卷，擋不住 app 的原始碼。** `app.js` 和 `style.css` 是透過 HTTP 提供的（`GET /app.js` → 200），agent 可以用瀏覽器的 `eval fetch('/app.js')` 或 view-source 讀到。所以必須在指令中明確禁止，並在第 4 步稽核。給 agent 的指令只能包含以下資訊：
    ```text
-   用 frontend-qa 測 http://localhost:4173。這是本機測試環境，任意帳號密碼都能登入，
+   用 frontend-qa 測 http://localhost:4173。這是本機測試環境。
+   無人值守遇到登入牆時，沿用已經登入的專用設定檔；沒有已登入的工作階段就停止，
+   並把該區標成 ➖，理由寫 not covered (login)。不要把密碼傳給任何工具。
    所有操作（包含建立和刪除訂單）都允許。範圍是整個 app。
    這是黑箱測試：不要讀取 app 的 JS/CSS 原始碼（包含透過 fetch、view-source、
    讀取 <script> 內容），只能從使用者看得到的畫面、DOM、console 和網路請求判斷。

@@ -13,12 +13,12 @@ state/
   data-types.md      既有資料的型態與抽樣
   known-findings.md  已知問題與狀態
   probe.json         探測設定（密碼是環境變數參考，不是明文；audit 直接用這份）
-  repro/             重現步驟：*.steps.md、*.spec.ts，以及一份 _login.ts（不含 checkpoint.json）
+  repro/             重現步驟：*.steps.md、*.spec.ts，以及一份 _login.ts（不含 storage 或 cookie 的值）
   runs.md            歷次執行
   design-context.md  設計背景
 ```
 
-`checkpoint.json` 含 cookie 和 storage，只留在該次執行目錄，不放進 `state/`，也不放進對外的 issue。
+Checkpoint 的值只留在頁面的 IndexedDB `__frontend_qa_checkpoints`，見 [SKILL.md](../SKILL.md#密鑰不進對話紀錄)。不要把值寫進執行目錄、`state/` 或對外的 issue。`report.md` 只記 name、url、鍵名和計數。執行結束會刪掉那個資料庫。
 
 `screens.md`：
 
@@ -136,7 +136,7 @@ state/
 | `腳本:<路徑>` | 跑該腳本。跨次時路徑在 `state/repro/`，指令和判定表見 [repro.md](repro.md#複驗) | 照該表：通過是 `已修`，失敗在斷言是 `仍存在`，失敗在前置交給 agent |
 | `手動` | 打開畫面，照重現摘要做一次 | 還能重現是 `仍存在`，不能重現是 `已修`。存 `shots/K-<編號>.png`（`/` 換成 `-`） |
 
-P0、P1 被標成 `已修` 時，仍然照證據規則由 agent 從乾淨狀態確認一次，避免誤判。做法是這次執行目錄的 `checkpoint.json`：`evaluate_script` 寫回 storage 與非 HttpOnly cookie，再 `navigate_page` 到存下來的網址，然後 `take_snapshot`。HttpOnly cookie 或伺服器狀態還原不了時，改重跑設定步驟。頁面停在 `#/login` 時，寫回 storage 之後仍要 `navigate_page` 到存下來的網址。這次執行要先自己存一份 checkpoint，不要沿用上次執行目錄裡的檔。確認失敗就改回 `仍存在`。
+P0、P1 被標成 `已修` 時，仍然照證據規則由 agent 從乾淨狀態確認一次，避免誤判。做法見 [SKILL.md](../SKILL.md#密鑰不進對話紀錄)：這次執行自己呼叫 `__frontendQaSaveCheckpoint('clean')`，確認時呼叫 `__frontendQaRestoreCheckpoint('clean')`，`after` 計數要和儲存時相同，再 `navigate_page` 到存下來的網址，然後 `take_snapshot`。不要沿用上次執行留在頁面裡的 checkpoint。HttpOnly cookie 或伺服器狀態還原不了，或回傳 `missing: true` 時，改重跑設定步驟。頁面停在 `#/login` 時，還原之後仍要 `navigate_page` 到存下來的網址。確認失敗就改回 `仍存在`。
 
 有改動的畫面，測試輪跑完後也用這張表複驗已知問題，包含狀態是 `已修` 的：再壞掉就改回 `仍存在`。做完把「複驗」欄改成 `✅`。這些畫面上新發現的問題，照一般規則寫進這次的 `findings.md`，並依優先順序填「複驗方式」。
 
@@ -154,7 +154,7 @@ P0、P1 被標成 `已修` 時，仍然照證據規則由 agent 從乾淨狀態�
 步驟 6 交付之前：
 - `screens.md` 的指紋和 `fingerprints.json` 換成這次 `probe-result.json` 的 `fingerprints`。沒有跑探測時，才用當時逐頁算出的結果
 - 這次執行目錄有 `probe.json` 時，複製成 `state/probe.json`。檔案裡的密碼必須仍是 `{ "env": "..." }`，不能是明文。之後的 `audit` 直接用這份，見 [modes.md](modes.md#audit)
-- 把這次的 `repro/` 複製到 `state/repro/`：`*.steps.md`、`*.spec.ts`，以及 `_login.ts`。不要複製 `checkpoint.json`（它含 cookie 和 storage，只能留在執行目錄）
+- 把這次的 `repro/` 複製到 `state/repro/`：`*.steps.md`、`*.spec.ts`，以及 `_login.ts`。不要複製 storage 或 cookie 的值。Checkpoint 留在頁面裡，見 [SKILL.md](../SKILL.md#密鑰不進對話紀錄)
 - 這次新發現的問題加進 `known-findings.md`，狀態 `仍存在`，並填「複驗方式」
 - 已知問題更新狀態和「最後確認」
 - `runs.md` 新增一列

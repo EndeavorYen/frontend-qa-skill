@@ -33,7 +33,7 @@
 | P2 | 照重現步驟重做 1 次；沒重現的話，再從乾淨狀態做第 2 次 |
 | P3 | 看截圖和證據判斷；證據不足時才重做 |
 
-乾淨狀態是步驟 1 的 `checkpoint.json`：`evaluate_script` 寫回 `localStorage`、`sessionStorage` 和非 HttpOnly 的 `document.cookie`，再 `navigate_page` 到存下來的網址，然後 `take_snapshot`，照步驟操作。這只還原這個分頁的 URL、非 HttpOnly cookie 和 storage，不還原後端資料，也還原不了 HttpOnly cookie。還原不了時改重跑設定步驟。測試輪中途 app 自己登出、頁面停在 `#/login` 時，storage 寫回後仍要 `navigate_page` 到存下來的網址，頁面才會讀到還原後的 session。
+乾淨狀態是步驟 1 存在頁面裡的 checkpoint，做法見 [SKILL.md](../SKILL.md#密鑰不進對話紀錄)：`__frontendQaRestoreCheckpoint('clean')` 的 `after` 計數要和儲存時相同，再 `navigate_page` 到存下來的網址，然後 `take_snapshot`，照步驟操作。這只還原這個分頁的 URL、非 HttpOnly cookie 和 storage，不還原後端資料，也還原不了 HttpOnly cookie。回傳 `missing: true` 或還原不了時改重跑設定步驟。測試輪中途 app 自己登出、頁面停在 `#/login` 時，還原之後仍要 `navigate_page` 到存下來的網址，頁面才會讀到還原後的 session。不要把 storage 或 cookie 的值貼進對話。
 
 **有副作用的 finding**：重做會寫入資料、扣款、寄信或通知的（例如重複建立、重複扣款），重做前先照步驟 0 的禁止動作判斷：正式環境不重做，改看證據判斷；非正式環境要先知道怎麼回到乾淨狀態（重設資料、換一筆新資料）。只還原 checkpoint 的 storage 不夠，因為後端資料還在。不知道怎麼清掉後端資料的話也改看證據。改看證據的，在理由寫「未重做：有副作用」。
 

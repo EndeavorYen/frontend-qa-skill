@@ -16,7 +16,17 @@
       : '';
     return e.tagName.toLowerCase() + id + cls;
   };
-  const el = (e, extra = '') => desc(e) + ' "' + clip(ownText(e) || e.getAttribute('aria-label') || e.getAttribute('placeholder') || e.value || '', 30) + '"' + (extra ? ' ' + extra : '');
+  const shownValue = (e) => {
+    const read = globalThis.__frontendQaMaskElement;
+    if (typeof read !== 'function') throw new Error('install scripts/mask.js before anti-patterns.js');
+    return read(e);
+  };
+  const el = (e, extra = '') => {
+    const masked = shownValue(e);
+    const quoted = clip(ownText(e) || e.getAttribute('aria-label') || e.getAttribute('placeholder') || masked || '', 30);
+    const suffix = typeof masked === 'string' && masked.indexOf('<masked ') === 0 ? ' value=' + masked : '';
+    return desc(e) + ' "' + quoted + '"' + suffix + (extra ? ' ' + extra : '');
+  };
   const parse = (c) => {
     const m = String(c).match(/[\d.]+/g);
     return m ? m.map(Number) : [0, 0, 0, 1];
@@ -82,7 +92,7 @@
   const genericDialogActions = [...document.querySelectorAll('[role=dialog],dialog,[aria-modal=true]')].filter(visible).filter((d) => {
     const t = d.innerText || '';
     if (!question.test(t)) return false;
-    const names = [...d.querySelectorAll('button,[role=button],input[type=button],input[type=submit]')].filter(visible).map((b) => clip(b.innerText || b.value || '', 20));
+    const names = [...d.querySelectorAll('button,[role=button],input[type=button],input[type=submit]')].filter(visible).map((b) => clip(b.innerText || shownValue(b) || '', 20));
     const generic = names.filter((name) => genericName.test(name));
     const named = names.filter(Boolean);
     return generic.length >= 2 && generic.length === named.length;
@@ -157,7 +167,7 @@
 
   const DESTR = utf8 ? /刪除|移除|作廢|delete|remove|destroy/i : /delete|remove|destroy/i;
   const PRIMARY = utf8 ? /新增|建立|儲存|送出|確認|save|create|submit|add/i : /save|create|submit|add/i;
-  const nameOf = (e) => clip(e.innerText || e.getAttribute('aria-label') || e.value || '', 20);
+  const nameOf = (e) => clip(e.innerText || e.getAttribute('aria-label') || shownValue(e) || '', 20);
   const destructiveLooksPrimary = [];
   for (const d of buttons.filter((e) => DESTR.test(nameOf(e)) && filled(e))) {
     const match = buttons.find((p) => PRIMARY.test(nameOf(p)) && filled(p) && cs(p).backgroundColor === cs(d).backgroundColor && cs(p).color === cs(d).color);
