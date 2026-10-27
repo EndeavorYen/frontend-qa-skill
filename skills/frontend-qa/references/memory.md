@@ -13,7 +13,7 @@ state/
   data-types.md      既有資料的型態與抽樣
   known-findings.md  已知問題與狀態
   probe.json         探測設定（密碼是環境變數參考，不是明文；audit 直接用這份）
-  repro/             重現步驟：*.steps.md；目標專案已有 Playwright 時才有 *.spec.ts 與一份 _login.ts（不含 checkpoint.json）
+  repro/             重現步驟：*.steps.md、*.spec.ts，以及一份 _login.ts（不含 checkpoint.json）
   runs.md            歷次執行
   design-context.md  設計背景
 ```
@@ -154,7 +154,7 @@ P0、P1 被標成 `已修` 時，仍然照證據規則由 agent 從乾淨狀態�
 步驟 6 交付之前：
 - `screens.md` 的指紋和 `fingerprints.json` 換成這次 `probe-result.json` 的 `fingerprints`。沒有跑探測時，才用當時逐頁算出的結果
 - 這次執行目錄有 `probe.json` 時，複製成 `state/probe.json`。檔案裡的密碼必須仍是 `{ "env": "..." }`，不能是明文。之後的 `audit` 直接用這份，見 [modes.md](modes.md#audit)
-- 把這次的 `repro/` 複製到 `state/repro/`：`*.steps.md`，以及目標專案已經有 Playwright 時手寫的 `*.spec.ts`（有的話含一份 `_login.ts`）。不要複製 `checkpoint.json`（它含 cookie 和 storage，只能留在執行目錄）
+- 把這次的 `repro/` 複製到 `state/repro/`：`*.steps.md`、`*.spec.ts`，以及 `_login.ts`。不要複製 `checkpoint.json`（它含 cookie 和 storage，只能留在執行目錄）
 - 這次新發現的問題加進 `known-findings.md`，狀態 `仍存在`，並填「複驗方式」
 - 已知問題更新狀態和「最後確認」
 - `runs.md` 新增一列

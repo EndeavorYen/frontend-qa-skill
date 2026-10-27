@@ -11,20 +11,36 @@ description: "前端品質驗證：扮演挑剔、會亂按的使用者操作真
 
 驅動瀏覽器只用官方 [chrome-devtools-mcp](https://github.com/ChromeDevTools/chrome-devtools-mcp) 的這些工具：`new_page`、`navigate_page`、`list_pages`、`select_page`、`take_snapshot`、`click`、`fill`、`fill_form`、`hover`、`press_key`、`wait_for`、`evaluate_script`、`take_screenshot`、`list_console_messages`、`list_network_requests`、`get_network_request`、`resize_page`、`emulate`。不要用這份清單以外的瀏覽器工具。元素用最新一次 `take_snapshot` 回傳的 `uid`。uid 每次快照都會變，每次動作前都要先重拍一次快照，再用新的 uid。
 
-把 MCP server 加進客戶端設定，指令是 `npx chrome-devtools-mcp@latest`：
+先用專用設定檔啟動 Chrome，開一個已知的除錯 port。不要用日常使用的設定檔：
+
+```bash
+--remote-debugging-port=9222 --user-data-dir=<專用設定檔目錄>
+```
+
+把 MCP server 接到這個 Chrome：
+
+```bash
+npx chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:9222
+```
+
+客戶端設定：
 
 ```json
 {
   "mcpServers": {
     "chrome-devtools": {
       "command": "npx",
-      "args": ["chrome-devtools-mcp@latest"]
+      "args": ["chrome-devtools-mcp@latest", "--browser-url=http://127.0.0.1:9222"]
     }
   }
 }
 ```
 
-加完後重啟該 MCP server，讓上面的工具出現在工具清單裡。探測腳本另需 Node 22，見 [probe.md](references/probe.md)。
+加完後重啟該 MCP server，讓上面的工具出現在工具清單裡。`scripts/probe.mjs` 用同一個 port：`CDP_PORT=9222`，或在 `probe.json` 寫 `"cdpPort": 9222`。兩個都沒有時，探測跳過。探測腳本另需 Node 22，見 [probe.md](references/probe.md)。
+
+Linux 上若因 AppArmor 出現 `No usable sandbox!`，只在載入本機測試 app 時，於上面的 Chrome 啟動參數加上對應的 no-sandbox 參數。
+
+登入不要把密碼、token 或其他密鑰傳給 `fill`、`fill_form`、`press_key` 或 `evaluate_script`。這些工具的每個參數都會留在對話紀錄裡，shell 指令裡也不要展開密鑰。優先沿用這個專用設定檔裡使用者已經登入的工作階段。還沒登入就停止，請使用者在這個瀏覽器裡自己登入，完成後再繼續。文件裡的「重新登入」也是這兩條路，不是由 agent 把密鑰填進去。
 
 ## 名詞
 
@@ -106,7 +122,7 @@ coverage.md  findings.md  ux-review.md  audit.md  advise.md  critic-verdicts.md 
 - 無人值守：直接開始。
 - 使用者給了成本上限，而估算超過上限：先提出要縮減哪些面項或畫面。
 
-完整模式照 [probe.md](references/probe.md) 寫 `probe.json`；增量模式沿用上面複製來的檔案。接著跑探測腳本，把確認過的結果寫進 `findings.md`。步驟 0 已經用 `list_pages` 確認 MCP server 已連上。探測腳本另外自己連 DevTools protocol，需要 `probe.json` 的 `cdpPort`（或腳本檔頭用法註解裡的那個環境變數）和至少一個測試輪；不符合就跳過，在 `report.md` 寫明原因，該項檢查改由測試輪用「需求」列出的 MCP 工具做。密碼用 `{ "env": "QA_PASSWORD" }`，不能寫進設定檔。
+完整模式照 [probe.md](references/probe.md) 寫 `probe.json`；增量模式沿用上面複製來的檔案。接著跑探測腳本，把確認過的結果寫進 `findings.md`。步驟 0 已經用 `list_pages` 確認 MCP server 已連上。探測腳本另外自己連 DevTools protocol，需要 `CDP_PORT=9222` 或 `probe.json` 的 `cdpPort`（與 Chrome 的 `--remote-debugging-port=9222` 相同），以及至少一個測試輪。沒有 port，或沒有測試輪，就跳過，在 `report.md` 寫明原因，該項檢查改由測試輪用「需求」列出的 MCP 工具做。`probe.json` 的密碼寫成 `{ "env": "QA_PASSWORD" }`，由 `probe.mjs` 在自己的行程裡替換，不能寫進設定檔，也不能拿去當 `fill`、`fill_form`、`press_key`、`evaluate_script` 的參數。
 
 登入並偵察完、開始測試輪之前，在已經登入的那個分頁存乾淨狀態。用 `evaluate_script` 讀出目前網址、`localStorage`、`sessionStorage`，以及 `document.cookie`（讀得到的只有非 HttpOnly cookie），寫進 `.frontend-qa/<run>/checkpoint.json`：
 
@@ -143,7 +159,7 @@ coverage.md  findings.md  ux-review.md  audit.md  advise.md  critic-verdicts.md 
 }
 ```
 
-寫完用 `navigate_page`（`type` 為 `url`）打開存下來的網址，讓頁面讀到還原後的 storage。HttpOnly cookie 和伺服器上的狀態沒辦法用這個方式還原；還原後仍停在登入頁，或登入狀態不見時，改重跑設定步驟（重新登入），不要當成已經回到乾淨狀態。這份 checkpoint 不會還原後端資料。
+寫完用 `navigate_page`（`type` 為 `url`）打開存下來的網址，讓頁面讀到還原後的 storage。HttpOnly cookie 和伺服器上的狀態沒辦法用這個方式還原；還原後仍停在登入頁，或登入狀態不見時，改重跑設定步驟（請使用者在已接上的瀏覽器自己登入），不要當成已經回到乾淨狀態，也不要把密鑰傳給 `fill`、`fill_form`、`press_key`、`evaluate_script`。這份 checkpoint 不會還原後端資料。
 
 完成條件：`coverage.md` 列出範圍內每個畫面和流程步驟；完整模式每格都是 `☐`，增量模式照 [memory.md](references/memory.md#步驟-1) 的規則填；`report.md` 寫好估算結果；探測已經跑完並解讀，或已寫明跳過的原因；`checkpoint.json` 已寫入執行目錄。
 
@@ -169,7 +185,7 @@ coverage.md  findings.md  ux-review.md  audit.md  advise.md  critic-verdicts.md 
 
 先照 [critic.md](references/critic.md) 跑 Critic 關卡，逐條驗證 `findings.md`，刪掉不成立的、改寫部分成立的。有 `ux-review.md` 時，同一個 Critic 接著做體檢複核。然後整理 `findings.md`：合併重複的問題（分 session 執行時，各輪只看得到標題，去重規則見 [sessions.md](references/sessions.md#合併與去重)），照 [severity.md](references/severity.md) 標上 P0–P3 和類別，再照 [report-template.md](references/report-template.md#reportmd) 寫出 `report.md`。
 
-完成條件：執行目錄有 `critic-verdicts.md`，每個 finding 都有判定，`待確認` 都已經由主 session 處理完；有 `ux-review.md` 時，`critic-verdicts.md` 有第二張體檢判定表，每個 3 分以下的分數都有判定，`調整` 已改分或寫了不採用的理由，`證據不足` 已補證據或往 3 分靠攏；`ux-review.md` 中 3 分以下的分數，引用的 F 編號都還在 `findings.md` 裡；`report.md` 包含以下內容：Critic 的方式與判定統計（含體檢判定筆數）、嚴重度統計、已知問題狀態（增量模式時）、最嚴重的 5 個問題、UI/UX 體檢摘要（體檢有開時）、按畫面分組的完整清單、覆蓋率（✅ / ➖ / ⛔ 各幾格）、未歸因清單，以及估算和實際成本的對照。每個問題都有證據；每個 P0、P1 都有 `repro/F<n>.steps.md`，而且只用「需求」列出的 MCP 工具就能重播（見 [repro.md](references/repro.md)）；重播沒有跑的，寫明原因。目標專案已經有 Playwright 時才依 steps 檔手寫 spec，沒有就不要寫、也不要安裝。每個「不是問題」的結論（`critic-verdicts.md` 的 `不成立`、`unattributed.md` 的每一筆、清掉的檢查）都附上截圖路徑、重現腳本或探測結果至少一種。清掉的檢查寫在該列唯一的「備註」欄，格式見 [report-template.md](references/report-template.md#coveragemd)。普通的 `✅` 不必附路徑。每一筆失敗都寫了原因，並附一條可執行的下一步指令。
+完成條件：執行目錄有 `critic-verdicts.md`，每個 finding 都有判定，`待確認` 都已經由主 session 處理完；有 `ux-review.md` 時，`critic-verdicts.md` 有第二張體檢判定表，每個 3 分以下的分數都有判定，`調整` 已改分或寫了不採用的理由，`證據不足` 已補證據或往 3 分靠攏；`ux-review.md` 中 3 分以下的分數，引用的 F 編號都還在 `findings.md` 裡；`report.md` 包含以下內容：Critic 的方式與判定統計（含體檢判定筆數）、嚴重度統計、已知問題狀態（增量模式時）、最嚴重的 5 個問題、UI/UX 體檢摘要（體檢有開時）、按畫面分組的完整清單、覆蓋率（✅ / ➖ / ⛔ 各幾格）、未歸因清單，以及估算和實際成本的對照。每個問題都有證據；每個 P0、P1 都有 `repro/F<n>.steps.md`（只用「需求」列出的 MCP 工具就能重播，見 [repro.md](references/repro.md)）和依它手寫的 `repro/F<n>.spec.ts`；重播沒有跑或 spec 沒有跑的，寫明原因。不要安裝 Playwright。每個「不是問題」的結論（`critic-verdicts.md` 的 `不成立`、`unattributed.md` 的每一筆、清掉的檢查）都附上截圖路徑、重現腳本或探測結果至少一種。清掉的檢查寫在該列唯一的「備註」欄，格式見 [report-template.md](references/report-template.md#coveragemd)。普通的 `✅` 不必附路徑。每一筆失敗都寫了原因，並附一條可執行的下一步指令。
 
 ### 5. 工具回報（工具軌開啟時才做）
 
@@ -199,13 +215,13 @@ coverage.md  findings.md  ux-review.md  audit.md  advise.md  critic-verdicts.md 
 
 ## 證據規則
 
-- 每個產品問題都要有證據；拿不出證據的，就不算一個問題。每個問題都要有 `shots/` 的截圖（P3 也一樣）；P0、P1 還要有重現腳本。
+- 每個產品問題都要有證據；拿不出證據的，就不算一個問題。每個問題都要有 `shots/` 的截圖（P3 也一樣）；P0、P1 還要有 Playwright 重現腳本 `repro/F<n>.spec.ts`，以及 MCP 重播紀錄 `repro/F<n>.steps.md`。
 - 「不是問題」的結論也要有證據，至少一種：`shots/` 的截圖路徑、Playwright 重現腳本，或 `probe-result.json` 的那一筆。這包含 `critic-verdicts.md` 的 `不成立`，以及 `unattributed.md` 的每一筆。沒有證據就不能保留，也不能拿掉這個結論。
 - 覆蓋地圖的 `✅` 只代表那一輪跑完，不必每格附路徑。要附證據的是「清掉的檢查」：曾經懷疑是問題，查完決定不寫進 `findings.md`。證據只寫在該列的「備註」欄，不寫進輪次欄。格式，以及為什麼不要求每一格 `✅` 都附路徑，見 [report-template.md](references/report-template.md#coveragemd)。
 - P0 和 P1 必須從乾淨狀態重現兩次。深度 5 時，P2 也要重現兩次。乾淨狀態的做法見步驟 1：`evaluate_script` 寫回 storage 和非 HttpOnly cookie，再 `navigate_page` 到存下來的網址，然後 `take_snapshot`（先前的 uid 已失效）。不要另開瀏覽器。HttpOnly cookie 或伺服器狀態還原不了時，改重跑設定步驟。測試輪中途 app 自己登出、頁面停在 `#/login` 時，storage 寫回後仍要 `navigate_page` 到存下來的網址，頁面才會讀到還原後的 session。
 - checkpoint 不會還原後端資料。重現會寫入資料的問題時，規則和 [critic.md](references/critic.md#怎麼驗證) 的「有副作用的 finding」相同。
-- P0 和 P1 第二次重現成功後，照 [repro.md](references/repro.md) 存 `repro/F<n>.steps.md`。這份檔只用「需求」列出的 MCP 工具就能重播。最後一步是 `evaluate_script`，回傳 `{pass: boolean, detail: string}`，寫修好之後應該成立的事。有 bug 的版本重播結果必須是 `pass: false` 才算確認；修好後再查時 `pass: true`。目標專案已經有 Playwright 時，可以依 steps 檔手寫 spec；沒有就跳過，不要安裝。
-- 重現步驟要寫成別人照著做就能做出來的程度：起始 URL、登入身分、每一步的操作和輸入值。密碼不寫進 steps 檔；登入步驟的 value 寫 `env:QA_PASSWORD`，重播時才讀環境變數。
+- P0 和 P1 第二次重現成功後，照 [repro.md](references/repro.md) 存 `repro/F<n>.steps.md`，並依它手寫 `repro/F<n>.spec.ts`。steps 檔是 MCP 重播紀錄，只用「需求」列出的工具就能重播。spec 是 P0、P1 必備的重現腳本，不是可選；不要匯出，也不要安裝 Playwright。steps 檔最後一步是 `evaluate_script`，回傳 `{pass: boolean, detail: string}`，寫修好之後應該成立的事。有 bug 的版本重播結果必須是 `pass: false` 才算確認；修好後再查時 `pass: true`。spec 用 [repro.md](references/repro.md#驗證腳本) 的指令跑，斷言和 steps 檔最後一步證明同一件事。
+- 重現步驟要寫成別人照著做就能做出來的程度：起始 URL、登入身分、每一步的操作和輸入值。密碼、token 或其他密鑰不要傳給 `fill`、`fill_form`、`press_key`、`evaluate_script`，也不要寫進 steps 檔或 shell 指令。這些工具的每個參數都會留在對話紀錄裡。登入優先沿用專用設定檔裡已經登入的工作階段；否則停止，請使用者在該瀏覽器自己登入後再繼續。steps 檔的密鑰寫成 `<secret QA_PASSWORD: entered by a person, not by a tool>`。spec 只讀 `process.env.QA_PASSWORD`，不要把值寫進檔案。
 - 「設計上就是這樣，但使用者會卡住」也算問題，要記錄下來。判斷時以使用者的感受為準，不要用程式碼替設計找理由。
 - 只用自己建立的資料測過的狀態，不能在覆蓋地圖上打勾，還要打開既有資料中對應型態的那一筆。
 
@@ -213,8 +229,8 @@ coverage.md  findings.md  ux-review.md  audit.md  advise.md  critic-verdicts.md 
 
 任何失敗（驅動指令報錯、重現沒有出現、探測中斷、Critic 沒有做完）都要寫明原因，並給一條可以直接複製執行的下一步指令，三選一：
 
-- 探測：`node skills/frontend-qa/scripts/probe.mjs <probe.json> --out <probe-result.json>`（port 在該 probe.json 的 `cdpPort`）
-- 重現：重播該次的 `repro/<id>.steps.md`（`new_page`，每步動作前 `take_snapshot`，最後跑 `evaluate_script` 斷言；見 [repro.md](references/repro.md#重播)）。目標專案已經有 Playwright、而且這次有手寫 spec 時，才另外用 `cd .frontend-qa/<run>/repro && BASE_URL=<網址> npx --no-install playwright test --reporter=line`。`BASE_URL=<網址> npx playwright test -c <repo>/evals/repro` 只適用於 seeded-app 評測（見 `evals/repro/README.md`），不要拿去跑別的網站。
+- 探測：`CDP_PORT=9222 node skills/frontend-qa/scripts/probe.mjs <probe.json> --out <probe-result.json>`（`probe.json` 已寫 `cdpPort` 時可省略這個環境變數）
+- 重現：`cd .frontend-qa/<run>/repro && BASE_URL=<url> npx --no-install playwright test --reporter=line`（見 [repro.md](references/repro.md#驗證腳本)）。`BASE_URL=<url> npx playwright test -c <repo>/evals/repro` 只適用於 seeded-app 評測（見 `evals/repro/README.md`），不要拿去跑別的網站。
 - 剛剛失敗的那一次 MCP 工具呼叫，原樣再寫一次（工具名稱只能是「需求」那份清單裡的）
 
 ## 輸出精簡規則

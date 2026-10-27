@@ -38,6 +38,18 @@
 
 ## 用獨立瀏覽器跑
 
-不想動到自己的 Chrome 時，接上 `chrome-devtools-mcp`（`npx chrome-devtools-mcp@latest`），讓它自己開瀏覽器，不要把 server 指到日常使用的 Chrome。接上之後呼叫 `list_pages`。呼叫成功就代表這個瀏覽器可以用。
+用專用設定檔啟動 Chrome，不要用日常使用的設定檔：
 
-如果 Linux 因為 AppArmor 限制而出現 `No usable sandbox!`，查 `npx chrome-devtools-mcp@latest --help` 裡轉給 Chrome 的參數，只在載入本機測試 app 時加上對應的 no-sandbox 參數。
+```bash
+--remote-debugging-port=9222 --user-data-dir=<專用設定檔目錄>
+```
+
+接上 chrome-devtools-mcp：
+
+```bash
+npx chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:9222
+```
+
+接上之後呼叫 `list_pages`。呼叫成功就代表這個瀏覽器可以用。`skills/frontend-qa/scripts/probe.mjs` 用同一個 port：`CDP_PORT=9222`，或在 `probe.json` 寫 `cdpPort`。兩個都沒有時，探測跳過。
+
+如果 Linux 因為 AppArmor 限制而出現 `No usable sandbox!`，查 `npx chrome-devtools-mcp@latest --help` 裡轉給 Chrome 的 no-sandbox 參數，只在載入本機測試 app 時加到上面的 Chrome 啟動參數。

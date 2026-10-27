@@ -44,11 +44,11 @@
 - 證據：`shots/F7-footer-overlap.png`；`evaluate_script` 的 `elementFromPoint` 命中 `FOOTER`
 - 重現次數：2/2
 - 重播：`repro/F7.steps.md`（pass: false，detail: 按鈕中心命中 FOOTER，符合預期）
-- 重現腳本：未手寫：目標專案沒有 Playwright
+- 重現腳本：`repro/F7.spec.ts`（目前失敗，符合預期）
 - 相關：F3（同一個 footer 在 S5 也擋住內容）
 ```
 
-P3 問題可以省略「預期」和「重現次數」，但截圖不能省。「重播」只有 P0、P1 需要，寫法見 [repro.md](repro.md#重播)。目標專案已經有 Playwright 時才手寫 spec；沒有就在「重現腳本」寫「未手寫：目標專案沒有 Playwright」。重播仍然要跑。
+P3 問題可以省略「預期」和「重現次數」，但截圖不能省。「重播」只有 P0、P1 需要，寫 `repro/F<n>.steps.md`，寫法見 [repro.md](repro.md#重播)。P0、P1 的「重現腳本」是依 steps 檔手寫的 `repro/F<n>.spec.ts`，必備，見 [repro.md](repro.md#驗證腳本)。重播仍然要跑。不要安裝 Playwright。
 
 ## unattributed.md
 

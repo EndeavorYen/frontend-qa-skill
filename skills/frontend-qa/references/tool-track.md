@@ -16,7 +16,7 @@
    - 分頁在背景：先 `select_page`（`bringToFront` 為 true）再重試。
 2. **換一條路重試**：
    - 點擊：重新 `take_snapshot` 後 `click` 新的 uid → `evaluate_script` 對該元素呼叫 `.click()`
-   - 輸入：`fill` → `fill_form` → `evaluate_script` 設定值並觸發 `input` 與 `change`
+   - 輸入：`fill` → `fill_form` → `evaluate_script` 設定值並觸發 `input` 與 `change`。密碼、token 或其他密鑰不走這條路，見 [SKILL.md](../SKILL.md#需求)
    - 讀取畫面：`take_snapshot` → `evaluate_script` 讀 DOM → `take_screenshot`（一定帶 `filePath` 存檔當證據；只有還有看圖額度時才打開，見 SKILL.md「截圖規則」）
 3. **判斷**：
 

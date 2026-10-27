@@ -4,11 +4,11 @@
 
 ## 什麼時候跑
 
-步驟 1 的覆蓋地圖完成後、步驟 2 開始前跑一次。步驟 0 已經用 `list_pages` 確認 chrome-devtools-mcp 已連上。探測腳本自己連 DevTools protocol，不經過那些 MCP 工具，另外需要 Node 22，而且同時符合：
-- `probe.json` 寫了 `cdpPort`，或設定了腳本檔頭用法註解裡的那個環境變數
+步驟 1 的覆蓋地圖完成後、步驟 2 開始前跑一次。步驟 0 已經用 `list_pages` 確認 chrome-devtools-mcp 已連上。Chrome 以專用設定檔啟動，並加上 `--remote-debugging-port=9222 --user-data-dir=<專用設定檔目錄>`。MCP server 用 `npx chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:9222` 接上，見 [SKILL.md](../SKILL.md#需求)。探測腳本自己連 DevTools protocol，不經過那些 MCP 工具，另外需要 Node 22，而且同時符合：
+- `CDP_PORT=9222`，或 `probe.json` 的 `cdpPort` 設成同一個 port。兩個都沒有就跳過探測
 - 至少開了一個測試輪，或入口是 `audit`
 
-不符合的話就跳過，改由測試輪用 [SKILL.md](../SKILL.md#需求) 列出的 MCP 工具手動檢查，並在 `report.md` 寫明沒有跑探測及原因。不要改用其他瀏覽器工具。
+不符合的話就跳過，改由測試輪用 [SKILL.md](../SKILL.md#需求) 列出的 MCP 工具手動檢查，並在 `report.md` 寫明沒有跑探測及原因。不要改用其他瀏覽器工具。Linux 上若因 AppArmor 出現 `No usable sandbox!`，只在載入本機測試 app 時，於 Chrome 啟動參數加上對應的 no-sandbox 參數。
 
 ## 設定檔
 
@@ -53,7 +53,7 @@
 
 **`allowSubmit: true` 只能在步驟 0 允許建立資料時才設。** 送出類檢查會真的送出表單，而且連點檢查可能建立兩筆資料。沒有設的表單只做頁面檢查。探測腳本不會按刪除，也不會碰付款、寄信這類按鈕；不要把這類表單放進 `forms`。
 
-**設定檔不能出現明文密碼**，規則和 [repro.md](repro.md) 相同。密碼欄位寫成 `{ "env": "QA_PASSWORD" }`，這個物件只能有一個 `env` 鍵。`probe.mjs` 讀設定檔時把它換成該環境變數的值。變數不存在或是空字串時，腳本直接停止（exit code 2），stderr 印出要設定的變數名稱，不會連上瀏覽器，也不會帶空密碼登入。解析只發生在記憶體裡，不會把密碼寫回 `probe.json`。密碼欄位若仍是字串，stderr 印出警告（不含密碼內容）並繼續。`QA_PASSWORD` 要事先放在環境變數裡，不要寫在指令上，否則密碼會留在對話紀錄。email 這類非密碼欄位仍直接寫值。
+**設定檔不能出現明文密碼**。密碼欄位寫成 `{ "env": "QA_PASSWORD" }`，這個物件只能有一個 `env` 鍵。`probe.mjs` 在自己的行程裡把它換成該環境變數的值。變數不存在或是空字串時，腳本直接停止（exit code 2），stderr 印出要設定的變數名稱，不會連上瀏覽器，也不會帶空密碼登入。解析只發生在記憶體裡，不會把密碼寫回 `probe.json`，也不會把密碼放進 MCP 工具參數。密碼欄位若仍是字串，stderr 印出警告（不含密碼內容）並繼續。`QA_PASSWORD` 要事先放在環境變數裡，不要寫在指令上，否則密碼會留在對話紀錄。agent 不可以把這個值傳給 `fill`、`fill_form`、`press_key`、`evaluate_script`，見 [repro.md](repro.md)。email 這類非密碼欄位仍直接寫值。
 
 可選欄位：
 
@@ -65,17 +65,17 @@
 | `commandTimeoutMs` | 15000 | 單一 CDP 指令的逾時，超過就記一筆 `probe-error`，繼續下一項。建立連線和登入階段逾時、或 CDP 連線中斷時，直接停止並寫出目前的結果 |
 | `errorWords`、`loadingWords` | 中英文常見字詞 | 判斷錯誤訊息和載入中的正規表示式 |
 | `isolate` | `true` | 在隔離的 browser context 中執行；設成 `false` 會共用使用者瀏覽器的 cookie 和登入狀態 |
-| `cdpPort` | — | 探測腳本要連上的除錯 port。寫在這個欄位。腳本也接受它檔頭用法註解裡的那個環境變數；兩邊都沒有就停止 |
+| `cdpPort` | — | 與 Chrome 的 `--remote-debugging-port` 相同，文件裡的設定是 `9222`。環境變數 `CDP_PORT` 也可以（例如 `CDP_PORT=9222`）。兩個都沒有時，探測跳過 |
 
 ## 執行
 
 `<skill 目錄>` 見 [SKILL.md](../SKILL.md#名詞)。
 
 ```bash
-node <skill 目錄>/scripts/probe.mjs .frontend-qa/<run>/probe.json --out .frontend-qa/<run>/probe-result.json
+CDP_PORT=9222 node <skill 目錄>/scripts/probe.mjs .frontend-qa/<run>/probe.json --out .frontend-qa/<run>/probe-result.json
 ```
 
-port 寫在 `probe.json` 的 `cdpPort`。沒有寫時，腳本改讀它檔頭用法註解裡的那個環境變數。
+port 用環境變數 `CDP_PORT`（與 Chrome 的 `--remote-debugging-port=9222` 相同），或寫在 `probe.json` 的 `cdpPort`。兩個都沒有就跳過，不要跑這個指令。`probe.json` 已寫 `cdpPort` 時可省略 `CDP_PORT`。
 
 stdout 只有一行摘要（各檢查的筆數），完整結果在 `probe-result.json`。`pages` 和 `records` 會多一個 `fingerprints` 物件：鍵是設定檔裡的 url，值是 `{ hash, list }`，在第一個尺寸載入完成後計算，演算法在 [`scripts/fingerprint.mjs`](../scripts/fingerprint.mjs)。
 
