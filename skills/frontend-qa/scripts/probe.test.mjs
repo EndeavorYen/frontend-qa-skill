@@ -368,12 +368,35 @@ describe('secret masking', () => {
     const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.signaturevalue';
     assert.equal(maskConsoleArg({ value: jwt }), `<masked len=${jwt.length}>`);
     const logged = maskConsole(`login failed ${jwt} then more text`);
+    assert.equal(logged, `login failed <masked len=${jwt.length}> then more text`);
     assert.doesNotMatch(logged, new RegExp(jwt));
     assert.match(logged, /<masked len=/);
     const emitted = maskEvaluateResult({ value: { password: secret, note: 'hello' } });
     assert.equal(emitted.password, `<masked len=${secret.length}>`);
     assert.equal(emitted.note, 'hello');
     assert.doesNotMatch(JSON.stringify(emitted), new RegExp(secret));
+  });
+
+  test('maskConsole keeps a non-secret console line and masks only credential tokens', () => {
+    const line = 'GET /orders/12345/edit-form failed for user 3f2a9c1e-1b2c-4d5e-8f90-1234567890ab';
+    const overEighty = line + ' x';
+    assert.equal(line.length, 80);
+    assert.ok(overEighty.length > 80);
+    assert.equal(maskConsole(line), line);
+    assert.equal(maskConsole(overEighty), overEighty);
+
+    const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.signaturevalue';
+    const hex = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4';
+    assert.equal(hex.length, 40);
+    assert.equal(
+      maskConsole(`login failed ${jwt} then more text`),
+      `login failed <masked len=${jwt.length}> then more text`,
+    );
+    assert.equal(maskConsole(`rejected ${hex} for order`), `rejected <masked len=40> for order`);
+
+    const overCap = 'hello '.repeat(334);
+    assert.equal(overCap.length, 2004);
+    assert.equal(maskConsole(overCap), `${overCap.slice(0, 2000)}…<truncated len=2004>`);
   });
 
   test('leaves ordinary page data intact and masks whole-word secrets', () => {

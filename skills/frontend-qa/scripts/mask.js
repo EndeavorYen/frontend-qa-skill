@@ -106,11 +106,16 @@
     return maskControl(type, key, raw);
   }
 
+  function maskCredentialToken(token) {
+    return looksLikeCredential(token) ? '<masked len=' + token.length + '>' : token;
+  }
+
   function maskConsole(text) {
     let out = text == null ? '' : String(text);
-    out = out.replace(/[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, (match) => '<masked len=' + match.length + '>');
-    out = out.replace(/[A-Za-z0-9+/_=-]{20,}/g, (match) => '<masked len=' + match.length + '>');
-    return out.length > 80 ? out.slice(0, 80) : out;
+    out = out.replace(/[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, maskCredentialToken);
+    out = out.replace(/[A-Za-z0-9+_=-]{32,}/g, maskCredentialToken);
+    if (out.length > TRUNCATE_AT) return out.slice(0, TRUNCATE_AT) + '…<truncated len=' + out.length + '>';
+    return out;
   }
 
   function maskConsoleArg(arg) {
