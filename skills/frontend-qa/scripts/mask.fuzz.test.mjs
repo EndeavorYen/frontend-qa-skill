@@ -61,6 +61,14 @@ const EXPLICIT = [
   { input: 'password: )hunter2\n  continued9', needle: 'continued9', expect: 'password: <masked len=21>' },
   { input: '<td>password: hunter2</td>', needle: 'hunter2', expect: '<td>password: <masked len=7></td>' },
   { input: '(password: Qw7zx5))RtY', needle: 'RtY', expect: '(password: <masked len=11>' },
+  { input: '"password: hun""ter2x', needle: 'ter2x', expect: '"password: <masked len=10>' },
+  { input: "'password: hun''ter2x", needle: 'ter2x', expect: "'password: <masked len=10>" },
+  { input: "`password: hun``ter2x`", needle: 'ter2x', expect: "`password: <masked len=10>`" },
+  { input: '"password: hun")ter2x', needle: 'ter2x', expect: '"password: <masked len=10>' },
+  { input: '(password: hun))ter2x', needle: 'ter2x', expect: '(password: <masked len=10>' },
+  { input: '"password: hunter2" next', needle: 'hunter2', expect: '"password: <masked len=7>" next' },
+  { input: 'password: ""hunter2', needle: 'hunter2', expect: 'password: <masked len=9>' },
+  { input: 'password: "" hunter2', needle: 'hunter2', expect: 'password: <masked len=10>' },
 ];
 
 function prefixCloser(prefix) {
@@ -253,11 +261,32 @@ function dimensionInputs() {
       }
     }
   }
-  return lead.concat(doubled, cookies, gt);
+  return lead.concat(doubled, cookies, gt, quoteDimension());
+}
+
+function quoteDimension() {
+  const quotes = ['"', "'", '`'];
+  const keys = ['password: ', 'token=', 'secret: '];
+  const shorts = ['abcd', 'abcde', 'abcdef', 'abcdefg', 'abcdefgh'];
+  const brackets = [')', ']', '}', '>'];
+  const rows = [];
+  for (const q of quotes) {
+    for (const key of keys) {
+      for (const secret of shorts) {
+        rows.push({ kind: 'quote-double', input: `${q}${key}hun${q}${q}${secret}`, secrets: [secret] });
+        for (const bracket of brackets) {
+          rows.push({ kind: 'quote-bracket', input: `${q}${key}hun${q}${bracket}${secret}`, secrets: [secret] });
+        }
+        rows.push({ kind: 'quote-empty', input: `${key}${q}${q}${secret}`, secrets: [secret] });
+        rows.push({ kind: 'quote-empty', input: `${key}${q}${q} ${secret}`, secrets: [secret] });
+      }
+    }
+  }
+  return rows;
 }
 
 function scanDimensions(rows) {
-  const classes = { lead: 0, double: 0, cookie: 0, gt: 0 };
+  const classes = { lead: 0, double: 0, cookie: 0, gt: 0, 'quote-double': 0, 'quote-bracket': 0, 'quote-empty': 0 };
   let leaks = 0;
   let calls = 0;
   const examples = [];
@@ -307,7 +336,7 @@ if (!isMainThread) {
     for (const line of explicit) console.log(`explicit fail ${line}`);
     for (const line of dim.examples) console.log(`dim leak ${line}`);
     assert.equal(calls, INPUTS * SURFACES.length);
-    assert.equal(dim.inputs, 1013);
+    assert.equal(dim.inputs, 1328);
     assert.equal(dim.calls, dim.inputs * SURFACES.length);
     assert.equal(leaks, 0, examples.join('\n'));
     assert.equal(dim.leaks, 0, dim.examples.join('\n'));

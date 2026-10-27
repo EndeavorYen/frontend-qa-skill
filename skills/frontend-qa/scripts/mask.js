@@ -237,8 +237,7 @@ function lineStartAt(text, index) {
   return i;
 }
 const NEXT_KEY = /^[A-Za-z0-9_.%-]+(?::[A-Za-z0-9_.%-]+)*[ \t]*[:=]/;
-const ENCLOSING_OPEN = { '(': ')', '[': ']', '{': '}', "'": "'", '"': '"', '`': '`' };
-const CLOSER_CHARS = new Set([')', ']', '}', '>', '"', "'", '`']);
+const ENCLOSING_OPEN = { '(': ')', '[': ']', '{': '}', '<': '>', "'": "'", '"': '"', '`': '`' };
 // Opener recorded only when it sits directly before the key. Optional space or tab
 // may sit between them. A quote that wraps the key has already closed. An opener
 // anywhere else on the line is not a value boundary.
@@ -252,7 +251,7 @@ function enclosingCloser(text, keyStart, keyEnd) {
     while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) i--;
     if (i < 0) return '';
     ch = text[i];
-    if (ch === '(' || ch === '[' || ch === '{') return ENCLOSING_OPEN[ch];
+    if (ch === '(' || ch === '[' || ch === '{' || ch === '<') return ENCLOSING_OPEN[ch];
     return '';
   }
   return ENCLOSING_OPEN[ch] || '';
@@ -273,14 +272,15 @@ function clipBeforeNextKey(text, start, end) {
   }
   return end;
 }
-// stopAtCloser is for a quote that limits the value. A closer followed by another
-// closer does not end the value: `(password: Qw7zx5))RtY` keeps the tail.
-function closerFollowedByBoundary(text, i, endLimit, stopAtCloser) {
+// One rule for a quote (" ' `) or bracket ( ( [ { < ) closer. It ends the value
+// only when the next character is end of line, whitespace, `,`, `;`, or `&`.
+// A closer followed by another closer does not: `(password: Qw7zx5))RtY` and
+// `"password: hun""ter2x` both keep the tail.
+function closerFollowedByBoundary(text, i, endLimit) {
   const n = i + 1;
   if (n >= endLimit) return true;
   const ch = text[n];
-  if (ch === '\n' || ch === '\r' || ch === ' ' || ch === '\t' || ch === ',' || ch === ';' || ch === '&') return true;
-  return stopAtCloser === true && CLOSER_CHARS.has(ch);
+  return ch === '\n' || ch === '\r' || ch === ' ' || ch === '\t' || ch === ',' || ch === ';' || ch === '&';
 }
 function closingTagAt(text, i, endLimit) {
   if (i + 1 >= endLimit || text[i] !== '<' || text[i + 1] !== '/') return false;
@@ -556,7 +556,7 @@ function valueLimit(text, quotes, keyStart, keyEnd, sepEnd) {
   if (i !== ans.start) return null;
   if (keyEnd != null && text[keyEnd] === ans.quote) return null;
   // A closer that is not followed by a boundary is still inside the value.
-  if (ans.closed && !closerFollowedByBoundary(text, ans.contentEnd, text.length, true)) return null;
+  if (ans.closed && !closerFollowedByBoundary(text, ans.contentEnd, text.length)) return null;
   return ans.contentEnd;
 }
 function markFolds(text, anchor, spanStart, spanEnd, tokens) {
@@ -703,7 +703,8 @@ function scanLines(text, tokens, quotes) {
       continue;
     }
     let consume = vStart;
-    if (text[vStart] === '"' || text[vStart] === "'" || text[vStart] === '`') {
+    // An empty quote pair is part of the value. `password: ""hunter2` masks all 9 characters.
+    if ((text[vStart] === '"' || text[vStart] === "'" || text[vStart] === '`') && !isEmptyQuotePair(text, vStart, endLimit)) {
       const existing = quoteAt.get(vStart);
       let contentStart;
       let contentEnd;
@@ -1039,6 +1040,15 @@ function maskCookieLine(all, lead, name, sep, body) {
     return v && !PLACEHOLDER.test(v) ? pre + k + '=' + marker(v) : m;
   });
   return lead + name + sep + out;
+}
+// "" '' or `` at the start of a value is text, not a wrapper. The next character
+// has to be the same quote and still inside the scan window.
+function isEmptyQuotePair(text, at, limit) {
+  const q = text[at];
+  if ((q !== '"' && q !== "'" && q !== '`') || quoteIsEscaped(text, at)) return false;
+  const n = at + 1;
+  const end = limit == null ? text.length : limit;
+  return n < end && text[n] === q && !quoteIsEscaped(text, n);
 }
 function quoteIsEscaped(text, at) {
   let n = 0;
