@@ -964,5 +964,52 @@
     "expect": "masked",
     "secrets": ["abcd1234efgh"],
     "output": "Proxy-Authorization: <masked len=5> <masked len=12>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "X-Api-Key: Token abcd1234efgh",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "output": "X-Api-Key: <masked len=5> <masked len=12>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "token: Token abcd1234efgh",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "output": "token: <masked len=5> <masked len=12>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "X-Auth: Token abcd1234efgh",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "output": "X-Auth: <masked len=5> <masked len=12>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "headers: {Authorization: `Token abcd1234efgh`}",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "output": "headers: {Authorization: `<masked len=18>`}"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "Authorization: AWS4-HMAC-SHA256 Credential=AKID/20261027/x, Signature=abcd1234efgh",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "output": "Authorization: <masked len=16> <masked len=50>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "The authorization: header is missing",
+    "expect": "masked",
+    "output": "The authorization: <masked len=6> is missing"
   }
 ]
