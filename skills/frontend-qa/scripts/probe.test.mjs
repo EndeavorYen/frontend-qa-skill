@@ -312,10 +312,13 @@ describe('secret masking', () => {
     assert.equal(mask('cookie', 'ab'), '<masked len=2>');
     assert.equal(mask('user', 'qa'), 'qa');
     assert.equal(mask('version', '1.2.3'), '1.2.3');
-    assert.equal(mask('note', 'hello '.repeat(20)).length, 80);
+    assert.equal(mask('note', 'hello '.repeat(20)), 'hello '.repeat(20));
     const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.signaturevalue';
     assert.equal(mask('note', jwt), `<masked len=${jwt.length}>`);
-    assert.equal(mask('note', 'a'.repeat(20)), '<masked len=20>');
+    assert.equal(mask('note', 'a'.repeat(20)), 'a'.repeat(20));
+    const overCap = 'hello '.repeat(334);
+    assert.equal(overCap.length, 2004);
+    assert.equal(mask('note', overCap), `${overCap.slice(0, 2000)}…<truncated len=2004>`);
     assert.equal(maskControl('password', 'x', 'abc'), '<masked len=3>');
     assert.equal(maskControl('hidden', 'x', 'abc'), '<masked len=3>');
     assert.equal(maskControl('text', 'api_key', 'abc'), '<masked len=3>');
@@ -371,5 +374,62 @@ describe('secret masking', () => {
     assert.equal(emitted.password, `<masked len=${secret.length}>`);
     assert.equal(emitted.note, 'hello');
     assert.doesNotMatch(JSON.stringify(emitted), new RegExp(secret));
+  });
+
+  test('leaves ordinary page data intact and masks whole-word secrets', () => {
+    const uuid = '123e4567-e89b-12d3-a456-426614174000';
+    const path = '/orders/12345/edit-form';
+    const description = 'Heavyweight cotton tee, navy, regular fit. '.repeat(8).slice(0, 300);
+    const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.signaturevalue';
+    const hex = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4';
+    const plainNumber = '9'.repeat(40);
+
+    assert.equal(description.length, 300);
+    assert.equal(hex.length, 40);
+    assert.equal(mask('inside', 'kept'), 'kept');
+    assert.equal(mask('author', 'Alice'), 'Alice');
+    assert.equal(mask('sidebar', 'open'), 'open');
+    assert.equal(mask('id', uuid), uuid);
+    assert.equal(mask('href', path), path);
+    assert.equal(mask('description', description), description);
+    assert.equal(mask('qty', plainNumber), plainNumber);
+    assert.equal(mask('next', '/orders/1?tab=details&sort=id'), '/orders/1?tab=details&sort=id');
+
+    assert.equal(mask('session_id', 'abc'), '<masked len=3>');
+    assert.equal(mask('authToken', 'abc'), '<masked len=3>');
+    assert.equal(mask('x-api-key', 'abc'), '<masked len=3>');
+    assert.equal(mask('Authorization', 'abc'), '<masked len=3>');
+    assert.equal(mask('note', jwt), `<masked len=${jwt.length}>`);
+    assert.equal(mask('note', hex), '<masked len=40>');
+
+    assert.deepEqual(maskResult({
+      inside: 'kept',
+      author: 'Alice',
+      sidebar: 'open',
+      id: uuid,
+      href: path,
+      description,
+      qty: plainNumber,
+      session_id: 'abc',
+      authToken: 'abc',
+      'x-api-key': 'abc',
+      Authorization: 'abc',
+      note: jwt,
+      digest: hex,
+    }), {
+      inside: 'kept',
+      author: 'Alice',
+      sidebar: 'open',
+      id: uuid,
+      href: path,
+      description,
+      qty: plainNumber,
+      session_id: '<masked len=3>',
+      authToken: '<masked len=3>',
+      'x-api-key': '<masked len=3>',
+      Authorization: '<masked len=3>',
+      note: `<masked len=${jwt.length}>`,
+      digest: '<masked len=40>',
+    });
   });
 });
