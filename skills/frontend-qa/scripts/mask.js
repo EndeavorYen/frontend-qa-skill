@@ -1,6 +1,8 @@
 // maskText pipeline: cut at 2000, then shapes, one key-anchored scan,
 // object/array values masked whole, then a token pass. No raw fallback.
-// Linear time.
+// Every scan fails closed. A cap is not an emit point: past MAX_QUOTED the
+// same scan runs to the end of that value. If that end is not there, the
+// rest of the input is masked. Linear time.
 // Key rule, JWT/auth/userinfo regexes, and the assignment scan adapted from
 // chrome-cdp-ex skills/chrome-cdp-ex/scripts/lib/redaction.mjs (v2.21.0, b928082, MIT).
 (function installFrontendQaMask() {
@@ -50,26 +52,37 @@ const USERINFO_RE = /(?<![a-z0-9+.-])([a-z][a-z0-9+.-]*:\/\/[^\s/?#@:]*:)([^\s/?
 const ASSIGN_RE = /(^|[\s{[,;?&#]|(?<![=(])["'`])(\\?["'`]|)([A-Za-z0-9_.%-]+(?::[A-Za-z0-9_.%-]+)*)\2(\s*[:=]\s*)/g;
 const BARE_RE = /[^"'`\s,;&}\])<>]+/y;
 const CSS_PSEUDO = /^:(?:hover|focus|active|checked|disabled|enabled|visited|not|has|is|where|before|after|first-child|last-child|nth-child|root|empty|required|valid|invalid)\b/;
+// A cap is not an emit point. The first window stops at MAX_QUOTED; the same
+// scan then runs to the closing quote. No closer: mask through the end of the input.
 function scanQuoted(text, at) {
   const q = text[at];
-  const lim = Math.min(text.length, at + 1 + MAX_QUOTED);
-  for (let i = at + 1; i < lim; i++) {
-    if (text[i] === '\\') i++;
-    else if (text[i] === q) return { start: at + 1, end: i, close: q };
+  const cap = at + 1 + MAX_QUOTED;
+  let i = at + 1;
+  while (i < text.length) {
+    const limit = i < cap ? Math.min(text.length, cap) : text.length;
+    for (; i < limit; i++) {
+      if (text[i] === '\\') i++;
+      else if (text[i] === q) return { start: at + 1, end: i, close: q };
+    }
   }
-  return { start: at + 1, end: lim, close: '' };
+  return { start: at + 1, end: text.length, close: '' };
 }
 function scanNested(text, at) {
-  const lim = Math.min(text.length, at + MAX_QUOTED);
-  let depth = 0; let q = '';
-  for (let i = at; i < lim; i++) {
-    const ch = text[i];
-    if (q) { if (ch === '\\') i++; else if (ch === q) q = ''; continue; }
-    if (ch === '"' || ch === "'" || ch === '`') q = ch;
-    else if (ch === '{' || ch === '[') depth++;
-    else if ((ch === '}' || ch === ']') && --depth === 0) return { start: at, end: i + 1 };
+  const cap = at + MAX_QUOTED;
+  let depth = 0;
+  let q = '';
+  let i = at;
+  while (i < text.length) {
+    const limit = i < cap ? Math.min(text.length, cap) : text.length;
+    for (; i < limit; i++) {
+      const ch = text[i];
+      if (q) { if (ch === '\\') i++; else if (ch === q) q = ''; continue; }
+      if (ch === '"' || ch === "'" || ch === '`') q = ch;
+      else if (ch === '{' || ch === '[') depth++;
+      else if ((ch === '}' || ch === ']') && --depth === 0) return { start: at, end: i + 1 };
+    }
   }
-  return { start: at, end: lim };
+  return { start: at, end: text.length };
 }
 function skipBws(text, i) {
   while (text[i] === ' ' || text[i] === '\t') i++;
@@ -110,6 +123,11 @@ function lineBreakEnd(text, at) {
   if (text[at] === '\r' && text[j] === '\n') j++;
   return j;
 }
+function lineContentEnd(text, at) {
+  let i = at;
+  while (i < text.length && text[i] !== '\n' && text[i] !== '\r') i++;
+  return i;
+}
 // A scheme with nothing after it on the line: the next line is part of the value only when
 // that line is a single credential token. A normal next line stays readable.
 function nextLineCredential(text, breakAt) {
@@ -137,8 +155,13 @@ function schemeCredential(text, schemeEnd) {
   } else if (text[start] !== '\n' && text[start] !== '\r') return null;
   if (start >= text.length) return null;
   if (text[start] === '\n' || text[start] === '\r') return nextLineCredential(text, start);
+  const lineEnd = lineContentEnd(text, start);
   const end = valueEnd(text, start);
-  if (end <= start || !tailIsCredential(text.slice(start, end))) return null;
+  if (end <= start) return null;
+  // The first line decides a short credential. A folded prose line must not excuse it.
+  // The whole tail, folds included, still fails closed when the fold itself is the credential.
+  const firstLine = text.slice(start, lineEnd);
+  if (!tailIsCredential(firstLine) && !tailIsCredential(text.slice(start, end))) return null;
   return { start, end };
 }
 function keyAnchored(text, spans) {
@@ -157,9 +180,10 @@ function keyAnchored(text, spans) {
     if (text[vStart] === '"' || text[vStart] === "'" || text[vStart] === '`') span = scanQuoted(text, vStart);
     else if (text[vStart] === '\\' && (text[vStart + 1] === '"' || text[vStart + 1] === "'" || text[vStart + 1] === '`')) {
       const close = '\\' + text[vStart + 1];
-      const at = text.indexOf(close, vStart + 2);
-      const lim = Math.min(text.length, vStart + 2 + MAX_QUOTED);
-      span = { start: vStart + 2, end: at >= 0 && at < lim ? at : lim };
+      const from = vStart + 2;
+      const at = text.indexOf(close, from);
+      // A closer past MAX_QUOTED is still the end of the value. None: the rest of the input.
+      span = { start: from, end: at >= 0 ? at : text.length };
     } else if (text[vStart] === '{' || text[vStart] === '[') {
       span = scanNested(text, vStart); // object/array under a secret key: mask it whole
     } else {
