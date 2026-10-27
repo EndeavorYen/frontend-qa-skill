@@ -47,11 +47,12 @@ Linux 上若因 AppArmor 出現 `No usable sandbox!`，只在載入本機測試 
 MCP 的每個工具參數和每個工具結果都會留在對話紀錄裡。值不能未遮罩就離開頁面。
 
 1. **參數。** 不要把密碼、token、cookie 值或 API key 傳給任何 MCP 工具，包含 `fill`、`fill_form`、`press_key`、`evaluate_script`。shell 指令也不要展開密鑰。登入只走兩條路：沿用這個專用設定檔裡已經登入的工作階段，或請人在這個瀏覽器自己輸入。文件裡的「重新登入」也是這兩條路。無人值守遇到登入牆時，沿用已經登入的專用設定檔；沒有就停止，該區標成 `➖`，理由寫 `not covered (login)`。
-2. **回傳。** 每個 `evaluate_script` 都要先在頁面裡遮罩再回傳。每個頁面載入先裝一次 [`scripts/mask.js`](scripts/mask.js)：`function` 設為 `() => { <檔案全文>; return 'mask-installed'; }`。`navigate_page` 之後頁面腳本會清掉，才重裝。規則是 `globalThis.__frontendQaMask(key, value)`：
-   - key 以 `_`、`-`、`.` 與 camelCase 邊界切字，整字命中才遮：`pass`、`password`、`pwd`、`secret`、`token`、`auth`、`authorization`、`session`、`sid`、`jwt`、`bearer`、`apikey`、`csrf`、`xsrf`、`cookie`，或相鄰的 `api` 與 `key` → `<masked len=N>`
-   - value 整段像憑證才遮：JWT 三段 `xxx.yyy.zzz`（含字母，或長度至少 20），或長度至少 32 的 hex 或 `[A-Za-z0-9+_=-]`。UUID、純數字、路徑，以及含空白、`/`、`?`、`&` 的值不遮
+2. **回傳。** 每個 `evaluate_script` 都要先在頁面裡遮罩再回傳。每個頁面載入先裝一次 [`scripts/mask.js`](scripts/mask.js)：`function` 設為 `() => { <檔案全文>; return 'mask-installed'; }`。`navigate_page`、重新載入或 `emulate` 之後頁面腳本會清掉，要重裝（見 [ux-review.md](references/ux-review.md)）。規則是 `globalThis.__frontendQaMask(key, value)`，和 `scripts/mask.js` 一致：
+   - key（不分大小寫）：先看允許清單 `author`、`inside`、`sidebar`、`consider`、`residual`。整個 key 是其中一字，或以 `_`、`-`、`.`、空白與 camelCase 邊界切開後每個字都在清單裡，就不遮。否則切出的字裡有完整的 `sid`，或 key 含有這些字根（也比對去掉符號後的 key）：`sess`、`csrf`、`xsrf`、`passw`、`passwd`、`pwd`、`secret`、`token`、`bearer`、`apikey`、`api_key`、`auth`、`cookie`、`jwt` → `<masked len=N>`。所以 `sessionid`、`PHPSESSID`、`csrftoken`、`accesstoken`、`passwd`、`x-api-key` 都會遮
+   - value：含空白、UUID、以 `/` 開頭的路徑、`http://` 或 `https://` 網址、純數字，都不當成憑證。其餘兩種會遮：JWT（三段都是 base64url，第一段以 `eyJ` 開頭），以及不透明 token（整串至少 20 字，只有 `[A-Za-z0-9+/=_-]`，同時有字母和數字，所以含 `/` 的 base64 也算）
    - cookie 值一律 `<masked len=N>`，名稱另記。呼叫時 key 用 `cookie`
-   - 非密鑰字串只在超過 2000 字時截斷，保留前 2000 字並接上 `…<truncated len=N>`（N 為原長度）
+   - console（`globalThis.__frontendQaMaskConsole`）：只遮行內符合的片段：`Bearer <token>` 變成 `Bearer <masked len=N>`，再遮上面那種 JWT 和不透明 token。點分隔的成員名（例如 `this.props.onChange`）、主機名和檔名照原樣留著
+   - 非密鑰字串和 console 文字只在超過 2000 字時截斷，保留前 2000 字並接上 `…<truncated len=N>`（N 為原長度）
    `globalThis.__frontendQaMaskResult` 走整個回傳值。數字和布林不改。密碼、`hidden`、token 類欄位用 `globalThis.__frontendQaMaskElement`，回傳 `<masked len=N>`。技能定義的每一個 `evaluate_script` 都要套用，包含反模式、量化檢查、重現斷言，以及下面的 Chrome 版本。
 3. **Checkpoint 的值留在頁面。** 裝完 mask 後再裝一次 [`scripts/checkpoint.js`](scripts/checkpoint.js)：`function` 設為 `() => { <檔案全文>; return 'checkpoint-installed'; }`。`navigate_page` 之後重裝。值寫進這個 origin 的 IndexedDB `__frontend_qa_checkpoints`，不要寫進檔案，也不要寫進函式本體。
    - 儲存：`() => globalThis.__frontendQaSaveCheckpoint('clean')`。回傳只有 `{name, url, keys, cookieNames, counts}`。`keys` 是 storage 的鍵名，`cookieNames` 是 cookie 名稱，`counts` 是 `{local, session, cookies}`。把這份回傳寫進 `report.md`。沒有值。
