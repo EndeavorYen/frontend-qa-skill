@@ -41,6 +41,9 @@ function isSensitiveKey(key, q) {
 }
 const JWT_RE = /(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{4,}\.eyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]*/g;
 const AUTH_RE = /\b((?:Bearer|Basic)\s+)([A-Za-z0-9._~+/=-]+)/gi;
+const SCHEME_WORD = /^[A-Za-z][A-Za-z]*(?:-[A-Za-z0-9]+)*$/;
+const TCHAR_RE = /[A-Za-z0-9!#$%&'*+\-.^_`|~]+/y;
+const TOKEN68_RE = /[A-Za-z0-9._~+/=-]+/y;
 const VENDOR_RE = /(?<![A-Za-z0-9])(?:AKIA|ASIA)[0-9A-Z]{16}(?![A-Za-z0-9])|(?<![A-Za-z0-9])(?:xox[abposr]-[A-Za-z0-9-]{10,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|[sr]k_(?:live|test)_[A-Za-z0-9]{10,}|AIza[0-9A-Za-z_-]{30,})/g;
 const USERINFO_RE = /(?<![a-z0-9+.-])([a-z][a-z0-9+.-]*:\/\/[^\s/?#@:]*:)([^\s/?#@]+)(@)/gi;
 const ASSIGN_RE = /(^|[\s{[,;?&#]|(?<![=(])["'])(\\?["']|)([A-Za-z0-9_.%-]+(?::[A-Za-z0-9_.%-]+)*)\2(\s*[:=]\s*)/g;
@@ -67,6 +70,50 @@ function scanNested(text, at) {
   }
   return { start: at, end: lim };
 }
+function skipBws(text, i) {
+  while (text[i] === ' ' || text[i] === '\t') i++;
+  return i;
+}
+function authParamEnd(text, at) {
+  let i = at;
+  let end = at;
+  while (i < text.length) {
+    TCHAR_RE.lastIndex = i;
+    const name = TCHAR_RE.exec(text);
+    if (!name) break;
+    let k = skipBws(text, i + name[0].length);
+    if (text[k] !== '=') break;
+    k = skipBws(text, k + 1);
+    if (text[k] === '"' || text[k] === "'") {
+      const q = scanQuoted(text, k);
+      if (!q.close) break;
+      k = q.end + 1;
+    } else {
+      TCHAR_RE.lastIndex = k;
+      const value = TCHAR_RE.exec(text);
+      if (!value) break;
+      k += value[0].length;
+    }
+    end = k;
+    i = skipBws(text, k);
+    if (text[i] !== ',') break;
+    i = skipBws(text, i + 1);
+  }
+  return end;
+}
+function schemeCredential(text, schemeEnd) {
+  if (text[schemeEnd] !== ' ' && text[schemeEnd] !== '\t') return null;
+  const start = skipBws(text, schemeEnd);
+  if (start === schemeEnd || start >= text.length || text.startsWith('<masked len=', start)) return null;
+  let end = authParamEnd(text, start);
+  if (end <= start) {
+    TOKEN68_RE.lastIndex = start;
+    const token = TOKEN68_RE.exec(text);
+    if (!token) return null;
+    end = start + token[0].length;
+  }
+  return { start, end };
+}
 function keyAnchored(text, spans) {
   ASSIGN_RE.lastIndex = 0;
   let m;
@@ -79,6 +126,7 @@ function keyAnchored(text, spans) {
     const q = eq && !kq && (prefix === '?' || prefix === '&' || prefix === '#');
     if (!isSensitiveKey(key, q)) { ASSIGN_RE.lastIndex = m.index + whole.trimEnd().length; continue; }
     let span;
+    let bareScheme = false;
     if (text[vStart] === '"' || text[vStart] === "'") span = scanQuoted(text, vStart);
     else if (text[vStart] === '\\' && (text[vStart + 1] === '"' || text[vStart + 1] === "'")) {
       const close = '\\' + text[vStart + 1];
@@ -93,10 +141,18 @@ function keyAnchored(text, spans) {
       if (!b) continue;
       span = { start: vStart, end: vStart + b[0].length };
       if (text.startsWith('<masked len=', span.end)) { ASSIGN_RE.lastIndex = span.end; continue; } // a shape already owns it
+      bareScheme = SCHEME_WORD.test(b[0]);
     }
     if (span.end <= span.start) continue;
     if (PLACEHOLDER.test(text.slice(span.start, span.end + 1))) { ASSIGN_RE.lastIndex = span.end; continue; }
     if (/^(?:Bearer|Basic)$/i.test(text.slice(span.start, span.end))) continue; // the AUTH shape owns it
+    if (bareScheme && keyTokens(key).includes('authorization')) {
+      const cred = schemeCredential(text, span.end); // mask the scheme word and the credential
+      if (cred) {
+        spans.push([span.start, span.end]);
+        span = cred;
+      }
+    }
     spans.push([span.start, span.end]);
     ASSIGN_RE.lastIndex = Math.max(span.end, ASSIGN_RE.lastIndex);
   }

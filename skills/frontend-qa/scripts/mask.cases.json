@@ -916,5 +916,53 @@
     "input": "Cookie: a=1",
     "expect": "masked",
     "output": "Cookie: a=<masked len=1>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "Authorization: Token abcd1234efgh",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "output": "Authorization: <masked len=5> <masked len=12>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "Authorization: ApiKey k3yV4lue9876",
+    "expect": "masked",
+    "secrets": ["k3yV4lue9876"],
+    "output": "Authorization: <masked len=6> <masked len=12>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "Authorization: Digest username=\"u\", response=\"6629fae49393a053\"",
+    "expect": "masked",
+    "secrets": ["6629fae49393a053", "username=\"u\""],
+    "output": "Authorization: <masked len=6> <masked len=41>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "authorization=Token abcd1234efgh",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "output": "authorization=<masked len=5> <masked len=12>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "- authorization:Token abcd1234efgh",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "output": "- authorization:<masked len=5> <masked len=12>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "Proxy-Authorization: Token abcd1234efgh",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "output": "Proxy-Authorization: <masked len=5> <masked len=12>"
   }
 ]
