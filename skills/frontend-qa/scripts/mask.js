@@ -703,7 +703,15 @@ function scanLines(text, tokens, quotes) {
       continue;
     }
     let consume = vStart;
-    // An empty quote pair is part of the value. `password: ""hunter2` masks all 9 characters.
+    // An empty "" '' or `` at a boundary is the whole value. The quotes stay,
+    // and nothing after them is masked. A pair glued to more text
+    // (`password: ""hunter2`) is not empty and stays on the unquoted path.
+    if (emptyQuoteIsWholeValue(text, vStart, endLimit, keyStart, keyEnd)) {
+      line.end = vStart + 2;
+      tokens.push(line);
+      ASSIGN_RE.lastIndex = vStart + 2;
+      continue;
+    }
     if ((text[vStart] === '"' || text[vStart] === "'" || text[vStart] === '`') && !isEmptyQuotePair(text, vStart, endLimit)) {
       const existing = quoteAt.get(vStart);
       let contentStart;
@@ -1049,6 +1057,17 @@ function isEmptyQuotePair(text, at, limit) {
   const n = at + 1;
   const end = limit == null ? text.length : limit;
   return n < end && text[n] === q && !quoteIsEscaped(text, n);
+}
+// The pair is the whole value when the character after it is end of line,
+// whitespace, `,`, `;`, `&`, or the enclosing closer. `""hunter2` is glued.
+function emptyQuoteIsWholeValue(text, at, limit, keyStart, keyEnd) {
+  if (!isEmptyQuotePair(text, at, limit)) return false;
+  const end = limit == null ? text.length : limit;
+  if (closerFollowedByBoundary(text, at + 1, end)) return true;
+  const next = at + 2;
+  if (next >= end) return false;
+  const closer = enclosingCloser(text, keyStart, keyEnd);
+  return closer !== '' && text[next] === closer;
 }
 function quoteIsEscaped(text, at) {
   let n = 0;

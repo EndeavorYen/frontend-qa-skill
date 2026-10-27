@@ -2719,5 +2719,61 @@
     "secrets": ["Qw7zx5", "RtY"],
     "keep": ["(password:"],
     "output": "(password: <masked len=11>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{\"username\":\"bob\",\"password\":\"\",\"remember\":true}",
+    "expect": "clear",
+    "surfaces": "all",
+    "keep": ["{\"username\":\"bob\",\"password\":\"\",\"remember\":true}"],
+    "output": "{\"username\":\"bob\",\"password\":\"\",\"remember\":true}"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{\"password\": \"\", \"id\": 1}",
+    "expect": "clear",
+    "surfaces": "all",
+    "keep": ["{\"password\": \"\", \"id\": 1}"],
+    "output": "{\"password\": \"\", \"id\": 1}"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: \"\"",
+    "expect": "clear",
+    "surfaces": "all",
+    "keep": ["password: \"\""],
+    "output": "password: \"\""
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password='' next: 1",
+    "expect": "clear",
+    "surfaces": "all",
+    "keep": ["password='' next: 1"],
+    "output": "password='' next: 1"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: \"\"hunter2",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["hunter2"],
+    "keep": ["password:"],
+    "output": "password: <masked len=9>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{\"password\": \"abc\", \"id\": 1}",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["abc"],
+    "keep": [", \"id\": 1}"],
+    "output": "{\"password\": \"<masked len=3>\", \"id\": 1}"
   }
 ]

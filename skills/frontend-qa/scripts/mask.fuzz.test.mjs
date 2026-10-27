@@ -68,7 +68,7 @@ const EXPLICIT = [
   { input: '(password: hun))ter2x', needle: 'ter2x', expect: '(password: <masked len=10>' },
   { input: '"password: hunter2" next', needle: 'hunter2', expect: '"password: <masked len=7>" next' },
   { input: 'password: ""hunter2', needle: 'hunter2', expect: 'password: <masked len=9>' },
-  { input: 'password: "" hunter2', needle: 'hunter2', expect: 'password: <masked len=10>' },
+  { input: 'password: "" hunter2', expect: 'password: "" hunter2' },
 ];
 
 function prefixCloser(prefix) {
@@ -261,7 +261,64 @@ function dimensionInputs() {
       }
     }
   }
-  return lead.concat(doubled, cookies, gt, quoteDimension());
+  return lead.concat(doubled, cookies, gt, quoteDimension(), emptyValueDimension());
+}
+
+function emptyValueDimension() {
+  const quotes = ['"', "'", '`'];
+  const keys = ['password', 'token', 'secret'];
+  const rows = [];
+  for (const q of quotes) {
+    for (const key of keys) {
+      rows.push({ kind: 'empty', input: `{"username":"bob","${key}":${q}${q},"remember":true}`, exact: true });
+      rows.push({ kind: 'empty', input: `{"${key}": ${q}${q}, "id": 1}`, exact: true });
+      rows.push({ kind: 'empty', input: `${key}: ${q}${q}`, exact: true });
+      rows.push({ kind: 'empty', input: `${key}: ${q}${q}\nnext: 1`, exact: true });
+      rows.push({ kind: 'empty', input: `${key}: ${q}${q}\n  id: 1`, exact: true });
+      rows.push({ kind: 'empty', input: `${key}=${q}${q}&id=1`, exact: true });
+      rows.push({ kind: 'empty', input: `?${key}=${q}${q}&id=1`, exact: true });
+      rows.push({ kind: 'empty', input: `${key}: ${q}${q}\nAccept: json`, exact: true });
+    }
+    rows.push({ kind: 'empty', input: `Authorization: ${q}${q}\nAccept: json`, exact: true });
+  }
+  rows.push({ kind: 'empty', input: "password='' next: 1", exact: true });
+  rows.push({
+    kind: 'empty',
+    input: 'password: ""\nsecret: hunter2',
+    secrets: ['hunter2'],
+    keep: ['password: ""', '\nsecret: '],
+  });
+  rows.push({
+    kind: 'empty',
+    input: '{"password":"","secret":"hunter2"}',
+    secrets: ['hunter2'],
+    keep: ['"password":""', '"secret":"'],
+  });
+  rows.push({
+    kind: 'empty',
+    input: 'password=""&secret=hunter2',
+    secrets: ['hunter2'],
+    keep: ['password=""', '&secret='],
+  });
+  rows.push({
+    kind: 'empty',
+    input: 'Authorization: ""\nX-Api-Key: hunter2',
+    secrets: ['hunter2'],
+    keep: ['Authorization: ""', '\nX-Api-Key: '],
+  });
+  rows.push({
+    kind: 'empty',
+    input: 'password: ""\n  secret: hunter2',
+    secrets: ['hunter2'],
+    keep: ['password: ""', 'secret: '],
+  });
+  rows.push({
+    kind: 'empty',
+    input: '{"password": "abc", "id": 1}',
+    secrets: ['abc'],
+    keep: [', "id": 1}'],
+  });
+  return rows;
 }
 
 function quoteDimension() {
@@ -278,7 +335,8 @@ function quoteDimension() {
           rows.push({ kind: 'quote-bracket', input: `${q}${key}hun${q}${bracket}${secret}`, secrets: [secret] });
         }
         rows.push({ kind: 'quote-empty', input: `${key}${q}${q}${secret}`, secrets: [secret] });
-        rows.push({ kind: 'quote-empty', input: `${key}${q}${q} ${secret}`, secrets: [secret] });
+        // A space is a boundary. The empty pair is the whole value, so the tail stays.
+        rows.push({ kind: 'quote-empty', input: `${key}${q}${q} ${secret}`, exact: true });
       }
     }
   }
@@ -286,7 +344,7 @@ function quoteDimension() {
 }
 
 function scanDimensions(rows) {
-  const classes = { lead: 0, double: 0, cookie: 0, gt: 0, 'quote-double': 0, 'quote-bracket': 0, 'quote-empty': 0 };
+  const classes = { lead: 0, double: 0, cookie: 0, gt: 0, 'quote-double': 0, 'quote-bracket': 0, 'quote-empty': 0, empty: 0 };
   let leaks = 0;
   let calls = 0;
   const examples = [];
@@ -295,8 +353,12 @@ function scanDimensions(rows) {
       calls += 1;
       const out = fn(row.input);
       let bad = markerBroken(out) || fn(out) !== out;
+      if (row.exact) bad = bad || out !== row.input;
       if (row.kind === 'cookie') bad = bad || !out.includes(`${row.name}=`) || secretVisible(out, row.value);
-      else bad = bad || row.secrets.some((secret) => secretVisible(out, secret));
+      else {
+        bad = bad || (row.secrets || []).some((secret) => secretVisible(out, secret));
+        bad = bad || (row.keep || []).some((part) => !out.includes(part));
+      }
       if (!bad) continue;
       leaks += 1;
       classes[row.kind] += 1;
@@ -336,7 +398,7 @@ if (!isMainThread) {
     for (const line of explicit) console.log(`explicit fail ${line}`);
     for (const line of dim.examples) console.log(`dim leak ${line}`);
     assert.equal(calls, INPUTS * SURFACES.length);
-    assert.equal(dim.inputs, 1328);
+    assert.equal(dim.inputs, 1410);
     assert.equal(dim.calls, dim.inputs * SURFACES.length);
     assert.equal(leaks, 0, examples.join('\n'));
     assert.equal(dim.leaks, 0, dim.examples.join('\n'));
