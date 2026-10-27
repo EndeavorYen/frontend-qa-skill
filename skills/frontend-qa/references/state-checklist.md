@@ -17,14 +17,14 @@
 `狀態` 這一輪，每一組都要打開列表、詳情和編輯畫面至少各一次。只用自己建立的資料測過的項目，不能打勾。
 
 每打開一筆抽樣資料，都照下面的順序做，不要等整個畫面測完才看 console：
-1. 打開前先清空：`console <t> --clear`
+1. 打開前先 `list_console_messages`（`types` 含 `error`），記下目前最大的 msgid
 2. 打開那一筆
-3. 立刻讀錯誤：`console <t> --errors`
+3. 立刻再 `list_console_messages`（`types` 含 `error`），只看 msgid 更大的訊息
 4. 把結果寫進 `coverage.md` 抽樣表的 console 欄，例如 `#12 → TypeError: Cannot read properties of null（F5）` 或 `#7 → 無`
 
 hash 路由切換不會重新載入頁面，等畫面測完才看，就分不出錯誤是哪一筆觸發的。
 
-畫面出現空白欄位、`undefined`、`NaN`、「非數值」這類異常時，先查 `console <t> --errors` 和 `netlog <t> --status failed`，再下結論。有 exception 的話，把畫面異常和錯誤訊息寫成同一筆 finding，等級至少 P2，類別填「bug」。
+畫面出現空白欄位、`undefined`、`NaN`、「非數值」這類異常時，先查 `list_console_messages`（`types` 含 `error`）和 `list_network_requests`（`resourceTypes` 含 `xhr`、`fetch`；狀態不是 2xx 的再用 `get_network_request`），再下結論。有 exception 的話，把畫面異常和錯誤訊息寫成同一筆 finding，等級至少 P2，類別填「bug」。
 
 ## 資料狀態
 
@@ -64,8 +64,8 @@ hash 路由切換不會重新載入頁面，等畫面測完才看，就分不出
 
 每個畫面測完時檢查：
 
-- [ ] console 有沒有新的錯誤或 exception（`console <t> --errors`）
-- [ ] 有沒有失敗的請求（`netlog <t> --status 4xx`、`netlog <t> --status failed`）
+- [ ] console 有沒有新的錯誤或 exception（`list_console_messages`，`types` 含 `error`，只算這一輪新的 msgid）
+- [ ] 有沒有失敗的請求（`list_network_requests`，`resourceTypes` 含 `xhr`、`fetch`；狀態不是 2xx 的再用 `get_network_request`）
 - [ ] 有沒有明顯重複或多餘的請求，例如同一支 API 在一次操作中被打了好幾次
 
 如果 console 出錯，但畫面上看不出影響，記為 P2，類別填「bug」，並在證據中附上錯誤訊息。

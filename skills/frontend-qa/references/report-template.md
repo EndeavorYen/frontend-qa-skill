@@ -41,14 +41,14 @@
   3. 捲動到底部
 - 預期：可以點擊「送出」
 - 實際：「送出」被 footer 蓋住一半，點擊時點到 footer 的連結
-- 證據：`shots/F7-footer-overlap.png`；chrome-cdp-ex 的 `click` 回報 `Kind: covered`
+- 證據：`shots/F7-footer-overlap.png`；`evaluate_script` 的 `elementFromPoint` 命中 `FOOTER`
 - 重現次數：2/2
-- 重播：`repro/F7.actions.json`（replay 通過，flow 斷言失敗，符合預期）
-- 重現腳本：`repro/F7.spec.ts`（目前失敗，符合預期）
+- 重播：`repro/F7.steps.md`（pass: false，detail: 按鈕中心命中 FOOTER，符合預期）
+- 重現腳本：未手寫：目標專案沒有 Playwright
 - 相關：F3（同一個 footer 在 S5 也擋住內容）
 ```
 
-P3 問題可以省略「預期」和「重現次數」，但截圖不能省。「重播」和「重現腳本」只有 P0、P1 需要，寫法見 [repro.md](repro.md#驗證腳本)。沒有 Playwright 時，重現腳本寫 `repro/F7.spec.ts`（未執行：沒有 Playwright），重播仍然要跑。
+P3 問題可以省略「預期」和「重現次數」，但截圖不能省。「重播」只有 P0、P1 需要，寫法見 [repro.md](repro.md#重播)。目標專案已經有 Playwright 時才手寫 spec；沒有就在「重現腳本」寫「未手寫：目標專案沒有 Playwright」。重播仍然要跑。
 
 ## unattributed.md
 
@@ -56,10 +56,10 @@ P3 問題可以省略「預期」和「重現次數」，但截圖不能省。�
 ### U1 點擊「匯出」後沒有下載，也沒有錯誤
 
 - 畫面：S6
-- 試過：`click`（Outcome: no-change）、`click --js`（同樣沒有反應）、`click --expect-download`（逾時）
+- 試過：`click`（畫面沒有變化）、`evaluate_script` 對同一個按鈕呼叫 `.click()`（同樣沒有反應）
 - 為什麼判斷不出來：可能是下載被瀏覽器設定擋住，也可能是按鈕本身壞掉
 - 證據：`shots/U1-export.png`（或重現腳本路徑，或 `probe-result.json` 的那一筆）
-- 下一步：`click <t> @14`（只有這一筆是因為指令或重現失敗才寫時才需要，而且只能有一條可執行指令）
+- 下一步：再呼叫一次 `click`，uid 取自最新的 `take_snapshot`（只有這一筆是因為工具或重現失敗才寫時才需要，而且只能有一條）
 - 需要使用者：手動點一次，看看是否會下載
 ```
 
@@ -71,10 +71,8 @@ P3 問題可以省略「預期」和「重現次數」，但截圖不能省。�
 # 前端品質驗證報告：<app 名稱 / 範圍>
 
 ## 環境檢查
-- chrome-cdp-ex：<package.json version>（commit <短 SHA 或未知>，<origin 或 https://github.com/EndeavorYen/chrome-cdp-ex>）
-- doctor readiness：ready / usable-with-warnings / blocked
-- checks：每項一行，`<label>：<status> — <detail>`
-- Chrome：<navigator.userAgent，有分頁後填>
+- 驅動：chrome-devtools-mcp（`list_pages` 成功）
+- Chrome：<navigator.userAgent，有分頁後用 `evaluate_script` 執行 `() => navigator.userAgent` 填>
 
 ## 範圍
 - 日期、環境、URL、測試帳號（只寫身分，不寫密碼）

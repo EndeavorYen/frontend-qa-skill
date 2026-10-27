@@ -38,12 +38,6 @@
 
 ## 用獨立瀏覽器跑
 
-不想動到自己的 Chrome 時，可以另外開一個 headless 瀏覽器，再讓 chrome-cdp-ex 用 `CDP_PORT` 連過去。**開之前先確認 port 沒有被占用**，否則 chrome-cdp-ex 會連到另一個已經在用那個 port 的瀏覽器：
+不想動到自己的 Chrome 時，接上 `chrome-devtools-mcp`（`npx chrome-devtools-mcp@latest`），讓它自己開瀏覽器，不要把 server 指到日常使用的 Chrome。接上之後呼叫 `list_pages`。呼叫成功就代表這個瀏覽器可以用。
 
-```bash
-ss -ltn | grep -q ':9444 ' && echo "9444 已被占用，換一個 port"
-chrome-headless-shell --remote-debugging-port=9444 --user-data-dir="$(mktemp -d)" about:blank &
-CDP_PORT=9444 chrome-cdp list
-```
-
-如果 Linux 因為 AppArmor 限制而出現 `No usable sandbox!`，可以加上 `--no-sandbox`。只在載入本機測試 app 時這樣做。
+如果 Linux 因為 AppArmor 限制而出現 `No usable sandbox!`，查 `npx chrome-devtools-mcp@latest --help` 裡轉給 Chrome 的參數，只在載入本機測試 app 時加上對應的 no-sandbox 參數。

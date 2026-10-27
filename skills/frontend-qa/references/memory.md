@@ -13,7 +13,7 @@ state/
   data-types.md      既有資料的型態與抽樣
   known-findings.md  已知問題與狀態
   probe.json         探測設定（密碼是環境變數參考，不是明文；audit 直接用這份）
-  repro/             重現腳本：*.spec.ts、一份 _login.ts、*.actions.json（不含 checkpoint.json）
+  repro/             重現步驟：*.steps.md；目標專案已有 Playwright 時才有 *.spec.ts 與一份 _login.ts（不含 checkpoint.json）
   runs.md            歷次執行
   design-context.md  設計背景
 ```
@@ -47,7 +47,7 @@ state/
 | 值 | 意思 |
 |---|---|
 | `探測:<check>` | 用這次 `probe-result.json` 裡同一畫面、同一 check 判斷還在不在。check 名稱見 [probe.md](probe.md#檢查項目)，例如 `探測:small-target` |
-| `重播:<路徑>` | chrome-cdp-ex `replay --file <路徑>` 重做 `*.actions.json`，再用 `flow` 的 `assert` 判斷修好後應該成立的事。不需要 LLM，也不需要安裝 Playwright。還沒有 actions 檔時不要選這個，改下一個 |
+| `重播:<路徑>` | 照 [repro.md](repro.md#重播) 用 MCP 工具重播 `*.steps.md`：`new_page`，每步動作前 `take_snapshot` 把 role 與可及名稱對到當下的 uid，最後一步 `evaluate_script` 回傳 `{pass, detail}`。`pass: true` 是修好後應該成立的事。不需要 Playwright。還沒有 steps 檔時不要選這個，改下一個 |
 | `腳本:<路徑>` | 跑 Playwright 重現腳本，路徑例如 `腳本:repro/F4.spec.ts` |
 | `手動` | 沒有上面三種時，由 agent 照重現摘要重做 |
 
@@ -132,11 +132,11 @@ state/
 | 複驗方式 | 怎麼做 | 結果 |
 |---|---|---|
 | `探測:<check>` | 在這次 `probe-result.json` 找同一畫面、同一 check。畫面用 `screens.md` 的 URL 對到結果的 `url` | 沒有紀錄就標 `已修`；還有就標 `仍存在`。證據寫 `probe-result.json` 的那一筆，不要為了這個打開畫面 |
-| `重播:<路徑>` | `replay --file <路徑>`，接著 `flow <t> "assert …"`。assert 寫修好之後應該成立的事 | assert 通過標 `已修`，失敗標 `仍存在`。失敗在重播前置（檔案不在、被遮蔽的密碼）時交給 agent 判斷，必要時改成 `手動` |
+| `重播:<路徑>` | 照 [repro.md](repro.md#重播) 重播該 steps 檔 | `pass: true` 標 `已修`，`pass: false` 標 `仍存在`。重播做不完（檔案不在、對不到元素）時交給 agent 判斷，必要時改成 `手動` |
 | `腳本:<路徑>` | 跑該腳本。跨次時路徑在 `state/repro/`，指令和判定表見 [repro.md](repro.md#複驗) | 照該表：通過是 `已修`，失敗在斷言是 `仍存在`，失敗在前置交給 agent |
 | `手動` | 打開畫面，照重現摘要做一次 | 還能重現是 `仍存在`，不能重現是 `已修`。存 `shots/K-<編號>.png`（`/` 換成 `-`） |
 
-P0、P1 被標成 `已修` 時，仍然照證據規則由 agent 從乾淨狀態確認一次，避免誤判。做法是這次執行目錄的 `checkpoint.json`：`restore` 再 `perceive`。測試輪中途 app 自己登出時，`restore` 把 session 寫回 storage，頁面仍停在 `#/login`；先 `reload <t>` 再 `perceive <t>`，頁面才會讀到還原後的 session。這次執行要先自己存一份 checkpoint，不要沿用上次執行目錄裡的檔。確認失敗就改回 `仍存在`。
+P0、P1 被標成 `已修` 時，仍然照證據規則由 agent 從乾淨狀態確認一次，避免誤判。做法是這次執行目錄的 `checkpoint.json`：`evaluate_script` 寫回 storage 與非 HttpOnly cookie，再 `navigate_page` 到存下來的網址，然後 `take_snapshot`。HttpOnly cookie 或伺服器狀態還原不了時，改重跑設定步驟。頁面停在 `#/login` 時，寫回 storage 之後仍要 `navigate_page` 到存下來的網址。這次執行要先自己存一份 checkpoint，不要沿用上次執行目錄裡的檔。確認失敗就改回 `仍存在`。
 
 有改動的畫面，測試輪跑完後也用這張表複驗已知問題，包含狀態是 `已修` 的：再壞掉就改回 `仍存在`。做完把「複驗」欄改成 `✅`。這些畫面上新發現的問題，照一般規則寫進這次的 `findings.md`，並依優先順序填「複驗方式」。
 
@@ -154,7 +154,7 @@ P0、P1 被標成 `已修` 時，仍然照證據規則由 agent 從乾淨狀態�
 步驟 6 交付之前：
 - `screens.md` 的指紋和 `fingerprints.json` 換成這次 `probe-result.json` 的 `fingerprints`。沒有跑探測時，才用當時逐頁算出的結果
 - 這次執行目錄有 `probe.json` 時，複製成 `state/probe.json`。檔案裡的密碼必須仍是 `{ "env": "..." }`，不能是明文。之後的 `audit` 直接用這份，見 [modes.md](modes.md#audit)
-- 把這次的 `repro/` 複製到 `state/repro/`：`*.spec.ts`、共用的一份 `_login.ts`、`*.actions.json`。不要複製 `checkpoint.json`（它含 cookie 和 storage，只能留在執行目錄）
+- 把這次的 `repro/` 複製到 `state/repro/`：`*.steps.md`，以及目標專案已經有 Playwright 時手寫的 `*.spec.ts`（有的話含一份 `_login.ts`）。不要複製 `checkpoint.json`（它含 cookie 和 storage，只能留在執行目錄）
 - 這次新發現的問題加進 `known-findings.md`，狀態 `仍存在`，並填「複驗方式」
 - 已知問題更新狀態和「最後確認」
 - `runs.md` 新增一列

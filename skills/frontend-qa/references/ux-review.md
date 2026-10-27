@@ -78,7 +78,7 @@
 
 ## 量化檢查
 
-程度為「深」時，每個畫面在桌機和手機尺寸各跑一次下面的程式碼（`eval <t> "<下列程式碼>"`），再把結果記到 `ux-review.md`：
+程度為「深」時，每個畫面在桌機和手機尺寸各跑一次下面的程式碼，再把結果記到 `ux-review.md`。用 `evaluate_script` 的 `function` 執行，外面包一層 `() => { return <下面這個立即執行函式>; }`。不要呼叫名為 eval 的工具。
 
 ```js
 (() => {
@@ -111,7 +111,7 @@
 
 主要和次要按鈕圓角不同時，先查 design-context 或設計系統有沒有刻意區分（膠囊形主要按鈕、圖示按鈕、連結式按鈕）；只有不是刻意的，才記成 P3 一致性問題。輸入框、卡片和其他元件的圓角不同，本身不是問題。
 
-文字和背景的對比度用 `styles <t> <sel>` 讀出前景色和背景色後計算。一般文字低於 4.5:1 要記錄下來。
+文字和背景的對比度用 `evaluate_script` 讀 `getComputedStyle` 的 `color` 和 `backgroundColor` 後計算。一般文字低於 4.5:1 要記錄下來。
 
 ## 反模式檢查
 
@@ -119,10 +119,7 @@
 
 `<skill 目錄>` 見 [SKILL.md](../SKILL.md#名詞)。
 
-```bash
-B64=$(base64 < <skill 目錄>/scripts/anti-patterns.js | tr -d '\n')
-eval <t> --b64 "$B64"
-```
+用 `evaluate_script` 執行 [`scripts/anti-patterns.js`](../scripts/anti-patterns.js)。`function` 寫成 `() => { return <檔案裡那個立即執行函式>; }`。不要 base64，也不要呼叫名為 eval 的工具。
 
 回傳是一個物件。鍵是 camelCase（例如 `multiplePrimaryButtons`），值是元素字串陣列，格式 `selector "可見文字"`。對照下表的 check 名稱。`document.characterSet` 是 UTF-8 時，`warning` 是 `null`。不是 UTF-8 時，`warning` 是一段說明：CJK 樣式略過，英文樣式仍檢查。`genericDialogActions`、`emptyStateNoAction`、`vagueError`、`destructiveLooksPrimary` 若是空陣列，只代表英文樣式沒中，不是 CJK 文案沒問題。探測會把這段說明記成 `text-checks-skipped`。
 

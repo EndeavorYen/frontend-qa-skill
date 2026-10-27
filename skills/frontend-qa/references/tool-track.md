@@ -1,23 +1,23 @@
-# 工具軌（chrome-cdp-ex）
+# 工具軌（chrome-devtools-mcp）
 
-工具軌記錄 chrome-cdp-ex 本身的問題，最後整理成給 [chrome-cdp-ex](https://github.com/EndeavorYen/chrome-cdp-ex) 的 issue。驅動瀏覽器只用這個工具。需要它新增功能時，照下面的收尾回報開 issue，不要在這個 skill 裡改工具。
+工具軌記錄 chrome-devtools-mcp 本身的問題，最後整理成給 [chrome-devtools-mcp](https://github.com/ChromeDevTools/chrome-devtools-mcp) 的 issue。驅動瀏覽器只用 [SKILL.md](../SKILL.md#需求) 列出的 MCP 工具。需要它新增功能時，照下面的收尾回報開 issue，不要在這個 skill 裡改工具，也不要改叫清單以外的工具。
 
 ## 版本
 
-版本和 `doctor` 在步驟 0 已經檢查過，見 [SKILL.md](../SKILL.md#0-範圍面項與深度)。工具軌開啟時，把同一組值寫進 `tool-track.md` 開頭：chrome-cdp-ex 版本、`git rev-parse --short HEAD` 的 commit（沒有 git 就寫「未知」）、`git remote get-url origin`（沒有就寫 `https://github.com/EndeavorYen/chrome-cdp-ex`）。Chrome 版本在有目標分頁後用 `eval <t> "navigator.userAgent"` 取得。
+步驟 0 用 `list_pages` 確認工具已連上，見 [SKILL.md](../SKILL.md#0-範圍面項與深度)。工具軌開啟時，把同一組資訊寫進 `tool-track.md` 開頭：驅動是 chrome-devtools-mcp、`list_pages` 已成功。有目標分頁後用 `evaluate_script` 執行 `() => navigator.userAgent`，把 Chrome 版本寫上。沒有 CLI 版本或 commit 可記。
 
 ## 歸因
 
-遇到預期外結果時，依序嘗試以下方法：
+遇到預期外結果時，依序嘗試以下方法。每一步都是一則 MCP 工具呼叫，記到工具軌時寫出工具名稱和參數（uid 註明來自哪一次 `take_snapshot`）。
 
-1. **先讀回報**：失敗時，chrome-cdp-ex 會印出 `Error:`、`Kind:`、`Next:`。
-   - `Kind: covered`（有其他元素擋在點擊位置）和 `Kind: disabled`（控制項被停用）描述的是頁面狀態，通常要往產品去查。先用 `overlay <t> <ref>` 看是什麼擋住；如果使用者也會被擋住，就是產品問題。
-   - `Kind: policy` 代表撞到護欄。照 `Next:` 處理，不要繞過；這不算工具 bug。
-   - `Kind: hidden-tab` 代表分頁在背景，照 `Next:` 處理即可。
+1. **先讀回報**：失敗時讀該次工具回傳的錯誤文字。
+   - 點擊沒有作用，或 `evaluate_script` 的 `elementFromPoint` 顯示點擊位置被別的元素擋住、控制項被停用：這描述的是頁面狀態，通常要往產品去查。使用者也會被擋住時，就是產品問題。
+   - 工具拒絕執行（護欄或權限）：照回傳的說明處理，不要繞過；這不算工具 bug。
+   - 分頁在背景：先 `select_page`（`bringToFront` 為 true）再重試。
 2. **換一條路重試**：
-   - 點擊：`click` → `click --js` → `verify-click`
-   - 輸入：`fill` → `type` → `eval` 直接設定值並觸發事件
-   - 讀取畫面：`perceive` → `text --auto` → `eval` 讀 DOM → `shot`（存檔當證據；只有還有看圖額度時才打開，見 SKILL.md「截圖規則」）
+   - 點擊：重新 `take_snapshot` 後 `click` 新的 uid → `evaluate_script` 對該元素呼叫 `.click()`
+   - 輸入：`fill` → `fill_form` → `evaluate_script` 設定值並觸發 `input` 與 `change`
+   - 讀取畫面：`take_snapshot` → `evaluate_script` 讀 DOM → `take_screenshot`（一定帶 `filePath` 存檔當證據；只有還有看圖額度時才打開，見 SKILL.md「截圖規則」）
 3. **判斷**：
 
 | 原方法 | 替代方法 | 頁面證據 | 歸到 |
@@ -31,29 +31,29 @@
 
 ## 紀錄格式
 
-工具軌記兩種東西，編號都用 `T1`、`T2`…：
+工具軌記兩種東西，編號都用 `T1`、`T2`…。每一筆都寫出實際呼叫的 MCP 工具：
 
-- **工具 bug**：當掉、逾時、回報不實、輸出錯誤、`Next:` 建議錯誤、`perceive` 漏掉元素、文件和實際行為不一致。
-- **摩擦**：功能可以用，但很費力。例如一件事要下三個指令、輸出太長得自己找重點、缺少某個能力只好用 `eval` 繞過、指令名稱或參數不直覺。
+- **工具 bug**：當掉、逾時、回報不實、輸出錯誤、`take_snapshot` 漏掉元素、文件和實際行為不一致。
+- **摩擦**：功能可以用，但很費力。例如一件事要呼叫三次、輸出太長得自己找重點、缺少某個能力只好用 `evaluate_script` 繞過、參數不直覺。
 
 ```markdown
-### T2 [bug] `click` 回報 Outcome: changed，但送出按鈕實際沒有被點到
+### T2 [bug] `click` 回報已點到，但送出按鈕實際沒有被點到
 
-- 指令：`click <t> @14`
+- 工具：`take_snapshot`，接著 `click`（uid 來自該次快照，role 是 button、名稱是「送出」）
 - 預期：觸發送出
-- 實際：回報 `Outcome: changed`，但 netlog 沒有任何請求，DOM 也沒有變化
-- 替代方法：`click <t> @14 --js` 成功
+- 實際：工具回報已點擊，但 `list_network_requests`（`resourceTypes`: xhr, fetch）沒有任何請求，DOM 也沒有變化
+- 替代方法：`evaluate_script` 對同一個按鈕呼叫 `.click()` 成功
 - 重現條件：按鈕在 sticky footer 裡，而且頁面捲動到最底部
 - 影響：覆蓋地圖 S2 的「小螢幕鍵盤」格標為 ⛔ T2
 - 輸出節錄：（只保留相關的幾行）
 ```
 
 ```markdown
-### T5 [摩擦] 要確認點擊後有沒有發出請求，得另外下 netlog
+### T5 [摩擦] 要確認點擊後有沒有發出請求，得另外呼叫 list_network_requests
 
 - 情境：每次點擊送出後都要確認 API 有沒有被呼叫
-- 目前做法：`click` 之後接 `netlog --type fetch`
-- 建議：`click` 加上類似 `--expect-request <url>` 的選項，直接在回報中列出結果
+- 目前做法：`click` 之後接 `list_network_requests`（`resourceTypes`: fetch，`pageSize` 設上限）
+- 建議：`click` 的回傳直接列出這次新發出的請求
 - 頻率：這次 QA 中做了約 20 次
 ```
 
@@ -62,9 +62,9 @@
 1. **分類**：把 `tool-track.md` 分成 bug 和摩擦兩組；同一個根本原因的多筆紀錄合併成一筆。
 2. **去重**：每一筆都先搜尋現有 issue，包含已關閉的：
    ```bash
-   gh issue list -R <owner/repo> --state all --search "<關鍵字>" --limit 10
+   gh issue list -R ChromeDevTools/chrome-devtools-mcp --state all --search "<關鍵字>" --limit 10
    ```
-   如果已經有人回報過，就把這次的新資訊（版本、重現條件）準備成留言草稿，而不是開新 issue。
+   如果已經有人回報過，就把這次的新資訊（Chrome 版本、重現條件、呼叫了哪個 MCP 工具）準備成留言草稿，而不是開新 issue。
 3. **寫草稿**：照下方範本，把草稿寫在 `tool-track.md` 的 `## Issue 草稿` 底下。
 4. **去除敏感資訊**：被測網站的 URL、網域、帳號、頁面內容、截圖，都要換成通用描述（例如「一個有 sticky footer 的表單頁」）。重現步驟盡量改寫成公開網頁或最小 HTML 就能重現的版本。`checkpoint.json` 含 cookie 和 storage，不能放進 issue，也不能附在草稿裡。
 5. **使用者確認**：列出所有草稿（標題 + 新開 issue 或留言既有 issue），等使用者逐筆同意。
@@ -73,15 +73,15 @@
 ### Issue 範本
 
 ```markdown
-**標題**：<指令>: <一句話描述現象>
+**標題**：<工具名稱>: <一句話描述現象>
 
 ## 環境
-- chrome-cdp-ex: <commit SHA>
-- Chrome: <版本>
-- OS / Node: <版本>
+- 驅動：chrome-devtools-mcp
+- Chrome: <navigator.userAgent>
+- OS: <版本>
 
 ## 重現
-1. …（最小重現步驟，不包含被測網站的資訊）
+1. …（最小重現步驟，寫出 MCP 工具名稱與參數，不包含被測網站的資訊）
 
 ## 預期
 …
@@ -93,7 +93,7 @@
 …
 
 ## 背景
-這是在使用 chrome-cdp-ex 進行前端品質驗證時發現的。
+這是在使用 chrome-devtools-mcp 進行前端品質驗證時發現的。
 ```
 
 摩擦類的 issue，標題前加上 `[proposal]`，內文把「預期」和「實際」改成「目前做法」和「建議」。

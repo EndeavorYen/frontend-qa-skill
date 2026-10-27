@@ -4,11 +4,11 @@
 
 ## 什麼時候跑
 
-步驟 1 的覆蓋地圖完成後、步驟 2 開始前跑一次。步驟 0 已經確認 chrome-cdp-ex v2.21.0 以上和 Node 22。另外需要同時符合：
-- 知道 `CDP_PORT`，或在 `probe.json` 寫了 `cdpPort`
+步驟 1 的覆蓋地圖完成後、步驟 2 開始前跑一次。步驟 0 已經用 `list_pages` 確認 chrome-devtools-mcp 已連上。探測腳本自己連 DevTools protocol，不經過那些 MCP 工具，另外需要 Node 22，而且同時符合：
+- `probe.json` 寫了 `cdpPort`，或設定了腳本檔頭用法註解裡的那個環境變數
 - 至少開了一個測試輪，或入口是 `audit`
 
-不符合的話就跳過，改由測試輪用 chrome-cdp-ex 手動檢查，並在 `report.md` 寫明沒有跑探測及原因。不要改用其他瀏覽器工具。
+不符合的話就跳過，改由測試輪用 [SKILL.md](../SKILL.md#需求) 列出的 MCP 工具手動檢查，並在 `report.md` 寫明沒有跑探測及原因。不要改用其他瀏覽器工具。
 
 ## 設定檔
 
@@ -48,7 +48,7 @@
 | `login` | 登入步驟；不需要登入就省略。密碼寫成 `{ "env": "QA_PASSWORD" }`，不能寫明文 |
 | `pages` | 覆蓋地圖中的每個畫面。可以是網址字串，或 `{ "url": "/#/orders", "anchor": "h1:訂單列表" }`。`anchor` 是 `標籤:文字`，載入後必須看得到這個文字完全相同的元素 |
 | `records` | 既有資料抽樣中每一組抽到的那一筆的詳情頁（見 [state-checklist.md](state-checklist.md#既有資料抽樣)） |
-| `lists` | 會呼叫 API 載入的列表，`api` 是在 netlog 看到的請求網址片段 |
+| `lists` | 會呼叫 API 載入的列表，`api` 是在 `list_network_requests` 看到的請求網址片段 |
 | `forms` | 會送出資料的表單。`fill` 是 selector 和值，`api` 是送出時的請求網址片段，`longField` 用來測超長輸入 |
 
 **`allowSubmit: true` 只能在步驟 0 允許建立資料時才設。** 送出類檢查會真的送出表單，而且連點檢查可能建立兩筆資料。沒有設的表單只做頁面檢查。探測腳本不會按刪除，也不會碰付款、寄信這類按鈕；不要把這類表單放進 `forms`。
@@ -65,15 +65,17 @@
 | `commandTimeoutMs` | 15000 | 單一 CDP 指令的逾時，超過就記一筆 `probe-error`，繼續下一項。建立連線和登入階段逾時、或 CDP 連線中斷時，直接停止並寫出目前的結果 |
 | `errorWords`、`loadingWords` | 中英文常見字詞 | 判斷錯誤訊息和載入中的正規表示式 |
 | `isolate` | `true` | 在隔離的 browser context 中執行；設成 `false` 會共用使用者瀏覽器的 cookie 和登入狀態 |
-| `cdpPort` | — | 沒有設定環境變數 `CDP_PORT` 時才用 |
+| `cdpPort` | — | 探測腳本要連上的除錯 port。寫在這個欄位。腳本也接受它檔頭用法註解裡的那個環境變數；兩邊都沒有就停止 |
 
 ## 執行
 
 `<skill 目錄>` 見 [SKILL.md](../SKILL.md#名詞)。
 
 ```bash
-CDP_PORT=<port> node <skill 目錄>/scripts/probe.mjs .frontend-qa/<run>/probe.json --out .frontend-qa/<run>/probe-result.json
+node <skill 目錄>/scripts/probe.mjs .frontend-qa/<run>/probe.json --out .frontend-qa/<run>/probe-result.json
 ```
+
+port 寫在 `probe.json` 的 `cdpPort`。沒有寫時，腳本改讀它檔頭用法註解裡的那個環境變數。
 
 stdout 只有一行摘要（各檢查的筆數），完整結果在 `probe-result.json`。`pages` 和 `records` 會多一個 `fingerprints` 物件：鍵是設定檔裡的 url，值是 `{ hash, list }`，在第一個尺寸載入完成後計算，演算法在 [`scripts/fingerprint.mjs`](../scripts/fingerprint.mjs)。
 
@@ -116,7 +118,7 @@ stdout 只有一行摘要（各檢查的筆數），完整結果在 `probe-resul
 
 - 每一筆結果都要判斷是不是真的問題，再寫進 `findings.md`。證據寫 `probe-result.json` 中的那一筆，以及畫面代號。例如 `small-target` 會列出所有小於 44px 的元素，要合併成一筆，不要一個元素一筆
 - 同一個問題出現在多個尺寸或多個頁面時，合併成一筆
-- P0、P1 照證據規則，仍然要用 chrome-cdp-ex 從乾淨狀態重現兩次。做法是 `restore <t> --file .frontend-qa/<run>/checkpoint.json --format json`，再 `perceive <t>`。測試輪中途 app 自己登出時，`restore` 把 session 寫回 storage，頁面仍停在 `#/login`；先 `reload <t>` 再 `perceive <t>`，頁面才會讀到還原後的 session。
+- P0、P1 照證據規則，仍然要用 MCP 工具從乾淨狀態重現兩次。做法是 `evaluate_script` 寫回 storage 與非 HttpOnly cookie，再 `navigate_page` 到存下來的網址，然後 `take_snapshot`。HttpOnly cookie 或伺服器狀態還原不了時，改重跑設定步驟。測試輪中途 app 自己登出、頁面停在 `#/login` 時，storage 寫回後仍要 `navigate_page` 到存下來的網址，頁面才會讀到還原後的 session。
 - `probe-error` 記到工具軌或 `unattributed.md`。寫進 `unattributed.md` 的每一筆都要有證據，至少一種：`shots/` 的截圖路徑、重現腳本，或 `probe-result.json` 的那一筆（見 [report-template.md](report-template.md#unattributedmd)）。對應的檢查改回測試輪手動做
 - 在覆蓋地圖的備註寫「探測：<check 名稱>」，表示這一格已經有哪些檢查做過了
 
