@@ -29,3 +29,6 @@ export const maskText = context.__frontendQaMaskText;
 export const maskBody = context.__frontendQaMaskBody;
 export const isSensitiveKey = context.__frontendQaIsSensitiveKey;
 export const READABLE_HEADERS = context.__frontendQaReadableHeaders;
+export const tokenize = context.__frontendQaTokenize;
+export const classify = context.__frontendQaClassify;
+export const emit = context.__frontendQaEmit;

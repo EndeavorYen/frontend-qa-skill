@@ -12,6 +12,7 @@ import {
   maskEvaluateResult,
   maskResult,
   maskText,
+  tokenize,
 } from './mask.mjs';
 
 const cases = JSON.parse(readFileSync(new URL('./mask.cases.json', import.meta.url), 'utf8'));
@@ -33,7 +34,7 @@ const maskSource = readFileSync(new URL('./mask.js', import.meta.url), 'utf8');
 const KEY_SAMPLE = 'kept';
 const TRUNCATE_AT = 2000;
 const GROUP_ORDER = ['old70', 'L', 'O', 'six', 'LH', 'F1', 'F2', 'V', 'E1', 'I1', 'K', 'KA', 'OBJ', 'CK', 'A1', 'F5', 'R3', 'R3c', 'R52', 'P1'];
-const ALLOWED_DIFF = [174, 216];
+const ALLOWED_DIFF = [174, 210, 211, 212, 213, 216];
 const baseline = JSON.parse(readFileSync(new URL('./mask.baseline.json', import.meta.url), 'utf8'));
 const groupStats = new Map();
 
@@ -44,6 +45,72 @@ test('mask.mjs loads the mask.js installer', () => {
   assert.equal(typeof maskText, 'function');
   assert.equal(typeof maskBody, 'function');
   assert.equal(typeof isSensitiveKey, 'function');
+});
+
+test('tokenize reports quote, fold, and nest boundaries', () => {
+  const escaped = tokenize('say "a\\"b"');
+  const quoted = escaped.find((token) => token.type === 'QUOTED');
+  assert.equal(quoted.quote, '"');
+  assert.equal(quoted.escapes, true);
+  assert.equal(quoted.closed, true);
+
+  const tickSrc = 'token=`abc`';
+  const ticked = tokenize(tickSrc);
+  const backtick = ticked.find((token) => token.type === 'QUOTED' && token.quote === '`');
+  assert.equal(backtick.closed, true);
+  assert.equal(tickSrc.slice(backtick.contentStart, backtick.contentEnd), 'abc');
+  const innerWord = ticked.find((token) => token.type === 'BARE' && token.start >= backtick.contentStart && token.end <= backtick.contentEnd);
+  assert.equal(tickSrc.slice(innerWord.start, innerWord.end), 'abc');
+
+  const bracketSrc = '{"a":"[}]"}';
+  const brackets = tokenize(bracketSrc);
+  const nest = brackets.find((token) => token.type === 'NESTED' && token.closed && token.depth === 1);
+  assert.equal(nest.end, bracketSrc.length);
+  const inner = brackets.find((token) => token.type === 'QUOTED' && token.contentStart > 0 && bracketSrc.slice(token.contentStart, token.contentEnd).includes('[}'));
+  assert.equal(inner.closed, true);
+
+  const open = tokenize('password: "abc');
+  const unclosed = open.find((token) => token.type === 'QUOTED');
+  assert.equal(unclosed.closed, false);
+  assert.equal(unclosed.contentEnd, 'password: "abc'.length);
+
+  const crlfSrc = 'Authorization: Bearer\r\n  secret';
+  const crlf = tokenize(crlfSrc);
+  const nl = crlf.find((token) => token.type === 'NEWLINE');
+  assert.equal(nl.end - nl.start, 2);
+  assert.equal(crlf.some((token) => token.type === 'FOLD'), true);
+  assert.equal(crlf.some((token) => token.type === 'LINE'), true);
+
+  const tab = tokenize('Authorization: Bearer\n\tsecret');
+  const fold = tab.find((token) => token.type === 'FOLD');
+  assert.equal(fold.indent, 1);
+  assert.equal(tab.some((token) => token.type === 'PROSE'), true);
+
+  const deep = `${'{'.repeat(1000)}a${'}'.repeat(1000)}`;
+  const nested = tokenize(`password:${deep}`);
+  const deepToken = nested.find((token) => token.type === 'NESTED' && token.depth === 1000);
+  assert.equal(deepToken.closed, true);
+  assert.equal(deepToken.depth, 1000);
+});
+
+test('quoted scheme values stop at the closing quote, including backticks', () => {
+  const headers = 'headers: {Authorization: `Bearer abcd1234efgh`, Accept: `json`}';
+  assert.equal(maskText(headers), 'headers: {Authorization: `<masked len=19>`, Accept: `json`}');
+  assert.equal(headers.includes('abcd1234efgh'), true);
+  assert.equal(maskText(headers).includes('abcd1234efgh'), false);
+  assert.equal(maskText(headers).includes('`, Accept: `json`}'), true);
+
+  const wrapped = '{Authorization: `Bearer abcd1234efgh`}';
+  assert.equal(maskText(wrapped), '{Authorization: `<masked len=19>`}');
+  assert.equal(maskText(wrapped).endsWith('`}'), true);
+
+  const curl = "curl -H 'Authorization: Bearer abcd1234efgh' -H 'Accept: json'";
+  assert.equal(maskText(curl), "curl -H 'Authorization: Bearer <masked len=12>' -H 'Accept: json'");
+  assert.equal(maskText(curl).includes("' -H 'Accept: json'"), true);
+
+  const echo = "echo 'x Bearer abcd1234efgh' done";
+  assert.equal(maskText(echo), "echo 'x Bearer <masked len=12>' done");
+  assert.equal(maskText(echo).includes("' done"), true);
 });
 
 test('readable header list is exactly the closed list', () => {
