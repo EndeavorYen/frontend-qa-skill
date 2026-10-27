@@ -1470,7 +1470,7 @@
     "secrets": ["abc"],
     "keep": ["\", \"id\": 5}"],
     "surfaces": "all",
-    "output": "{\"authorization\":\"<masked len=21>\", \"id\": 5}"
+    "output": "{\"authorization\":\"<masked len=10>\", \"id\": 5}"
   },
   {
     "group": "R3c",
@@ -1480,7 +1480,7 @@
     "secrets": ["abc"],
     "keep": ["\"}"],
     "surfaces": "all",
-    "output": "{\"authorization\":\"<masked len=21>\"}"
+    "output": "{\"authorization\":\"<masked len=10>\"}"
   },
   {
     "group": "R3c",
@@ -1490,7 +1490,7 @@
     "secrets": ["abcd1234efgh"],
     "keep": ["\"user\": \"qa\"", "}"],
     "surfaces": "all",
-    "output": "{\n  \"authorization\": \"<masked len=22>\",\n  \"user\": \"qa\"\n}"
+    "output": "{\n  \"authorization\": \"<masked len=19>\",\n  \"user\": \"qa\"\n}"
   },
   {
     "group": "R3c",
@@ -1500,7 +1500,7 @@
     "secrets": ["ab\\\"c"],
     "keep": ["\", \"id\": 5}"],
     "surfaces": "all",
-    "output": "{\"authorization\":\"<masked len=21>\", \"id\": 5}"
+    "output": "{\"authorization\":\"<masked len=12>\", \"id\": 5}"
   },
   {
     "group": "R3c",

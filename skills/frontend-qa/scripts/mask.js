@@ -1,5 +1,8 @@
-// maskText pipeline: cut at 2000, then shapes, tokenize (quoted, nested, line,
-// fold, bare), classify, then a token pass. No raw fallback.
+// maskText pipeline: cut at 2000, then shapes, tokenize, classify, emit, then a
+// token pass. tokenize returns QUOTED (quote char, backtick included, escapes),
+// NESTED (depth; quotes do not change depth), LINE (key, separator, value),
+// FOLD, BARE, PROSE, and NEWLINE. Value ends are fixed there. classify only
+// marks secret spans. emit writes them. No raw fallback.
 // Every scan fails closed. A cap is not an emit point: past MAX_QUOTED the
 // same scan runs to the end of that value. If that end is not there, the
 // rest of the input is masked. Linear time.
@@ -99,38 +102,56 @@ const BARE_RE = /[^"'`\s,;&}\])<>]+/y;
 const CSS_PSEUDO = /^:(?:hover|focus|active|checked|disabled|enabled|visited|not|has|is|where|before|after|first-child|last-child|nth-child|root|empty|required|valid|invalid)\b/;
 // A cap is not an emit point. The first window stops at MAX_QUOTED; the same
 // scan then runs to the closing quote. No closer: mask through the end of the input.
-function scanQuoted(text, at) {
+function scanQuoted(text, at, limit) {
   const q = text[at];
+  const endLimit = limit == null ? text.length : limit;
   const cap = at + 1 + MAX_QUOTED;
   let i = at + 1;
-  while (i < text.length) {
-    const limit = i < cap ? Math.min(text.length, cap) : text.length;
-    for (; i < limit; i++) {
-      if (text[i] === '\\') i++;
+  while (i < endLimit) {
+    const windowEnd = i < cap ? Math.min(endLimit, cap) : endLimit;
+    while (i < windowEnd) {
+      if (text[i] === '\\') i += 2;
       else if (text[i] === q) return { start: at + 1, end: i, close: q };
+      else i++;
     }
   }
   return { start: at + 1, end: text.length, close: '' };
 }
-function scanNested(text, at) {
+function scanNested(text, at, limit) {
+  const endLimit = limit == null ? text.length : limit;
   const cap = at + MAX_QUOTED;
   let depth = 0;
+  let maxDepth = 0;
   let q = '';
   let i = at;
-  while (i < text.length) {
-    const limit = i < cap ? Math.min(text.length, cap) : text.length;
-    for (; i < limit; i++) {
+  while (i < endLimit) {
+    const windowEnd = i < cap ? Math.min(endLimit, cap) : endLimit;
+    while (i < windowEnd) {
       const ch = text[i];
-      if (q) { if (ch === '\\') i++; else if (ch === q) q = ''; continue; }
-      if (ch === '"' || ch === "'" || ch === '`') q = ch;
-      else if (ch === '{' || ch === '[') depth++;
-      else if ((ch === '}' || ch === ']') && --depth === 0) return { start: at, end: i + 1, close: ch };
+      if (q) {
+        if (ch === '\\') i += 2;
+        else {
+          if (ch === q) q = '';
+          i++;
+        }
+        continue;
+      }
+      if (ch === '"' || ch === "'" || ch === '`') { q = ch; i++; continue; }
+      if (ch === '{' || ch === '[') {
+        depth++;
+        if (depth > maxDepth) maxDepth = depth;
+        i++;
+        continue;
+      }
+      if ((ch === '}' || ch === ']') && --depth === 0) return { start: at, end: i + 1, close: ch, depth: maxDepth };
+      i++;
     }
   }
-  return { start: at, end: text.length, close: '' };
+  return { start: at, end: text.length, close: '', depth: maxDepth };
 }
-function skipBws(text, i) {
-  while (text[i] === ' ' || text[i] === '\t') i++;
+function skipBws(text, i, limit) {
+  const endLimit = limit == null ? text.length : limit;
+  while (i < endLimit && (text[i] === ' ' || text[i] === '\t')) i++;
   return i;
 }
 function isAuthScheme(word) {
@@ -159,16 +180,18 @@ function isDeeperFold(text, lineStart, parentIndent) {
   if (isReadableFoldLine(text, lineStart)) return false;
   return true;
 }
-// End of an unquoted value: end of line, plus deeper folds. Do not stop at ; , : / or quotes.
-function valueEnd(text, at) {
+// End of an unquoted scheme tail: end of line, plus deeper folds, and never past limit.
+// Do not stop at ; , : / or quotes. The limit is an enclosing quote, when there is one.
+function valueEnd(text, at, limit) {
+  const endLimit = limit == null ? text.length : limit;
   const parentIndent = lineIndentAt(text, at);
   let i = at;
-  while (i < text.length) {
+  while (i < endLimit) {
     const ch = text[i];
     if (ch === '\n' || ch === '\r') {
       let j = i + 1;
       if (ch === '\r' && text[j] === '\n') j++;
-      if (j < text.length && isDeeperFold(text, j, parentIndent)) {
+      if (j < endLimit && isDeeperFold(text, j, parentIndent)) {
         i = j;
         continue;
       }
@@ -188,21 +211,27 @@ function lineContentEnd(text, at) {
   while (i < text.length && text[i] !== '\n' && text[i] !== '\r') i++;
   return i;
 }
+function lineStartAt(text, index) {
+  let i = index;
+  while (i > 0 && text[i - 1] !== '\n' && text[i - 1] !== '\r') i--;
+  return i;
+}
 // Unquoted assignment value. Spaces stay inside a letter phrase. Stop at end of line,
 // at & ; , or at a quote or bracket. A space before a non-letter token (for example " [200]") ends it.
-function unquotedValueEnd(text, at) {
+function unquotedValueEnd(text, at, limit) {
+  const endLimit = limit == null ? text.length : limit;
   let i = at;
-  while (i < text.length) {
+  while (i < endLimit) {
     const ch = text[i];
     if (ch === '\n' || ch === '\r' || ch === '&' || ch === ';' || ch === ',' ||
         ch === '"' || ch === "'" || ch === '`' || ch === '}' || ch === ']' ||
         ch === ')' || ch === '<' || ch === '>') break;
     if (ch === ' ' || ch === '\t') {
       let j = i;
-      while (text[j] === ' ' || text[j] === '\t') j++;
-      if (!/[A-Za-z]/.test(text[j] || '')) break;
+      while (j < endLimit && (text[j] === ' ' || text[j] === '\t')) j++;
+      if (j >= endLimit || !/[A-Za-z]/.test(text[j] || '')) break;
       let k = j;
-      while (k < text.length && /[A-Za-z]/.test(text[k])) k++;
+      while (k < endLimit && /[A-Za-z]/.test(text[k])) k++;
       i = k;
       continue;
     }
@@ -212,166 +241,485 @@ function unquotedValueEnd(text, at) {
 }
 // Authorization prose ("header is missing") keeps the letter tail readable.
 // Any other sensitive key takes the whole phrase, including a short first word such as "my".
-function schemeProseStays(key, token, text, tokenEnd) {
+function schemeProseStays(key, token, text, tokenEnd, limit) {
   const name = String(key);
   if (token.length < 3) return false;
   if (!/authorization/i.test(name) && !/^auth$/i.test(name)) return false;
-  const tail = text.slice(tokenEnd, unquotedValueEnd(text, tokenEnd));
+  const tail = text.slice(tokenEnd, unquotedValueEnd(text, tokenEnd, limit));
   return /^[ \t]+[A-Za-z]+(?:[ \t]+[A-Za-z]+)+[ \t]*$/.test(tail);
 }
 // Folds after an unquoted value. parentIndent is the LINE's first column.
-function extendIndentedFolds(text, end, parentIndent) {
+function extendIndentedFolds(text, end, parentIndent, limit) {
+  const endLimit = limit == null ? text.length : limit;
   let j = end;
-  while (text[j] === ' ' || text[j] === '\t') j++;
-  if (text[j] !== '\n' && text[j] !== '\r') return end;
+  while (j < endLimit && (text[j] === ' ' || text[j] === '\t')) j++;
+  if (j >= endLimit || (text[j] !== '\n' && text[j] !== '\r')) return end;
   let i = j;
   let consumed = false;
-  while (i < text.length && (text[i] === '\n' || text[i] === '\r')) {
+  while (i < endLimit && (text[i] === '\n' || text[i] === '\r')) {
     const k = lineBreakEnd(text, i);
-    if (k >= text.length || !isDeeperFold(text, k, parentIndent)) break;
+    if (k >= text.length || k >= endLimit || !isDeeperFold(text, k, parentIndent)) break;
     consumed = true;
     i = k;
-    while (i < text.length && text[i] !== '\n' && text[i] !== '\r') i++;
+    while (i < endLimit && text[i] !== '\n' && text[i] !== '\r') i++;
   }
   return consumed ? i : end;
 }
 // A closed quote or bracket ends the value. Indented lines after that closer are not folds.
-function withFold(text, span) {
+function withFold(text, span, limit) {
   if (span.close) return span;
   const parentIndent = lineIndentAt(text, span.start);
-  const folded = extendIndentedFolds(text, span.end, parentIndent);
+  const folded = extendIndentedFolds(text, span.end, parentIndent, limit);
   if (folded > span.end) return { start: span.start, end: folded };
   return span;
 }
 // Lone scheme at end of line: the next line is masked (any indent) unless it is a
 // readable header, or a sensitive key that is not itself a deeper fold.
-function loneSchemeTail(text, breakAt) {
+function loneSchemeTail(text, breakAt, limit) {
+  const endLimit = limit == null ? text.length : limit;
   const j = lineBreakEnd(text, breakAt);
-  if (j >= text.length) return null;
+  if (j >= text.length || j >= endLimit) return null;
   const parentIndent = lineIndentAt(text, breakAt);
   const indent = leadingWs(text, j);
   const content = j + indent;
-  if (content >= text.length || text[content] === '\n' || text[content] === '\r') return null;
+  if (content >= text.length || content >= endLimit || text[content] === '\n' || text[content] === '\r') return null;
   const name = headerNameAt(text, content);
   if (name && isReadableHeaderName(name)) return null;
   if (name && isSensitiveKey(name) && indent <= parentIndent) return null;
   if (text.startsWith('<masked len=', content)) return null;
   let end = lineContentEnd(text, content);
-  const folded = extendIndentedFolds(text, end, parentIndent);
+  if (end > endLimit) end = endLimit;
+  const folded = extendIndentedFolds(text, end, parentIndent, endLimit);
   if (folded > end) end = folded;
   if (end <= content) return null;
   return { start: content, end };
 }
 // Auth scheme (Bearer, Basic, Token, …), keyed or keyless. Rest of the line and every
 // indented fold are masked. No letter-tail exception on this path.
-function authSchemeTail(text, schemeEnd) {
+function authSchemeTail(text, schemeEnd, limit) {
+  const endLimit = limit == null ? text.length : limit;
   let start = schemeEnd;
+  if (start >= endLimit) return null;
   if (text[start] === ' ' || text[start] === '\t') {
-    start = skipBws(text, start);
+    start = skipBws(text, start, endLimit);
     if (start === schemeEnd || text.startsWith('<masked len=', start)) return null;
   } else if (text[start] !== '\n' && text[start] !== '\r') return null;
-  if (start >= text.length) return null;
-  if (text[start] === '\n' || text[start] === '\r') return loneSchemeTail(text, start);
-  const end = valueEnd(text, start);
+  if (start >= endLimit) return null;
+  if (text[start] === '\n' || text[start] === '\r') return loneSchemeTail(text, start, endLimit);
+  const end = valueEnd(text, start, endLimit);
   if (end <= start) return null;
   return { start, end };
 }
 // Non-auth scheme words only. A single credential token on the next line is the value.
 // A normal next line stays readable. Auth schemes use authSchemeTail instead.
-function nextLineCredential(text, breakAt) {
+function nextLineCredential(text, breakAt, limit) {
+  const endLimit = limit == null ? text.length : limit;
   const j = lineBreakEnd(text, breakAt);
-  if (j >= text.length) return null;
+  if (j >= text.length || j >= endLimit) return null;
   if (text[j] === ' ' || text[j] === '\t') {
-    const end = valueEnd(text, breakAt);
+    const end = valueEnd(text, breakAt, endLimit);
     if (end <= j || !tailIsCredential(text.slice(j, end))) return null;
     return { start: j, end };
   }
   TOKEN68_RE.lastIndex = j;
   const token = TOKEN68_RE.exec(text);
-  if (!token || !credentialToken(token[0]) || NUMBER.test(token[0])) return null;
+  if (!token || token.index !== j || !credentialToken(token[0]) || NUMBER.test(token[0])) return null;
   let end = j + token[0].length;
+  if (end > endLimit) return null;
   let k = end;
-  while (text[k] === ' ' || text[k] === '\t') k++;
-  if (k < text.length && text[k] !== '\n' && text[k] !== '\r') return null;
+  while (k < endLimit && (text[k] === ' ' || text[k] === '\t')) k++;
+  if (k < endLimit && text[k] !== '\n' && text[k] !== '\r') return null;
   return { start: j, end };
 }
-function schemeCredential(text, schemeEnd) {
+function schemeCredential(text, schemeEnd, limit) {
+  const endLimit = limit == null ? text.length : limit;
   let start = schemeEnd;
+  if (start >= endLimit) return null;
   if (text[start] === ' ' || text[start] === '\t') {
-    start = skipBws(text, start);
+    start = skipBws(text, start, endLimit);
     if (start === schemeEnd || text.startsWith('<masked len=', start)) return null;
   } else if (text[start] !== '\n' && text[start] !== '\r') return null;
-  if (start >= text.length) return null;
-  if (text[start] === '\n' || text[start] === '\r') return nextLineCredential(text, start);
+  if (start >= endLimit) return null;
+  if (text[start] === '\n' || text[start] === '\r') return nextLineCredential(text, start, endLimit);
   const lineEnd = lineContentEnd(text, start);
-  const end = valueEnd(text, start);
+  const end = valueEnd(text, start, endLimit);
   if (end <= start) return null;
   // The first line decides a short credential. A folded prose line must not excuse it.
   // The whole tail, folds included, still fails closed when the fold itself is the credential.
-  const firstLine = text.slice(start, lineEnd);
+  const firstLine = text.slice(start, Math.min(lineEnd, endLimit));
   if (!tailIsCredential(firstLine) && !tailIsCredential(text.slice(start, end))) return null;
   return { start, end };
 }
-function keyAnchored(text, spans) {
+function readBare(text, at, limit) {
+  BARE_RE.lastIndex = at;
+  const found = BARE_RE.exec(text);
+  if (!found || found.index !== at) return '';
+  const end = Math.min(at + found[0].length, limit);
+  return text.slice(at, end);
+}
+function hasEscapes(text, from, to) {
+  for (let i = from; i < to; i++) if (text[i] === '\\') return true;
+  return false;
+}
+// Rightmost quote that starts before pos wins. Quotes do not nest.
+// A quote that closes at or before sepEnd only wraps the key. It is not a value boundary.
+function enclosingContentEnd(quotes, pos, sepEnd) {
+  let lo = 0;
+  let hi = quotes.length - 1;
+  let ans = null;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (quotes[mid].start < pos) { ans = quotes[mid]; lo = mid + 1; }
+    else hi = mid - 1;
+  }
+  if (!ans || pos < ans.contentStart || pos >= ans.contentEnd) return null;
+  if (sepEnd != null && ans.contentEnd <= sepEnd) return null;
+  return ans.contentEnd;
+}
+function markFolds(text, anchor, spanStart, spanEnd, tokens) {
+  if (spanEnd <= spanStart) return;
+  const parentIndent = lineIndentAt(text, anchor);
+  let i = lineStartAt(text, spanStart);
+  while (i < spanEnd && i < text.length) {
+    if (isDeeperFold(text, i, parentIndent)) {
+      const lineEnd = lineContentEnd(text, i);
+      tokens.push({ type: 'FOLD', start: i, end: lineEnd, indent: leadingWs(text, i) });
+    }
+    let j = i;
+    while (j < text.length && text[j] !== '\n' && text[j] !== '\r') j++;
+    if (j >= text.length) break;
+    const next = lineBreakEnd(text, j);
+    if (next <= i) break;
+    i = next;
+  }
+}
+function scanStructure(text, tokens, quotes) {
+  const n = text.length;
+  let i = 0;
+  const brackets = [];
+  let maxDepth = 0;
+  while (i < n) {
+    const ch = text[i];
+    if ((ch === '"' || ch === "'" || ch === '`') && !quoteIsEscaped(text, i)) {
+      const scanned = scanQuoted(text, i);
+      const closed = scanned.close !== '';
+      const token = {
+        type: 'QUOTED',
+        quote: ch,
+        start: i,
+        end: closed ? scanned.end + 1 : n,
+        contentStart: scanned.start,
+        contentEnd: closed ? scanned.end : n,
+        closed,
+        escapes: hasEscapes(text, scanned.start, closed ? scanned.end : n),
+      };
+      if (token.end <= i) token.end = i + 1;
+      quotes.push(token);
+      tokens.push(token);
+      i = token.end;
+      continue;
+    }
+    if (ch === '{' || ch === '[') {
+      const depth = brackets.length + 1;
+      if (depth > maxDepth) maxDepth = depth;
+      brackets.push({ start: i, depth });
+      i++;
+      continue;
+    }
+    if ((ch === '}' || ch === ']') && brackets.length) {
+      const open = brackets.pop();
+      tokens.push({ type: 'NESTED', start: open.start, end: i + 1, depth: open.depth, closed: true, open: text[open.start] });
+      i++;
+      continue;
+    }
+    if (ch === '\n' || ch === '\r') {
+      const j = lineBreakEnd(text, i);
+      tokens.push({ type: 'NEWLINE', start: i, end: j });
+      i = j;
+      continue;
+    }
+    i++;
+  }
+  if (brackets.length) {
+    tokens.push({
+      type: 'NESTED',
+      start: brackets[0].start,
+      end: n,
+      depth: maxDepth,
+      closed: false,
+      open: text[brackets[0].start],
+    });
+  }
+}
+function blankLine(key, keyStart, keyEnd, sepStart, sepEnd, query) {
+  return {
+    type: 'LINE',
+    start: keyStart,
+    end: sepEnd,
+    key,
+    keyStart,
+    keyEnd,
+    sepStart,
+    sepEnd,
+    valueStart: sepEnd,
+    valueEnd: sepEnd,
+    query,
+    valueKind: 'empty',
+    closed: false,
+    placeholder: false,
+    skip: false,
+    exactBearer: false,
+    bareScheme: false,
+    prose: false,
+    cred: false,
+    wordStart: -1,
+    wordEnd: -1,
+    wordMaskStart: -1,
+    wordMaskEnd: -1,
+    credStart: -1,
+    credEnd: -1,
+  };
+}
+function scanLines(text, tokens, quotes) {
+  const quoteAt = new Map();
+  for (let q = 0; q < quotes.length; q++) quoteAt.set(quotes[q].start, quotes[q]);
   ASSIGN_RE.lastIndex = 0;
   let m;
   while ((m = ASSIGN_RE.exec(text)) !== null) {
-    const [whole, prefix, kq, key, sep] = m;
+    const whole = m[0];
+    const prefix = m[1];
+    const kq = m[2];
+    const key = m[3];
+    const sep = m[4];
     const vStart = m.index + whole.length;
     const eq = sep.includes('=');
     if (prefix === '#' && !eq) continue;
     if (!eq && !kq && CSS_PSEUDO.test(text.slice(vStart - sep.length + sep.indexOf(':')))) continue;
-    const q = eq && !kq && (prefix === '?' || prefix === '&' || prefix === '#');
-    if (!isSensitiveKey(key, q)) { ASSIGN_RE.lastIndex = m.index + whole.trimEnd().length; continue; }
-    let span;
-    let bare = false;
-    let bareScheme = false;
-    if (text[vStart] === '"' || text[vStart] === "'" || text[vStart] === '`') span = scanQuoted(text, vStart);
-    else if (text[vStart] === '\\' && (text[vStart + 1] === '"' || text[vStart + 1] === "'" || text[vStart + 1] === '`')) {
-      const close = '\\' + text[vStart + 1];
-      const from = vStart + 2;
-      const at = text.indexOf(close, from);
-      // A closer past MAX_QUOTED is still the end of the value. None: the rest of the input.
-      span = { start: from, end: at >= 0 ? at : text.length };
-    } else if (text[vStart] === '{' || text[vStart] === '[') {
-      span = scanNested(text, vStart); // object/array under a secret key: mask it whole
-    } else {
-      bare = true;
-      BARE_RE.lastIndex = vStart;
-      const b = BARE_RE.exec(text);
-      if (!b) continue;
-      span = { start: vStart, end: vStart + b[0].length };
-      if (text.startsWith('<masked len=', span.end)) { ASSIGN_RE.lastIndex = span.end; continue; } // a shape already owns it
-      // A long or digit-heavy token is the credential, not a scheme name. Hyphenated names (AWS4-HMAC-SHA256) stay schemes.
-      bareScheme = SCHEME_WORD.test(b[0]) && (b[0].includes('-') || !credentialToken(b[0]));
+    const query = eq && !kq && (prefix === '?' || prefix === '&' || prefix === '#');
+    const keyStart = m.index + prefix.length + kq.length;
+    const keyEnd = keyStart + key.length;
+    const sepStart = keyEnd + kq.length;
+    const line = blankLine(key, keyStart, keyEnd, sepStart, vStart, query);
+    const sensitive = isSensitiveKey(key, query);
+    if (!sensitive) {
+      tokens.push(line);
+      ASSIGN_RE.lastIndex = m.index + whole.trimEnd().length;
+      continue;
     }
-    if (span.end <= span.start) continue;
-    if (PLACEHOLDER.test(text.slice(span.start, span.end + 1))) { ASSIGN_RE.lastIndex = span.end; continue; }
-    const token = text.slice(span.start, span.end);
-    if (/^(?:Bearer|Basic)$/i.test(token)) {
-      // Same-line Bearer/Basic is masked in maskAuthSameLine. A lone scheme uses this path.
-      const cred = authSchemeTail(text, span.end);
-      if (!cred) continue;
-      span = cred;
-    } else if (bareScheme) {
-      const cred = isAuthScheme(token) ? authSchemeTail(text, span.end) : schemeCredential(text, span.end);
-      if (cred) {
-        spans.push([span.start, span.end]);
-        span = cred;
-      } else if (!schemeProseStays(key, token, text, span.end)) {
-        span = { start: span.start, end: unquotedValueEnd(text, span.start) };
+    const limit = enclosingContentEnd(quotes, keyStart, vStart);
+    const endLimit = limit == null ? text.length : limit;
+    if (vStart >= text.length || vStart >= endLimit) {
+      tokens.push(line);
+      continue;
+    }
+    let consume = vStart;
+    if (text[vStart] === '"' || text[vStart] === "'" || text[vStart] === '`') {
+      const existing = quoteAt.get(vStart);
+      let contentStart;
+      let contentEnd;
+      let close;
+      if (existing) {
+        contentStart = existing.contentStart;
+        contentEnd = existing.closed ? existing.contentEnd : text.length;
+        close = existing.closed ? existing.quote : '';
+      } else {
+        const scanned = scanQuoted(text, vStart, endLimit);
+        contentStart = scanned.start;
+        contentEnd = scanned.close ? scanned.end : text.length;
+        close = scanned.close;
       }
-    } else if (bare) {
-      const end = unquotedValueEnd(text, span.start);
-      if (end > span.end) span = { start: span.start, end };
+      line.valueKind = 'quoted';
+      line.valueStart = contentStart;
+      line.valueEnd = contentEnd;
+      line.closed = close !== '';
+      line.end = line.closed ? contentEnd + 1 : contentEnd;
+      line.placeholder = PLACEHOLDER.test(text.slice(contentStart, contentEnd + 1));
+      consume = contentEnd;
+    } else if (text[vStart] === '\\' && (text[vStart + 1] === '"' || text[vStart + 1] === "'" || text[vStart + 1] === '`')) {
+      const closer = '\\' + text[vStart + 1];
+      const from = vStart + 2;
+      const at = text.indexOf(closer, from);
+      const end = at >= 0 && at < endLimit ? at : text.length;
+      const folded = withFold(text, { start: from, end }, endLimit);
+      line.valueKind = 'escaped';
+      line.valueStart = from;
+      line.valueEnd = folded.end;
+      line.closed = false;
+      line.end = folded.end;
+      line.placeholder = PLACEHOLDER.test(text.slice(from, folded.end + 1));
+      consume = folded.end;
+      markFolds(text, from, from, folded.end, tokens);
+    } else if (text[vStart] === '{' || text[vStart] === '[') {
+      const nested = scanNested(text, vStart, endLimit);
+      const folded = withFold(text, nested, endLimit);
+      line.valueKind = 'nested';
+      line.valueStart = nested.start;
+      line.valueEnd = folded.end;
+      line.closed = nested.close !== '';
+      line.depth = nested.depth;
+      line.end = folded.end;
+      line.placeholder = PLACEHOLDER.test(text.slice(nested.start, folded.end + 1));
+      consume = folded.end;
+      if (!nested.close) markFolds(text, nested.start, nested.start, folded.end, tokens);
+    } else {
+      const word = readBare(text, vStart, endLimit);
+      if (!word) {
+        tokens.push(line);
+        continue;
+      }
+      const wordEnd = vStart + word.length;
+      if (text.startsWith('<masked len=', wordEnd)) {
+        line.skip = true;
+        line.valueKind = 'bare';
+        line.wordStart = vStart;
+        line.wordEnd = wordEnd;
+        line.valueStart = vStart;
+        line.valueEnd = wordEnd;
+        line.end = wordEnd;
+        tokens.push(line);
+        ASSIGN_RE.lastIndex = wordEnd;
+        continue;
+      }
+      const bareScheme = SCHEME_WORD.test(word) && (word.includes('-') || !credentialToken(word));
+      const exactBearer = /^(?:Bearer|Basic)$/i.test(word);
+      line.valueKind = 'bare';
+      line.wordStart = vStart;
+      line.wordEnd = wordEnd;
+      line.valueStart = vStart;
+      line.exactBearer = exactBearer;
+      line.bareScheme = bareScheme;
+      line.prose = bareScheme && schemeProseStays(key, word, text, wordEnd, endLimit);
+      const wordFold = withFold(text, { start: vStart, end: wordEnd }, endLimit);
+      line.wordMaskStart = wordFold.start;
+      line.wordMaskEnd = wordFold.end;
+      let cred = null;
+      if (exactBearer || (bareScheme && isAuthScheme(word))) cred = authSchemeTail(text, wordEnd, endLimit);
+      else if (bareScheme) cred = schemeCredential(text, wordEnd, endLimit);
+      if (cred) {
+        const folded = withFold(text, { start: cred.start, end: cred.end }, endLimit);
+        line.cred = true;
+        line.credStart = folded.start;
+        line.credEnd = folded.end;
+        markFolds(text, wordEnd, folded.start, folded.end, tokens);
+      }
+      const full = withFold(text, { start: vStart, end: unquotedValueEnd(text, vStart, endLimit) }, endLimit);
+      line.valueEnd = full.end;
+      line.end = full.end;
+      if (!line.cred) markFolds(text, vStart, vStart, full.end, tokens);
+      if (PLACEHOLDER.test(text.slice(vStart, wordEnd + 1))) line.placeholder = true;
+      if (exactBearer) consume = line.cred ? line.credEnd : vStart;
+      else if (bareScheme && line.cred) consume = line.credEnd;
+      else if (bareScheme && line.prose) consume = line.wordMaskEnd;
+      else consume = line.valueEnd;
     }
-    if (span.end <= span.start) continue;
-    span = withFold(text, span);
-    if (span.end <= span.start) continue;
-    spans.push([span.start, span.end]);
-    ASSIGN_RE.lastIndex = Math.max(span.end, ASSIGN_RE.lastIndex);
+    tokens.push(line);
+    if (consume > m.index) ASSIGN_RE.lastIndex = Math.max(ASSIGN_RE.lastIndex, consume);
   }
 }
+function isWordChar(ch) {
+  return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') ||
+    ch === '.' || ch === '_' || ch === '~' || ch === '+' || ch === '/' || ch === '=' || ch === '-';
+}
+function scanWords(text, tokens) {
+  const n = text.length;
+  let i = 0;
+  while (i < n) {
+    const ch = text[i];
+    if (ch === '\n' || ch === '\r') { i = lineBreakEnd(text, i); continue; }
+    if (isWordChar(ch)) {
+      const start = i;
+      i++;
+      while (i < n && isWordChar(text[i])) i++;
+      tokens.push({ type: 'BARE', start, end: i });
+      continue;
+    }
+    const start = i;
+    i++;
+    while (i < n && text[i] !== '\n' && text[i] !== '\r' && !isWordChar(text[i])) i++;
+    tokens.push({ type: 'PROSE', start, end: i });
+  }
+}
+const KEYLESS_RE = /\b(Bearer|Basic|Token|Digest|Negotiate|NTLM|ApiKey|SharedKey|OAuth|HOBA|Mutual|AWS4-HMAC-SHA256)\b/gi;
+function keylessTail(text, schemeEnd, word, endLimit) {
+  const bearer = /^(?:bearer|basic)$/i.test(word);
+  if (schemeEnd < endLimit && (text[schemeEnd] === ' ' || text[schemeEnd] === '\t')) {
+    const after = skipBws(text, schemeEnd, endLimit);
+    if (after < endLimit && (text[after] === '\n' || text[after] === '\r')) return loneSchemeTail(text, after, endLimit);
+    if (!bearer || after >= endLimit || after === schemeEnd) return null;
+    if (text.startsWith('<masked len=', after)) return null;
+    const matched = /^[A-Za-z0-9._~+/=-]*/.exec(text.slice(after, endLimit));
+    const len = matched && matched[0] ? matched[0].length : 0;
+    if (!len) return null;
+    return { start: after, end: after + len };
+  }
+  if (schemeEnd < endLimit && (text[schemeEnd] === '\n' || text[schemeEnd] === '\r')) {
+    return loneSchemeTail(text, schemeEnd, endLimit);
+  }
+  return null;
+}
+function scanKeylessTokens(text, tokens, quotes) {
+  KEYLESS_RE.lastIndex = 0;
+  let m;
+  while ((m = KEYLESS_RE.exec(text)) !== null) {
+    const word = m[1];
+    const schemeEnd = m.index + word.length;
+    const limit = enclosingContentEnd(quotes, m.index);
+    const tail = keylessTail(text, schemeEnd, word, limit == null ? text.length : limit);
+    tokens.push({
+      type: 'BARE',
+      start: m.index,
+      end: schemeEnd,
+      keyless: !!tail,
+      keylessStart: tail ? tail.start : -1,
+      keylessEnd: tail ? tail.end : -1,
+    });
+    if (tail && tail.end > schemeEnd) KEYLESS_RE.lastIndex = tail.end;
+  }
+}
+function tokenize(text) {
+  const tokens = [];
+  const quotes = [];
+  scanStructure(text, tokens, quotes);
+  scanLines(text, tokens, quotes);
+  scanWords(text, tokens);
+  scanKeylessTokens(text, tokens, quotes);
+  return tokens;
+}
+function classify(tokens) {
+  const spans = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const line = tokens[i];
+    if (line.type !== 'LINE') continue;
+    if (line.skip || line.placeholder) continue;
+    if (!isSensitiveKey(line.key, line.query)) continue;
+    if (line.valueKind === 'quoted' || line.valueKind === 'nested' || line.valueKind === 'escaped') {
+      if (line.valueEnd > line.valueStart) spans.push([line.valueStart, line.valueEnd]);
+      continue;
+    }
+    if (line.valueKind !== 'bare') continue;
+    if (line.exactBearer) {
+      if (line.cred && line.credEnd > line.credStart) spans.push([line.credStart, line.credEnd]);
+      continue;
+    }
+    if (line.bareScheme && line.cred) {
+      if (line.wordEnd > line.wordStart) spans.push([line.wordStart, line.wordEnd]);
+      if (line.credEnd > line.credStart) spans.push([line.credStart, line.credEnd]);
+      continue;
+    }
+    if (line.bareScheme && line.prose) {
+      if (line.wordMaskEnd > line.wordMaskStart) spans.push([line.wordMaskStart, line.wordMaskEnd]);
+      continue;
+    }
+    if (line.valueEnd > line.valueStart) spans.push([line.valueStart, line.valueEnd]);
+  }
+  for (let i = 0; i < tokens.length; i++) {
+    const tok = tokens[i];
+    if (tok.type !== 'BARE' || !tok.keyless) continue;
+    if (tok.keylessEnd > tok.keylessStart) spans.push([tok.keylessStart, tok.keylessEnd]);
+  }
+  return spans;
+}
+
 const DELIM = /[\s"'`|,;!<>()[\]{}\\]|[^\x00-\x7f]/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NUMBER = /^-?\d+(?:\.\d+)?$/;
@@ -449,11 +797,15 @@ function tokenPass(text) {
   }
   return out;
 }
-function applySpans(text, spans) {
-  spans.sort((a, b) => a[0] - b[0]);
-  let out = ''; let last = 0;
-  for (const [s, e] of spans) {
-    if (s < last) continue;
+function emit(text, spans) {
+  const ranges = spans.map((span) => (Array.isArray(span) ? [span[0], span[1]] : [span.start, span.end]));
+  ranges.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
+  let out = '';
+  let last = 0;
+  for (let i = 0; i < ranges.length; i++) {
+    const s = ranges[i][0];
+    const e = ranges[i][1];
+    if (e <= s || s < last) continue;
     out += text.slice(last, s) + marker(text.slice(s, e));
     last = e;
   }
@@ -469,108 +821,16 @@ function maskCookieLine(all, lead, name, sep, body) {
   });
   return lead + name + sep + out;
 }
-// Keyless auth scheme at end of line. Keyed schemes are already in the spans from keyAnchored.
-function scanKeylessSchemes(text, spans) {
-  const re = /\b(Bearer|Basic|Token|Digest|Negotiate|NTLM|ApiKey|SharedKey|OAuth|HOBA|Mutual|AWS4-HMAC-SHA256)\b/gi;
-  let m;
-  while ((m = re.exec(text)) !== null) {
-    const schemeEnd = m.index + m[1].length;
-    let i = schemeEnd;
-    if (text[i] === ' ' || text[i] === '\t') i = skipBws(text, i);
-    if (text[i] !== '\n' && text[i] !== '\r') continue;
-    const tail = authSchemeTail(text, schemeEnd);
-    if (!tail) continue;
-    let covered = false;
-    for (let n = 0; n < spans.length; n++) {
-      if (spans[n][0] <= tail.start && spans[n][1] >= tail.end) { covered = true; break; }
-    }
-    if (covered || text.startsWith('<masked len=', tail.start)) {
-      re.lastIndex = tail.end;
-      continue;
-    }
-    spans.push([tail.start, tail.end]);
-    re.lastIndex = tail.end;
-  }
-}
 function quoteIsEscaped(text, at) {
   let n = 0;
   for (let k = at - 1; k >= 0 && text[k] === '\\'; k--) n++;
   return n % 2 === 1;
 }
-// Quoted value (opening " or ') whose content starts with this scheme.
-// End is the closing quote, or the end of the input when that quote is missing.
-function quotedSchemeEnd(text, schemeStart) {
-  let i = schemeStart - 1;
-  while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) i--;
-  if (i < 0) return null;
-  const q = text[i];
-  if ((q !== '"' && q !== "'") || quoteIsEscaped(text, i)) return null;
-  let k = i - 1;
-  while (k >= 0 && (text[k] === ' ' || text[k] === '\t')) k--;
-  if (k >= 0) {
-    const prev = text[k];
-    if (prev !== ':' && prev !== '=' && prev !== ',' && prev !== '[' && prev !== '{' && prev !== '(') return null;
-  }
-  const scanned = scanQuoted(text, i);
-  return { end: scanned.end, closed: scanned.close !== '' };
-}
-function schemeAfterSensitiveKey(text, schemeStart) {
-  let i = schemeStart - 1;
-  while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) i--;
-  if (i >= 0 && (text[i] === '"' || text[i] === "'" || text[i] === '`') && !quoteIsEscaped(text, i)) i--;
-  while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) i--;
-  if (i < 0 || (text[i] !== ':' && text[i] !== '=')) return false;
-  i--;
-  while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) i--;
-  if (i >= 0 && (text[i] === '"' || text[i] === "'" || text[i] === '`') && !quoteIsEscaped(text, i)) i--;
-  const keyEnd = i + 1;
-  while (i >= 0 && /[A-Za-z0-9_.%-]/.test(text[i])) i--;
-  const key = text.slice(i + 1, keyEnd);
-  if (!key) return false;
-  const prev = i >= 0 ? text[i] : '';
-  return isSensitiveKey(key, prev === '?' || prev === '&' || prev === '#');
-}
-function firstSchemeTokenEnd(text, at) {
-  const m = /^[A-Za-z0-9._~+/=-]*/.exec(text.slice(at));
-  return at + (m ? m[0].length : 0);
-}
-// Bearer or Basic on the same line. A quoted value that starts with the scheme ends at
-// the matching closing quote; escaped quotes count. No closer: mask through the end of
-// the input. Keyless prose masks only the first token. A keyed value masks the rest,
-// including an indented fold that is not a key line. A placeholder already there stays.
-function maskAuthSameLine(text) {
-  const re = /\b(Bearer|Basic)[ \t]+/gi;
-  let out = '';
-  let last = 0;
-  let m;
-  while ((m = re.exec(text)) !== null) {
-    const schemeStart = m.index;
-    const content = schemeStart + m[0].length;
-    if (content >= text.length || text.startsWith('<masked len=', content)) continue;
-    const quoted = quotedSchemeEnd(text, schemeStart);
-    const keyed = schemeAfterSensitiveKey(text, schemeStart);
-    let end;
-    if (quoted && !quoted.closed) end = text.length;
-    else if (!keyed) end = firstSchemeTokenEnd(text, content);
-    else if (quoted) end = quoted.end;
-    else end = valueEnd(text, content);
-    if (quoted && quoted.closed && end > quoted.end) end = quoted.end;
-    if (end <= content) continue;
-    out += text.slice(last, content) + marker(text.slice(content, end));
-    last = end;
-    re.lastIndex = end;
-  }
-  return out + text.slice(last);
-}
 function maskBody(text) {
-  let s = text.replace(COOKIE_LINE, maskCookieLine).replace(JWT_RE, (j) => marker(j)).replace(VENDOR_RE, (v) => marker(v))
+  const shaped = text.replace(COOKIE_LINE, maskCookieLine).replace(JWT_RE, (j) => marker(j)).replace(VENDOR_RE, (v) => marker(v))
     .replace(USERINFO_RE, (all, a, v, at) => a + marker(v) + at);
-  s = maskAuthSameLine(s);
-  const spans = [];
-  keyAnchored(s, spans);
-  scanKeylessSchemes(s, spans);
-  s = applySpans(s, spans);
-  return s.split(/(<masked len=\d+>)/).map((part, i) => (i % 2 ? part : tokenPass(part))).join('');
+  const masked = emit(shaped, classify(tokenize(shaped)));
+  return masked.split(/(<masked len=\d+>)/).map((part, i) => (i % 2 ? part : tokenPass(part))).join('');
 }
 const TRUNC_SUFFIX = /…<truncated len=\d+>$/;
 function maskText(text) {
@@ -659,4 +919,7 @@ globalThis.__frontendQaMaskText = maskText;
 globalThis.__frontendQaMaskBody = maskBody;
 globalThis.__frontendQaIsSensitiveKey = isSensitiveKey;
 globalThis.__frontendQaReadableHeaders = READABLE_HEADERS;
+globalThis.__frontendQaTokenize = tokenize;
+globalThis.__frontendQaClassify = classify;
+globalThis.__frontendQaEmit = emit;
 })();
