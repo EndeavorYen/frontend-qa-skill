@@ -1462,5 +1462,144 @@
     "kind": "text",
     "input": "The password field is required",
     "expect": "clear"
+  },
+  {
+    "group": "R3c",
+    "kind": "text",
+    "input": "{\"authorization\":\"Bearer abc\", \"id\": 5}",
+    "expect": "masked",
+    "secrets": ["abc"],
+    "keep": ["\", \"id\": 5}"],
+    "surfaces": "all",
+    "output": "{\"authorization\":\"<masked len=21>\", \"id\": 5}"
+  },
+  {
+    "group": "R3c",
+    "kind": "text",
+    "input": "{\"authorization\":\"Bearer abc\"}",
+    "expect": "masked",
+    "secrets": ["abc"],
+    "keep": ["\"}"],
+    "surfaces": "all",
+    "output": "{\"authorization\":\"<masked len=21>\"}"
+  },
+  {
+    "group": "R3c",
+    "kind": "text",
+    "input": "{\n  \"authorization\": \"Bearer abcd1234efgh\",\n  \"user\": \"qa\"\n}",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "keep": ["\"user\": \"qa\"", "}"],
+    "surfaces": "all",
+    "output": "{\n  \"authorization\": \"<masked len=22>\",\n  \"user\": \"qa\"\n}"
+  },
+  {
+    "group": "R3c",
+    "kind": "text",
+    "input": "{\"authorization\":\"Bearer ab\\\"c\", \"id\": 5}",
+    "expect": "masked",
+    "secrets": ["ab\\\"c"],
+    "keep": ["\", \"id\": 5}"],
+    "surfaces": "all",
+    "output": "{\"authorization\":\"<masked len=21>\", \"id\": 5}"
+  },
+  {
+    "group": "R3c",
+    "kind": "text",
+    "input": "{\"password\": \"abcd1234efgh\"\n  \"next\": \"visible\"}",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "keep": ["\"next\": \"visible\"}"],
+    "surfaces": "all",
+    "output": "{\"password\": \"<masked len=12>\"\n  \"next\": \"visible\"}"
+  },
+  {
+    "group": "R3c",
+    "kind": "text",
+    "input": "  password: \"abcd1234efgh\"\n  username: qa",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "keep": ["username: qa"],
+    "surfaces": "all",
+    "output": "  password: \"<masked len=12>\"\n  username: qa"
+  },
+  {
+    "group": "R3c",
+    "kind": "text",
+    "input": "password: secret\n  password: abcd1234efgh",
+    "expect": "masked",
+    "secrets": ["secret", "abcd1234efgh"],
+    "surfaces": "all",
+    "output": "password: <masked len=6>\n  password: <masked len=12>"
+  },
+  {
+    "group": "R3c",
+    "kind": "text",
+    "input": "headers:\n  Authorization: Bearer abcd1234efgh\n  Accept: json",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "keep": ["Accept: json"],
+    "surfaces": "all",
+    "output": "headers:\n  Authorization: Bearer <masked len=12>\n  Accept: json"
+  },
+  {
+    "group": "R3c",
+    "kind": "text",
+    "input": "X: 1\n  Authorization: Bearer abc\n  Y: 2",
+    "expect": "masked",
+    "secrets": ["abc"],
+    "keep": ["Y: 2"],
+    "surfaces": "all",
+    "output": "X: 1\n  Authorization: Bearer <masked len=3>\n  Y: 2"
+  },
+  {
+    "group": "R3c",
+    "kind": "text",
+    "input": "Basic auth required",
+    "expect": "masked",
+    "secrets": ["auth"],
+    "keep": ["Basic", "required"],
+    "surfaces": "all",
+    "output": "Basic <masked len=4> required"
+  },
+  {
+    "group": "R3c",
+    "kind": "text",
+    "input": "Bearer token missing",
+    "expect": "masked",
+    "secrets": ["token"],
+    "keep": ["Bearer", "missing"],
+    "surfaces": "all",
+    "output": "Bearer <masked len=5> missing"
+  },
+  {
+    "group": "R3c",
+    "kind": "text",
+    "input": "Use Bearer auth here",
+    "expect": "masked",
+    "secrets": ["auth"],
+    "keep": ["Use Bearer", "here"],
+    "surfaces": "all",
+    "output": "Use Bearer <masked len=4> here"
+  },
+  {
+    "group": "R3c",
+    "kind": "text",
+    "input": "Authorization: AWS4-HMAC-SHA256\n  Credential=AKIDEXAMPLE/20261027/us-east-1/s3/aws4_request, Signature=fe5f80f77d5fa3beca038a248ff027d0445342fe2855ddc963176630326f1024",
+    "expect": "masked",
+    "secrets": ["AKIDEXAMPLE", "fe5f80f77d5fa3beca038a248ff027d0445342fe2855ddc963176630326f1024"],
+    "keep": ["Authorization:"],
+    "surfaces": "all",
+    "output": "Authorization: <masked len=16>\n  <masked len=133>"
+  },
+  {
+    "group": "R3c",
+    "kind": "text",
+    "input": "Authorization: SharedKey\n  myaccount:ctzMq410TV3wS7upTBcunJTDLEJwMAZuFPfr0mrrA08=",
+    "expect": "masked",
+    "secrets": ["ctzMq410TV3wS7upTBcunJTDLEJwMAZuFPfr0mrrA08="],
+    "keep": ["Authorization:"],
+    "surfaces": "all",
+    "output": "Authorization: <masked len=9>\n  <masked len=54>"
   }
 ]

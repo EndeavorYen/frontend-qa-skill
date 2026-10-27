@@ -106,8 +106,13 @@ function tailIsCredential(tail) {
   }
   return false;
 }
+// An indented key line is not a fold. Colon plus whitespace only: not `=`, not `key:value`.
+const INDENT_KEY_LINE = /^[ \t]+["']?[A-Za-z0-9_-]+["']?[ \t]*:[ \t]/;
+function foldLineIsKey(text, at) {
+  return INDENT_KEY_LINE.test(text.slice(at));
+}
 // End of an unquoted value: end of line, plus folded lines that start with space or tab.
-// Do not stop at ; , : / or quotes. Run past 4096 to that same end so a cap cannot leave a raw tail.
+// A key line is not a fold. Do not stop at ; , : / or quotes. Run past 4096 to that same end.
 function valueEnd(text, at) {
   let i = at;
   while (i < text.length) {
@@ -115,7 +120,10 @@ function valueEnd(text, at) {
     if (ch === '\n' || ch === '\r') {
       let j = i + 1;
       if (ch === '\r' && text[j] === '\n') j++;
-      if (j < text.length && (text[j] === ' ' || text[j] === '\t')) { i = j; continue; }
+      if (j < text.length && (text[j] === ' ' || text[j] === '\t') && !foldLineIsKey(text, j)) {
+        i = j;
+        continue;
+      }
       break;
     }
     i++;
@@ -172,7 +180,7 @@ function extendIndentedFolds(text, end) {
   let consumed = false;
   while (i < text.length && (text[i] === '\n' || text[i] === '\r')) {
     const k = lineBreakEnd(text, i);
-    if (k >= text.length || (text[k] !== ' ' && text[k] !== '\t')) break;
+    if (k >= text.length || (text[k] !== ' ' && text[k] !== '\t') || foldLineIsKey(text, k)) break;
     consumed = true;
     i = k;
     while (i < text.length && text[i] !== '\n' && text[i] !== '\r') i++;
@@ -434,17 +442,69 @@ function scanKeylessSchemes(text, spans) {
     re.lastIndex = tail.end;
   }
 }
-// Bearer or Basic on the same line: the rest of that line and any indented fold.
-// A placeholder already in that slot stays, so a pre-masked fixture is unchanged.
+function quoteIsEscaped(text, at) {
+  let n = 0;
+  for (let k = at - 1; k >= 0 && text[k] === '\\'; k--) n++;
+  return n % 2 === 1;
+}
+// Quoted value (opening " or ') whose content starts with this scheme.
+// End is the closing quote, or the end of the input when that quote is missing.
+function quotedSchemeEnd(text, schemeStart) {
+  let i = schemeStart - 1;
+  while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) i--;
+  if (i < 0) return null;
+  const q = text[i];
+  if ((q !== '"' && q !== "'") || quoteIsEscaped(text, i)) return null;
+  let k = i - 1;
+  while (k >= 0 && (text[k] === ' ' || text[k] === '\t')) k--;
+  if (k >= 0) {
+    const prev = text[k];
+    if (prev !== ':' && prev !== '=' && prev !== ',' && prev !== '[' && prev !== '{' && prev !== '(') return null;
+  }
+  const scanned = scanQuoted(text, i);
+  return { end: scanned.end, closed: scanned.close !== '' };
+}
+function schemeAfterSensitiveKey(text, schemeStart) {
+  let i = schemeStart - 1;
+  while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) i--;
+  if (i >= 0 && (text[i] === '"' || text[i] === "'" || text[i] === '`') && !quoteIsEscaped(text, i)) i--;
+  while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) i--;
+  if (i < 0 || (text[i] !== ':' && text[i] !== '=')) return false;
+  i--;
+  while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) i--;
+  if (i >= 0 && (text[i] === '"' || text[i] === "'" || text[i] === '`') && !quoteIsEscaped(text, i)) i--;
+  const keyEnd = i + 1;
+  while (i >= 0 && /[A-Za-z0-9_.%-]/.test(text[i])) i--;
+  const key = text.slice(i + 1, keyEnd);
+  if (!key) return false;
+  const prev = i >= 0 ? text[i] : '';
+  return isSensitiveKey(key, prev === '?' || prev === '&' || prev === '#');
+}
+function firstSchemeTokenEnd(text, at) {
+  const m = /^[A-Za-z0-9._~+/=-]*/.exec(text.slice(at));
+  return at + (m ? m[0].length : 0);
+}
+// Bearer or Basic on the same line. A quoted value that starts with the scheme ends at
+// the matching closing quote; escaped quotes count. No closer: mask through the end of
+// the input. Keyless prose masks only the first token. A keyed value masks the rest,
+// including an indented fold that is not a key line. A placeholder already there stays.
 function maskAuthSameLine(text) {
   const re = /\b(Bearer|Basic)[ \t]+/gi;
   let out = '';
   let last = 0;
   let m;
   while ((m = re.exec(text)) !== null) {
-    const content = m.index + m[0].length;
+    const schemeStart = m.index;
+    const content = schemeStart + m[0].length;
     if (content >= text.length || text.startsWith('<masked len=', content)) continue;
-    const end = valueEnd(text, content);
+    const quoted = quotedSchemeEnd(text, schemeStart);
+    const keyed = schemeAfterSensitiveKey(text, schemeStart);
+    let end;
+    if (quoted && !quoted.closed) end = text.length;
+    else if (!keyed) end = firstSchemeTokenEnd(text, content);
+    else if (quoted) end = quoted.end;
+    else end = valueEnd(text, content);
+    if (quoted && quoted.closed && end > quoted.end) end = quoted.end;
     if (end <= content) continue;
     out += text.slice(last, content) + marker(text.slice(content, end));
     last = end;

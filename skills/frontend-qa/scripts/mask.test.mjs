@@ -31,7 +31,7 @@ for (const row of cases) {
 const maskSource = readFileSync(new URL('./mask.js', import.meta.url), 'utf8');
 const KEY_SAMPLE = 'kept';
 const TRUNCATE_AT = 2000;
-const GROUP_ORDER = ['old70', 'L', 'O', 'six', 'LH', 'F1', 'F2', 'V', 'E1', 'I1', 'K', 'KA', 'OBJ', 'CK', 'A1', 'F5', 'R3', 'P1'];
+const GROUP_ORDER = ['old70', 'L', 'O', 'six', 'LH', 'F1', 'F2', 'V', 'E1', 'I1', 'K', 'KA', 'OBJ', 'CK', 'A1', 'F5', 'R3', 'R3c', 'P1'];
 const groupStats = new Map();
 
 test('mask.mjs loads the mask.js installer', () => {
