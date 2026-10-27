@@ -121,7 +121,7 @@
 
 `<skill 目錄>` 見 [SKILL.md](../SKILL.md#名詞)。
 
-用 `evaluate_script` 執行 [`scripts/anti-patterns.js`](../scripts/anti-patterns.js)。同一頁要先裝 [SKILL.md](../SKILL.md#密鑰不進對話紀錄) 的 `scripts/mask.js`，反模式腳本才會把密碼、hidden、token 類欄位收成 `<masked len=N>`。不要把反模式腳本貼進每一次 `evaluate_script`。檔案本體是立即執行函式 `(() => { ... })()`。每個頁面載入只注入一次：去掉最外層的呼叫括號，把函式指定給 `globalThis.__frontendQaAntiPatterns`，然後呼叫它並把回傳交給 `globalThis.__frontendQaMaskResult`。同一頁之後的尺寸只呼叫已裝好的函式：`() => globalThis.__frontendQaMaskResult(globalThis.__frontendQaAntiPatterns())`。`navigate_page` 之後頁面是新的，才再注入 mask 和反模式腳本。只用 `resize_page` 或 `emulate` 換尺寸、沒有導覽時不要重注入。不要 base64，也不要呼叫 `eval <t> --b64` 或名為 eval 的工具。
+用 `evaluate_script` 執行 [`scripts/anti-patterns.js`](../scripts/anti-patterns.js)。同一頁要先裝 [SKILL.md](../SKILL.md#密鑰不進對話紀錄) 的 `scripts/mask.js`，反模式腳本才會把密碼、hidden、token 類欄位收成 `<masked len=N>`。不要把反模式腳本貼進每一次 `evaluate_script`。檔案本體是立即執行函式 `(() => { ... })()`。每個頁面載入只注入一次：去掉最外層的呼叫括號，把函式指定給 `globalThis.__frontendQaAntiPatterns`，然後呼叫它並把回傳交給 `globalThis.__frontendQaMaskResult`。同一頁之後的尺寸只呼叫已裝好的函式：`() => globalThis.__frontendQaMaskResult(globalThis.__frontendQaAntiPatterns())`。`navigate_page` 之後頁面是新的，才再注入 mask 和反模式腳本。只用 `resize_page` 換尺寸、沒有重新載入時不要重注入。`emulate` 與網路條件變更會重新載入頁面，所以每次 `emulate` 或重新載入之後、任何 `evaluate_script` 之前，要重裝 `scripts/mask.js` 和 `scripts/checkpoint.js`。不要 base64，也不要呼叫 `eval <t> --b64` 或名為 eval 的工具。
 
 回傳是一個物件。鍵是 camelCase（例如 `multiplePrimaryButtons`），值是元素字串陣列，格式 `selector "可見文字"`。對照下表的 check 名稱。`document.characterSet` 是 UTF-8 時，`warning` 是 `null`。不是 UTF-8 時，`warning` 是一段說明：CJK 樣式略過，英文樣式仍檢查。`genericDialogActions`、`emptyStateNoAction`、`vagueError`、`destructiveLooksPrimary` 若是空陣列，只代表英文樣式沒中，不是 CJK 文案沒問題。探測會把這段說明記成 `text-checks-skipped`。
 
