@@ -1,0 +1,1122 @@
+[
+  {
+    "maskText": "sessionid",
+    "maskConsole": "sessionid",
+    "maskBody": "sessionid"
+  },
+  {
+    "maskText": "PHPSESSID",
+    "maskConsole": "PHPSESSID",
+    "maskBody": "PHPSESSID"
+  },
+  {
+    "maskText": "csrftoken",
+    "maskConsole": "csrftoken",
+    "maskBody": "csrftoken"
+  },
+  {
+    "maskText": "accesstoken",
+    "maskConsole": "accesstoken",
+    "maskBody": "accesstoken"
+  },
+  {
+    "maskText": "passwd",
+    "maskConsole": "passwd",
+    "maskBody": "passwd"
+  },
+  {
+    "maskText": "session_id",
+    "maskConsole": "session_id",
+    "maskBody": "session_id"
+  },
+  {
+    "maskText": "authToken",
+    "maskConsole": "authToken",
+    "maskBody": "authToken"
+  },
+  {
+    "maskText": "x-api-key",
+    "maskConsole": "x-api-key",
+    "maskBody": "x-api-key"
+  },
+  {
+    "maskText": "Authorization",
+    "maskConsole": "Authorization",
+    "maskBody": "Authorization"
+  },
+  {
+    "maskText": "<masked len=51>",
+    "maskConsole": "<masked len=51>",
+    "maskBody": "<masked len=51>"
+  },
+  {
+    "maskText": "<masked len=40>",
+    "maskConsole": "<masked len=40>",
+    "maskBody": "<masked len=40>"
+  },
+  {
+    "maskText": "<masked len=24>",
+    "maskConsole": "<masked len=24>",
+    "maskBody": "<masked len=24>"
+  },
+  {
+    "maskText": "<masked len=25>",
+    "maskConsole": "<masked len=25>",
+    "maskBody": "<masked len=25>"
+  },
+  {
+    "maskText": "auth failed: Bearer <masked len=9>",
+    "maskConsole": "auth failed: Bearer <masked len=9>",
+    "maskBody": "auth failed: Bearer <masked len=9>"
+  },
+  {
+    "maskText": "login failed <masked len=51> then more text",
+    "maskConsole": "login failed <masked len=51> then more text",
+    "maskBody": "login failed <masked len=51> then more text"
+  },
+  {
+    "maskText": "rejected <masked len=40> for order",
+    "maskConsole": "rejected <masked len=40> for order",
+    "maskBody": "rejected <masked len=40> for order"
+  },
+  {
+    "maskText": "seen <masked len=24> in log",
+    "maskConsole": "seen <masked len=24> in log",
+    "maskBody": "seen <masked len=24> in log"
+  },
+  {
+    "maskText": "blob <masked len=25> end",
+    "maskConsole": "blob <masked len=25> end",
+    "maskBody": "blob <masked len=25> end"
+  },
+  {
+    "maskText": "inside",
+    "maskConsole": "inside",
+    "maskBody": "inside"
+  },
+  {
+    "maskText": "author",
+    "maskConsole": "author",
+    "maskBody": "author"
+  },
+  {
+    "maskText": "sidebar",
+    "maskConsole": "sidebar",
+    "maskBody": "sidebar"
+  },
+  {
+    "maskText": "consider",
+    "maskConsole": "consider",
+    "maskBody": "consider"
+  },
+  {
+    "maskText": "residual",
+    "maskConsole": "residual",
+    "maskBody": "residual"
+  },
+  {
+    "maskText": "123e4567-e89b-12d3-a456-426614174000",
+    "maskConsole": "123e4567-e89b-12d3-a456-426614174000",
+    "maskBody": "123e4567-e89b-12d3-a456-426614174000"
+  },
+  {
+    "maskText": "/orders/12345/edit-form",
+    "maskConsole": "/orders/12345/edit-form",
+    "maskBody": "/orders/12345/edit-form"
+  },
+  {
+    "maskText": "Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular ",
+    "maskConsole": "Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular ",
+    "maskBody": "Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular "
+  },
+  {
+    "maskText": "TypeError: this.props.onChange is not a function\n    at Foo (https://shop.example.com/static/js/main.3f2a1b.js:12:34)",
+    "maskConsole": "TypeError: this.props.onChange is not a function\n    at Foo (https://shop.example.com/static/js/main.3f2a1b.js:12:34)",
+    "maskBody": "TypeError: this.props.onChange is not a function\n    at Foo (https://shop.example.com/static/js/main.3f2a1b.js:12:34)"
+  },
+  {
+    "maskText": "Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee…<truncated len=2021>",
+    "maskConsole": "Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee…<truncated len=2021>",
+    "maskBody": "Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. Heavyweight cotton tee, navy, regular fit. "
+  },
+  {
+    "maskText": "http://localhost:5173/src/components/OrderForm.tsx:42:13",
+    "maskConsole": "http://localhost:5173/src/components/OrderForm.tsx:42:13",
+    "maskBody": "http://localhost:5173/src/components/OrderForm.tsx:42:13"
+  },
+  {
+    "maskText": "GET http://127.0.0.1:4173/api/orders/12345 500",
+    "maskConsole": "GET http://127.0.0.1:4173/api/orders/12345 500",
+    "maskBody": "GET http://127.0.0.1:4173/api/orders/12345 500"
+  },
+  {
+    "maskText": "at render (https://cdn.example.com/assets/index-a1b2c3d4e5f6a7b8c9d0.js:1:2345)",
+    "maskConsole": "at render (https://cdn.example.com/assets/index-a1b2c3d4e5f6a7b8c9d0.js:1:2345)",
+    "maskBody": "at render (https://cdn.example.com/assets/index-a1b2c3d4e5f6a7b8c9d0.js:1:2345)"
+  },
+  {
+    "maskText": "http://localhost:5173/src/components/OrderForm.tsx:42:13 Authorization: Bearer <masked len=22>",
+    "maskConsole": "http://localhost:5173/src/components/OrderForm.tsx:42:13 Authorization: Bearer <masked len=22>",
+    "maskBody": "http://localhost:5173/src/components/OrderForm.tsx:42:13 Authorization: Bearer <masked len=22>"
+  },
+  {
+    "maskText": "authorName",
+    "maskConsole": "authorName",
+    "maskBody": "authorName"
+  },
+  {
+    "maskText": "SKU-ABC12345XYZ",
+    "maskConsole": "SKU-ABC12345XYZ",
+    "maskBody": "SKU-ABC12345XYZ"
+  },
+  {
+    "maskText": "sku_2024A1B2C3D4E5F6",
+    "maskConsole": "sku_2024A1B2C3D4E5F6",
+    "maskBody": "sku_2024A1B2C3D4E5F6"
+  },
+  {
+    "maskText": "log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log …<truncated len=2040>",
+    "maskConsole": "log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log …<truncated len=2040>",
+    "maskBody": "log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log log <masked len=40>"
+  },
+  {
+    "maskText": "ok <masked len=29>",
+    "maskConsole": "ok <masked len=29>",
+    "maskBody": "ok <masked len=29>"
+  },
+  {
+    "maskText": "got <masked len=30>",
+    "maskConsole": "got <masked len=30>",
+    "maskBody": "got <masked len=30>"
+  },
+  {
+    "maskText": "<masked len=35>",
+    "maskConsole": "<masked len=35>",
+    "maskBody": "<masked len=35>"
+  },
+  {
+    "maskText": "https://a.io/#access_token=<masked len=16>",
+    "maskConsole": "https://a.io/#access_token=<masked len=16>",
+    "maskBody": "https://a.io/#access_token=<masked len=16>"
+  },
+  {
+    "maskText": "https://a.io/#id_token=<masked len=23>",
+    "maskConsole": "https://a.io/#id_token=<masked len=23>",
+    "maskBody": "https://a.io/#id_token=<masked len=23>"
+  },
+  {
+    "maskText": "http://localhost:4173/x?token=<masked len=9>",
+    "maskConsole": "http://localhost:4173/x?token=<masked len=9>",
+    "maskBody": "http://localhost:4173/x?token=<masked len=9>"
+  },
+  {
+    "maskText": "?code=<masked len=24>",
+    "maskConsole": "?code=<masked len=24>",
+    "maskBody": "?code=<masked len=24>"
+  },
+  {
+    "maskText": "<masked len=30>",
+    "maskConsole": "<masked len=30>",
+    "maskBody": "<masked len=30>"
+  },
+  {
+    "maskText": "token <masked len=84>",
+    "maskConsole": "token <masked len=84>",
+    "maskBody": "token <masked len=84>"
+  },
+  {
+    "maskText": "<masked len=40>",
+    "maskConsole": "<masked len=40>",
+    "maskBody": "<masked len=40>"
+  },
+  {
+    "maskText": "http://localhost:5173/src/components/OrderForm.tsx:42:13",
+    "maskConsole": "http://localhost:5173/src/components/OrderForm.tsx:42:13",
+    "maskBody": "http://localhost:5173/src/components/OrderForm.tsx:42:13"
+  },
+  {
+    "maskText": "at f (http://h:4173/assets/index-B7xQ2kLm9aZ3.js:1:2)",
+    "maskConsole": "at f (http://h:4173/assets/index-B7xQ2kLm9aZ3.js:1:2)",
+    "maskBody": "at f (http://h:4173/assets/index-B7xQ2kLm9aZ3.js:1:2)"
+  },
+  {
+    "maskText": "/orders/12345/edit-form",
+    "maskConsole": "/orders/12345/edit-form",
+    "maskBody": "/orders/12345/edit-form"
+  },
+  {
+    "maskText": "/orders/8c1f7a4e-2b3d-4c5e-9f60-1a2b3c4d5e6f",
+    "maskConsole": "/orders/8c1f7a4e-2b3d-4c5e-9f60-1a2b3c4d5e6f",
+    "maskBody": "/orders/8c1f7a4e-2b3d-4c5e-9f60-1a2b3c4d5e6f"
+  },
+  {
+    "maskText": "SKU-ABC12345XYZ",
+    "maskConsole": "SKU-ABC12345XYZ",
+    "maskBody": "SKU-ABC12345XYZ"
+  },
+  {
+    "maskText": "http://a.io/list?page=2&sort=created_at#top",
+    "maskConsole": "http://a.io/list?page=2&sort=created_at#top",
+    "maskBody": "http://a.io/list?page=2&sort=created_at#top"
+  },
+  {
+    "maskText": "at OrderFormContainerV2 (http://localhost:5173/src/OrderFormContainerV2.tsx:12:5)",
+    "maskConsole": "at OrderFormContainerV2 (http://localhost:5173/src/OrderFormContainerV2.tsx:12:5)",
+    "maskBody": "at OrderFormContainerV2 (http://localhost:5173/src/OrderFormContainerV2.tsx:12:5)"
+  },
+  {
+    "maskText": "Error in OrderFormContainerV2 render",
+    "maskConsole": "Error in OrderFormContainerV2 render",
+    "maskBody": "Error in OrderFormContainerV2 render"
+  },
+  {
+    "maskText": "at http://localhost:5173/node_modules/.vite/deps/react-dom.js:16670:28",
+    "maskConsole": "at http://localhost:5173/node_modules/.vite/deps/react-dom.js:16670:28",
+    "maskBody": "at http://localhost:5173/node_modules/.vite/deps/react-dom.js:16670:28"
+  },
+  {
+    "maskText": "/node_modules/@scope/pkg-name/dist/index.js",
+    "maskConsole": "/node_modules/@scope/pkg-name/dist/index.js",
+    "maskBody": "/node_modules/@scope/pkg-name/dist/index.js"
+  },
+  {
+    "maskText": "網址：http://localhost:4173/#/orders/undefined",
+    "maskConsole": "網址：http://localhost:4173/#/orders/undefined",
+    "maskBody": "網址：http://localhost:4173/#/orders/undefined"
+  },
+  {
+    "maskText": "h1::工單 #undefined:",
+    "maskConsole": "h1::工單 #undefined:",
+    "maskBody": "h1::工單 #undefined:"
+  },
+  {
+    "maskText": "<masked len=20>",
+    "maskConsole": "<masked len=20>",
+    "maskBody": "<masked len=20>"
+  },
+  {
+    "maskText": "<masked len=23>",
+    "maskConsole": "<masked len=23>",
+    "maskBody": "<masked len=23>"
+  },
+  {
+    "maskText": "session token <masked len=23> rejected",
+    "maskConsole": "session token <masked len=23> rejected",
+    "maskBody": "session token <masked len=23> rejected"
+  },
+  {
+    "maskText": "<masked len=26>",
+    "maskConsole": "<masked len=26>",
+    "maskBody": "<masked len=26>"
+  },
+  {
+    "maskText": "session <masked len=26> rejected",
+    "maskConsole": "session <masked len=26> rejected",
+    "maskBody": "session <masked len=26> rejected"
+  },
+  {
+    "maskText": "<masked len=22>",
+    "maskConsole": "<masked len=22>",
+    "maskBody": "<masked len=22>"
+  },
+  {
+    "maskText": "token <masked len=22> seen",
+    "maskConsole": "token <masked len=22> seen",
+    "maskBody": "token <masked len=22> seen"
+  },
+  {
+    "maskText": "<masked len=25>",
+    "maskConsole": "<masked len=25>",
+    "maskBody": "<masked len=25>"
+  },
+  {
+    "maskText": "blob <masked len=25> end",
+    "maskConsole": "blob <masked len=25> end",
+    "maskBody": "blob <masked len=25> end"
+  },
+  {
+    "maskText": "{\"accessToken\":\"<masked len=17>\"}",
+    "maskConsole": "{\"accessToken\":\"<masked len=17>\"}",
+    "maskBody": "{\"accessToken\":\"<masked len=17>\"}"
+  },
+  {
+    "maskText": "auth body {\"accessToken\":\"<masked len=17>\"} end",
+    "maskConsole": "auth body {\"accessToken\":\"<masked len=17>\"} end",
+    "maskBody": "auth body {\"accessToken\":\"<masked len=17>\"} end"
+  },
+  {
+    "maskText": "ids [\"<masked len=26>\"] tail",
+    "maskConsole": "ids [\"<masked len=26>\"] tail",
+    "maskBody": "ids [\"<masked len=26>\"] tail"
+  },
+  {
+    "maskText": "pin",
+    "maskConsole": "pin",
+    "maskBody": "pin"
+  },
+  {
+    "maskText": "otp",
+    "maskConsole": "otp",
+    "maskBody": "otp"
+  },
+  {
+    "maskText": "credential",
+    "maskConsole": "credential",
+    "maskBody": "credential"
+  },
+  {
+    "maskText": "credentials",
+    "maskConsole": "credentials",
+    "maskBody": "credentials"
+  },
+  {
+    "maskText": "private_key",
+    "maskConsole": "private_key",
+    "maskBody": "private_key"
+  },
+  {
+    "maskText": "privateKey",
+    "maskConsole": "privateKey",
+    "maskBody": "privateKey"
+  },
+  {
+    "maskText": "passcode",
+    "maskConsole": "passcode",
+    "maskBody": "passcode"
+  },
+  {
+    "maskText": "pincode",
+    "maskConsole": "pincode",
+    "maskBody": "pincode"
+  },
+  {
+    "maskText": "cardnumber",
+    "maskConsole": "cardnumber",
+    "maskBody": "cardnumber"
+  },
+  {
+    "maskText": "card_number",
+    "maskConsole": "card_number",
+    "maskBody": "card_number"
+  },
+  {
+    "maskText": "cardNumber",
+    "maskConsole": "cardNumber",
+    "maskBody": "cardNumber"
+  },
+  {
+    "maskText": "security_code",
+    "maskConsole": "security_code",
+    "maskBody": "security_code"
+  },
+  {
+    "maskText": "securityCode",
+    "maskConsole": "securityCode",
+    "maskBody": "securityCode"
+  },
+  {
+    "maskText": "pinned",
+    "maskConsole": "pinned",
+    "maskBody": "pinned"
+  },
+  {
+    "maskText": "spinner",
+    "maskConsole": "spinner",
+    "maskBody": "spinner"
+  },
+  {
+    "maskText": "cardTitle",
+    "maskConsole": "cardTitle",
+    "maskBody": "cardTitle"
+  },
+  {
+    "maskText": "postcode",
+    "maskConsole": "postcode",
+    "maskBody": "postcode"
+  },
+  {
+    "maskText": "/src/Step2Form.tsx",
+    "maskConsole": "/src/Step2Form.tsx",
+    "maskBody": "/src/Step2Form.tsx"
+  },
+  {
+    "maskText": "/assets/vendor-react-dom-18.js",
+    "maskConsole": "/assets/vendor-react-dom-18.js",
+    "maskBody": "/assets/vendor-react-dom-18.js"
+  },
+  {
+    "maskText": "/orders/Order2Detail/edit",
+    "maskConsole": "/orders/Order2Detail/edit",
+    "maskBody": "/orders/Order2Detail/edit"
+  },
+  {
+    "maskText": "Lin-Corporation-International-Trading-Company-Limited-Taiwan-Branch",
+    "maskConsole": "Lin-Corporation-International-Trading-Company-Limited-Taiwan-Branch",
+    "maskBody": "Lin-Corporation-International-Trading-Company-Limited-Taiwan-Branch"
+  },
+  {
+    "maskText": "checkout_step_2_payment_form",
+    "maskConsole": "checkout_step_2_payment_form",
+    "maskBody": "checkout_step_2_payment_form"
+  },
+  {
+    "maskText": "刪除訂單 #5？",
+    "maskConsole": "刪除訂單 #5？",
+    "maskBody": "刪除訂單 #5？"
+  },
+  {
+    "maskText": "/src/Step2Form.tsx",
+    "maskConsole": "/src/Step2Form.tsx",
+    "maskBody": "/src/Step2Form.tsx"
+  },
+  {
+    "maskText": "src/components/Step2Form.tsx:12:3",
+    "maskConsole": "src/components/Step2Form.tsx:12:3",
+    "maskBody": "src/components/Step2Form.tsx:12:3"
+  },
+  {
+    "maskText": "/src/i18n/zh-TW.json",
+    "maskConsole": "/src/i18n/zh-TW.json",
+    "maskBody": "/src/i18n/zh-TW.json"
+  },
+  {
+    "maskText": "src/hooks/useOAuth2Login.ts",
+    "maskConsole": "src/hooks/useOAuth2Login.ts",
+    "maskBody": "src/hooks/useOAuth2Login.ts"
+  },
+  {
+    "maskText": "/node_modules/.pnpm/react@18.2.0/node_modules/react/index.js",
+    "maskConsole": "/node_modules/.pnpm/react@18.2.0/node_modules/react/index.js",
+    "maskBody": "/node_modules/.pnpm/react@18.2.0/node_modules/react/index.js"
+  },
+  {
+    "maskText": "at OrderFormContainerV2 (http://localhost:5173/src/OrderFormContainerV2.tsx:12:5)",
+    "maskConsole": "at OrderFormContainerV2 (http://localhost:5173/src/OrderFormContainerV2.tsx:12:5)",
+    "maskBody": "at OrderFormContainerV2 (http://localhost:5173/src/OrderFormContainerV2.tsx:12:5)"
+  },
+  {
+    "maskText": "Error in OrderFormContainerV2 render",
+    "maskConsole": "Error in OrderFormContainerV2 render",
+    "maskBody": "Error in OrderFormContainerV2 render"
+  },
+  {
+    "maskText": "at http://localhost:5173/node_modules/.vite/deps/react-dom.js:16670:28",
+    "maskConsole": "at http://localhost:5173/node_modules/.vite/deps/react-dom.js:16670:28",
+    "maskBody": "at http://localhost:5173/node_modules/.vite/deps/react-dom.js:16670:28"
+  },
+  {
+    "maskText": "/node_modules/@scope/pkg-name/dist/index.js",
+    "maskConsole": "/node_modules/@scope/pkg-name/dist/index.js",
+    "maskBody": "/node_modules/@scope/pkg-name/dist/index.js"
+  },
+  {
+    "maskText": "網址：http://localhost:4173/#/orders/undefined",
+    "maskConsole": "網址：http://localhost:4173/#/orders/undefined",
+    "maskBody": "網址：http://localhost:4173/#/orders/undefined"
+  },
+  {
+    "maskText": "h1::工單 #undefined:",
+    "maskConsole": "h1::工單 #undefined:",
+    "maskBody": "h1::工單 #undefined:"
+  },
+  {
+    "maskText": "localhost",
+    "maskConsole": "localhost",
+    "maskBody": "localhost"
+  },
+  {
+    "maskText": "localhost:5173",
+    "maskConsole": "localhost:5173",
+    "maskBody": "localhost:5173"
+  },
+  {
+    "maskText": "http://localhost:5173/",
+    "maskConsole": "http://localhost:5173/",
+    "maskBody": "http://localhost:5173/"
+  },
+  {
+    "maskText": "GET http://localhost:4173/api/orders 500",
+    "maskConsole": "GET http://localhost:4173/api/orders 500",
+    "maskBody": "GET http://localhost:4173/api/orders 500"
+  },
+  {
+    "maskText": "http://localhost:5173/src/App.tsx:1:2",
+    "maskConsole": "http://localhost:5173/src/App.tsx:1:2",
+    "maskBody": "http://localhost:5173/src/App.tsx:1:2"
+  },
+  {
+    "maskText": "key <masked len=20> used",
+    "maskConsole": "key <masked len=20> used",
+    "maskBody": "key <masked len=20> used"
+  },
+  {
+    "maskText": "key <masked len=28> used",
+    "maskConsole": "key <masked len=28> used",
+    "maskBody": "key <masked len=28> used"
+  },
+  {
+    "maskText": "key <masked len=40> used",
+    "maskConsole": "key <masked len=40> used",
+    "maskBody": "key <masked len=40> used"
+  },
+  {
+    "maskText": "key <masked len=34> used",
+    "maskConsole": "key <masked len=34> used",
+    "maskBody": "key <masked len=34> used"
+  },
+  {
+    "maskText": "key <masked len=37> used",
+    "maskConsole": "key <masked len=37> used",
+    "maskBody": "key <masked len=37> used"
+  },
+  {
+    "maskText": "login ok {\"accessToken\":\"<masked len=27>\"",
+    "maskConsole": "login ok {\"accessToken\":\"<masked len=27>\"",
+    "maskBody": "login ok {\"accessToken\":\"<masked len=27>\""
+  },
+  {
+    "maskText": "<input value=\"<masked len=27>\">",
+    "maskConsole": "<input value=\"<masked len=27>\">",
+    "maskBody": "<input value=\"<masked len=27>\">"
+  },
+  {
+    "maskText": "<masked len=30>",
+    "maskConsole": "<masked len=30>",
+    "maskBody": "<masked len=30>"
+  },
+  {
+    "maskText": "<masked len=32>",
+    "maskConsole": "<masked len=32>",
+    "maskBody": "<masked len=32>"
+  },
+  {
+    "maskText": "<masked len=27>!",
+    "maskConsole": "<masked len=27>!",
+    "maskBody": "<masked len=27>!"
+  },
+  {
+    "maskText": "a,<masked len=27>",
+    "maskConsole": "a,<masked len=27>",
+    "maskBody": "a,<masked len=27>"
+  },
+  {
+    "maskText": "`<masked len=27>`",
+    "maskConsole": "`<masked len=27>`",
+    "maskBody": "`<masked len=27>`"
+  },
+  {
+    "maskText": "|<masked len=27>|",
+    "maskConsole": "|<masked len=27>|",
+    "maskBody": "|<masked len=27>|"
+  },
+  {
+    "maskText": "{\"accessToken\":\"<masked len=27>\"}",
+    "maskConsole": "{\"accessToken\":\"<masked len=27>\"}",
+    "maskBody": "{\"accessToken\":\"<masked len=27>\"}"
+  },
+  {
+    "maskText": "api:key=<masked len=27>",
+    "maskConsole": "api:key=<masked len=27>",
+    "maskBody": "api:key=<masked len=27>"
+  },
+  {
+    "maskText": "{\"password\": <masked len=8>}",
+    "maskConsole": "{\"password\": <masked len=8>}",
+    "maskBody": "{\"password\": <masked len=8>}"
+  },
+  {
+    "maskText": "sessionId=\"<masked len=27>\"",
+    "maskConsole": "sessionId=\"<masked len=27>\"",
+    "maskBody": "sessionId=\"<masked len=27>\""
+  },
+  {
+    "maskText": "msgid=3 [log] login ok {\"accessToken\":\"<masked len=27>\"} (1 args)",
+    "maskConsole": "msgid=3 [log] login ok {\"accessToken\":\"<masked len=27>\"} (1 args)",
+    "maskBody": "msgid=3 [log] login ok {\"accessToken\":\"<masked len=27>\"} (1 args)"
+  },
+  {
+    "maskText": "ID: 4\nMessage: error> auth failed: Bearer <masked len=27>\n### Arguments\nArg #0: auth failed: Bearer <masked len=27>",
+    "maskConsole": "ID: 4\nMessage: error> auth failed: Bearer <masked len=27>\n### Arguments\nArg #0: auth failed: Bearer <masked len=27>",
+    "maskBody": "ID: 4\nMessage: error> auth failed: Bearer <masked len=27>\n### Arguments\nArg #0: auth failed: Bearer <masked len=27>"
+  },
+  {
+    "maskText": "msgid=5 [warn] retry with sessionId=\"<masked len=27>\" <masked len=32> (2 args)",
+    "maskConsole": "msgid=5 [warn] retry with sessionId=\"<masked len=27>\" <masked len=32> (2 args)",
+    "maskBody": "msgid=5 [warn] retry with sessionId=\"<masked len=27>\" <masked len=32> (2 args)"
+  },
+  {
+    "maskText": "msgid=7 [error] TypeError: Cannot read properties of undefined (reading 'id') (1 args)\n    at OrderFormContainerV2 (http://localhost:5173/src/OrderFormContainerV2.tsx:12:5)",
+    "maskConsole": "msgid=7 [error] TypeError: Cannot read properties of undefined (reading 'id') (1 args)\n    at OrderFormContainerV2 (http://localhost:5173/src/OrderFormContainerV2.tsx:12:5)",
+    "maskBody": "msgid=7 [error] TypeError: Cannot read properties of undefined (reading 'id') (1 args)\n    at OrderFormContainerV2 (http://localhost:5173/src/OrderFormContainerV2.tsx:12:5)"
+  },
+  {
+    "maskText": "reqid=12 GET http://localhost:4173/api/orders?page=2&access_token=<masked len=27> [200]",
+    "maskConsole": "reqid=12 GET http://localhost:4173/api/orders?page=2&access_token=<masked len=27> [200]",
+    "maskBody": "reqid=12 GET http://localhost:4173/api/orders?page=2&access_token=<masked len=27> [200]"
+  },
+  {
+    "maskText": "## Request http://localhost:4173/api/login\nStatus: 200\n### Request Headers\n- accept:application/json\n- authorization:Bearer <masked len=27>\n- cookie:theme=<masked len=4>; sid=<masked len=27>; lang=<masked len=27>\n- x-api-key:<masked len=27>",
+    "maskConsole": "## Request http://localhost:4173/api/login\nStatus: 200\n### Request Headers\n- accept:application/json\n- authorization:Bearer <masked len=27>\n- cookie:theme=<masked len=4>; sid=<masked len=27>; lang=<masked len=27>\n- x-api-key:<masked len=27>",
+    "maskBody": "## Request http://localhost:4173/api/login\nStatus: 200\n### Request Headers\n- accept:application/json\n- authorization:Bearer <masked len=27>\n- cookie:theme=<masked len=4>; sid=<masked len=27>; lang=<masked len=27>\n- x-api-key:<masked len=27>"
+  },
+  {
+    "maskText": "### Response Headers\n- set-cookie:session=<masked len=27>; Path=/; HttpOnly\n- content-type:application/json",
+    "maskConsole": "### Response Headers\n- set-cookie:session=<masked len=27>; Path=/; HttpOnly\n- content-type:application/json",
+    "maskBody": "### Response Headers\n- set-cookie:session=<masked len=27>; Path=/; HttpOnly\n- content-type:application/json"
+  },
+  {
+    "maskText": "### Response Body\n{\"user\":{\"id\":5,\"name\":\"qa-user\"},\"token\":\"<masked len=27>\",\"refreshToken\":\"<masked len=27>\",\"pin\":\"<masked len=4>\"}",
+    "maskConsole": "### Response Body\n{\"user\":{\"id\":5,\"name\":\"qa-user\"},\"token\":\"<masked len=27>\",\"refreshToken\":\"<masked len=27>\",\"pin\":\"<masked len=4>\"}",
+    "maskBody": "### Response Body\n{\"user\":{\"id\":5,\"name\":\"qa-user\"},\"token\":\"<masked len=27>\",\"refreshToken\":\"<masked len=27>\",\"pin\":\"<masked len=4>\"}"
+  },
+  {
+    "maskText": "### Response Body\n{\"data\":{\"apiKey\":\"<masked len=42>",
+    "maskConsole": "### Response Body\n{\"data\":{\"apiKey\":\"<masked len=42>",
+    "maskBody": "### Response Body\n{\"data\":{\"apiKey\":\"<masked len=42>"
+  },
+  {
+    "maskText": "### Request Body\nuser=qa-user&password=<masked len=10>",
+    "maskConsole": "### Request Body\nuser=qa-user&password=<masked len=10>",
+    "maskBody": "### Request Body\nuser=qa-user&password=<masked len=10>"
+  },
+  {
+    "maskText": "## Request http://localhost:4173/api/orders/12345\nStatus: 500\n### Response Body\n{\"error\":\"order 12345 not found\"}",
+    "maskConsole": "## Request http://localhost:4173/api/orders/12345\nStatus: 500\n### Response Body\n{\"error\":\"order 12345 not found\"}",
+    "maskBody": "## Request http://localhost:4173/api/orders/12345\nStatus: 500\n### Response Body\n{\"error\":\"order 12345 not found\"}"
+  },
+  {
+    "maskText": "- :path:/api/orders?token=<masked len=27>&page=2",
+    "maskConsole": "- :path:/api/orders?token=<masked len=27>&page=2",
+    "maskBody": "- :path:/api/orders?token=<masked len=27>&page=2"
+  },
+  {
+    "maskText": "returned: {\"note\":\"{\\\"accessToken\\\":\\\"<masked len=27>\\\"}\"}",
+    "maskConsole": "returned: {\"note\":\"{\\\"accessToken\\\":\\\"<masked len=27>\\\"}\"}",
+    "maskBody": "returned: {\"note\":\"{\\\"accessToken\\\":\\\"<masked len=27>\\\"}\"}"
+  },
+  {
+    "maskText": "{\"accessToken\":\"<masked len=17>\"} Bearer <masked len=9> token=<masked len=9>",
+    "maskConsole": "{\"accessToken\":\"<masked len=17>\"} Bearer <masked len=9> token=<masked len=9>",
+    "maskBody": "{\"accessToken\":\"<masked len=17>\"} Bearer <masked len=9> token=<masked len=9>"
+  },
+  {
+    "maskText": "passcode=<masked len=4>",
+    "maskConsole": "passcode=<masked len=4>",
+    "maskBody": "passcode=<masked len=4>"
+  },
+  {
+    "maskText": "{\"pincode\":\"<masked len=4>\"}",
+    "maskConsole": "{\"pincode\":\"<masked len=4>\"}",
+    "maskBody": "{\"pincode\":\"<masked len=4>\"}"
+  },
+  {
+    "maskText": "cardNumber: <masked len=16>",
+    "maskConsole": "cardNumber: <masked len=16>",
+    "maskBody": "cardNumber: <masked len=16>"
+  },
+  {
+    "maskText": "{\"card_number\":\"<masked len=16>\"}",
+    "maskConsole": "{\"card_number\":\"<masked len=16>\"}",
+    "maskBody": "{\"card_number\":\"<masked len=16>\"}"
+  },
+  {
+    "maskText": "security_code=<masked len=3>",
+    "maskConsole": "security_code=<masked len=3>",
+    "maskBody": "security_code=<masked len=3>"
+  },
+  {
+    "maskText": "{\"credentials\":<masked len=25>}",
+    "maskConsole": "{\"credentials\":<masked len=25>}",
+    "maskBody": "{\"credentials\":<masked len=25>}"
+  },
+  {
+    "maskText": "session: <masked len=18>",
+    "maskConsole": "session: <masked len=18>",
+    "maskBody": "session: <masked len=18>"
+  },
+  {
+    "maskText": "x {\"token\":<masked len=15>} y",
+    "maskConsole": "x {\"token\":<masked len=15>} y",
+    "maskBody": "x {\"token\":<masked len=15>} y"
+  },
+  {
+    "maskText": "{\"session\":<masked len=17>, \"ok\":1}",
+    "maskConsole": "{\"session\":<masked len=17>, \"ok\":1}",
+    "maskBody": "{\"session\":<masked len=17>, \"ok\":1}"
+  },
+  {
+    "maskText": "{\"credentials\":<masked len=12>",
+    "maskConsole": "{\"credentials\":<masked len=12>",
+    "maskBody": "{\"credentials\":<masked len=12>"
+  },
+  {
+    "maskText": "Cookie: a=<masked len=1>",
+    "maskConsole": "Cookie: a=<masked len=1>",
+    "maskBody": "Cookie: a=<masked len=1>"
+  },
+  {
+    "maskText": "Authorization: <masked len=5> <masked len=12>",
+    "maskConsole": "Authorization: <masked len=5> <masked len=12>",
+    "maskBody": "Authorization: <masked len=5> <masked len=12>"
+  },
+  {
+    "maskText": "Authorization: <masked len=6> <masked len=12>",
+    "maskConsole": "Authorization: <masked len=6> <masked len=12>",
+    "maskBody": "Authorization: <masked len=6> <masked len=12>"
+  },
+  {
+    "maskText": "Authorization: <masked len=6> <masked len=41>",
+    "maskConsole": "Authorization: <masked len=6> <masked len=41>",
+    "maskBody": "Authorization: <masked len=6> <masked len=41>"
+  },
+  {
+    "maskText": "authorization=<masked len=5> <masked len=12>",
+    "maskConsole": "authorization=<masked len=5> <masked len=12>",
+    "maskBody": "authorization=<masked len=5> <masked len=12>"
+  },
+  {
+    "maskText": "- authorization:<masked len=5> <masked len=12>",
+    "maskConsole": "- authorization:<masked len=5> <masked len=12>",
+    "maskBody": "- authorization:<masked len=5> <masked len=12>"
+  },
+  {
+    "maskText": "Proxy-Authorization: <masked len=5> <masked len=12>",
+    "maskConsole": "Proxy-Authorization: <masked len=5> <masked len=12>",
+    "maskBody": "Proxy-Authorization: <masked len=5> <masked len=12>"
+  },
+  {
+    "maskText": "X-Api-Key: <masked len=5> <masked len=12>",
+    "maskConsole": "X-Api-Key: <masked len=5> <masked len=12>",
+    "maskBody": "X-Api-Key: <masked len=5> <masked len=12>"
+  },
+  {
+    "maskText": "token: <masked len=5> <masked len=12>",
+    "maskConsole": "token: <masked len=5> <masked len=12>",
+    "maskBody": "token: <masked len=5> <masked len=12>"
+  },
+  {
+    "maskText": "X-Auth: <masked len=5> <masked len=12>",
+    "maskConsole": "X-Auth: <masked len=5> <masked len=12>",
+    "maskBody": "X-Auth: <masked len=5> <masked len=12>"
+  },
+  {
+    "maskText": "headers: {Authorization: `<masked len=18>`}",
+    "maskConsole": "headers: {Authorization: `<masked len=18>`}",
+    "maskBody": "headers: {Authorization: `<masked len=18>`}"
+  },
+  {
+    "maskText": "Authorization: <masked len=16> <masked len=50>",
+    "maskConsole": "Authorization: <masked len=16> <masked len=50>",
+    "maskBody": "Authorization: <masked len=16> <masked len=50>"
+  },
+  {
+    "maskText": "The authorization: <masked len=6> is missing",
+    "maskConsole": "The authorization: <masked len=6> is missing",
+    "maskBody": "The authorization: <masked len=6> is missing"
+  },
+  {
+    "maskText": "Authorization: <masked len=16> <masked len=103>",
+    "maskConsole": "Authorization: <masked len=16> <masked len=103>",
+    "maskBody": "Authorization: <masked len=16> <masked len=103>"
+  },
+  {
+    "maskText": "Authorization: <masked len=16> <masked len=105>",
+    "maskConsole": "Authorization: <masked len=16> <masked len=105>",
+    "maskBody": "Authorization: <masked len=16> <masked len=105>"
+  },
+  {
+    "maskText": "Authorization: <masked len=5> <masked len=14>",
+    "maskConsole": "Authorization: <masked len=5> <masked len=14>",
+    "maskBody": "Authorization: <masked len=5> <masked len=14>"
+  },
+  {
+    "maskText": "Authorization: <masked len=5> <masked len=14>",
+    "maskConsole": "Authorization: <masked len=5> <masked len=14>",
+    "maskBody": "Authorization: <masked len=5> <masked len=14>"
+  },
+  {
+    "maskText": "X-Api-Key: <masked len=5> <masked len=14>",
+    "maskConsole": "X-Api-Key: <masked len=5> <masked len=14>",
+    "maskBody": "X-Api-Key: <masked len=5> <masked len=14>"
+  },
+  {
+    "maskText": "Authorization: <masked len=9> <masked len=17>",
+    "maskConsole": "Authorization: <masked len=9> <masked len=17>",
+    "maskBody": "Authorization: <masked len=9> <masked len=17>"
+  },
+  {
+    "maskText": "Authorization: <masked len=6> <masked len=39>",
+    "maskConsole": "Authorization: <masked len=6> <masked len=39>",
+    "maskBody": "Authorization: <masked len=6> <masked len=39>"
+  },
+  {
+    "maskText": "Authorization: <masked len=6> <masked len=39>\nHost: example.com",
+    "maskConsole": "Authorization: <masked len=6> <masked len=39>\nHost: example.com",
+    "maskBody": "Authorization: <masked len=6> <masked len=39>\nHost: example.com"
+  },
+  {
+    "maskText": "Authorization: <masked len=5>\n<masked len=12>",
+    "maskConsole": "Authorization: <masked len=5>\n<masked len=12>",
+    "maskBody": "Authorization: <masked len=5>\n<masked len=12>"
+  },
+  {
+    "maskText": "Authorization: <masked len=5> <masked len=12>\nStatus: 200",
+    "maskConsole": "Authorization: <masked len=5> <masked len=12>\nStatus: 200",
+    "maskBody": "Authorization: <masked len=5> <masked len=12>\nStatus: 200"
+  },
+  {
+    "maskText": "Authorization: <masked len=5>\n<masked len=12>\nAccept: application/json",
+    "maskConsole": "Authorization: <masked len=5>\n<masked len=12>\nAccept: application/json",
+    "maskBody": "Authorization: <masked len=5>\n<masked len=12>\nAccept: application/json"
+  },
+  {
+    "maskText": "Authorization: <masked len=5>\nStatus: 200",
+    "maskConsole": "Authorization: <masked len=5>\nStatus: 200",
+    "maskBody": "Authorization: <masked len=5>\nStatus: 200"
+  },
+  {
+    "maskText": "Authorization required",
+    "maskConsole": "Authorization required",
+    "maskBody": "Authorization required"
+  },
+  {
+    "maskText": "Token expired",
+    "maskConsole": "Token expired",
+    "maskBody": "Token expired"
+  },
+  {
+    "maskText": "Authorization: <masked len=5> <masked len=1979>…<truncated len=4133>",
+    "maskConsole": "Authorization: <masked len=5> <masked len=1979>…<truncated len=4133>",
+    "maskBody": "Authorization: <masked len=5> <masked len=4112>"
+  },
+  {
+    "maskText": "Authorization: <masked len=6> <masked len=1978>…<truncated len=4545>",
+    "maskConsole": "Authorization: <masked len=6> <masked len=1978>…<truncated len=4545>",
+    "maskBody": "Authorization: <masked len=6> <masked len=4523>"
+  },
+  {
+    "maskText": "Authorization: Bearer\nX-Api-Key: <masked len=5> <masked len=12>",
+    "maskConsole": "Authorization: Bearer\nX-Api-Key: <masked len=5> <masked len=12>",
+    "maskBody": "Authorization: Bearer\nX-Api-Key: <masked len=5> <masked len=12>"
+  },
+  {
+    "maskText": "Authorization: Bearer\nX-Api-Key: <masked len=12>",
+    "maskConsole": "Authorization: Bearer\nX-Api-Key: <masked len=12>",
+    "maskBody": "Authorization: Bearer\nX-Api-Key: <masked len=12>"
+  },
+  {
+    "maskText": "Authorization: Bearer\npassword: <masked len=12>",
+    "maskConsole": "Authorization: Bearer\npassword: <masked len=12>",
+    "maskBody": "Authorization: Bearer\npassword: <masked len=12>"
+  },
+  {
+    "maskText": "Authorization: Bearer\nX-Request-Id: 42",
+    "maskConsole": "Authorization: Bearer\nX-Request-Id: 42",
+    "maskBody": "Authorization: Bearer\nX-Request-Id: 42"
+  },
+  {
+    "maskText": "Authorization: <masked len=5> <masked len=3>",
+    "maskConsole": "Authorization: <masked len=5> <masked len=3>",
+    "maskBody": "Authorization: <masked len=5> <masked len=3>"
+  },
+  {
+    "maskText": "{\"password\":\"<masked len=1987>…<truncated len=4133>",
+    "maskConsole": "{\"password\":\"<masked len=1987>…<truncated len=4133>",
+    "maskBody": "{\"password\":\"<masked len=4112>\",\"n\":1}"
+  },
+  {
+    "maskText": "{\"password\":\"<masked len=1987>…<truncated len=4135>",
+    "maskConsole": "{\"password\":\"<masked len=1987>…<truncated len=4135>",
+    "maskBody": "{\"password\":\"<masked len=4114>\",\"n\":1}"
+  },
+  {
+    "maskText": "Authorization: \"<masked len=1984>…<truncated len=4135>",
+    "maskConsole": "Authorization: \"<masked len=1984>…<truncated len=4135>",
+    "maskBody": "Authorization: \"<masked len=4118>\""
+  },
+  {
+    "maskText": "Authorization: '<masked len=1984>…<truncated len=4135>",
+    "maskConsole": "Authorization: '<masked len=1984>…<truncated len=4135>",
+    "maskBody": "Authorization: '<masked len=4118>'"
+  },
+  {
+    "maskText": "Authorization: `<masked len=1984>…<truncated len=4135>",
+    "maskConsole": "Authorization: `<masked len=1984>…<truncated len=4135>",
+    "maskBody": "Authorization: `<masked len=4118>`"
+  },
+  {
+    "maskText": "headers:{Authorization: `<masked len=1975>…<truncated len=4145>",
+    "maskConsole": "headers:{Authorization: `<masked len=1975>…<truncated len=4145>",
+    "maskBody": "headers:{Authorization: `<masked len=4118>`}"
+  },
+  {
+    "maskText": "{\"authorization\":\"<masked len=1982>…<truncated len=4138>",
+    "maskConsole": "{\"authorization\":\"<masked len=1982>…<truncated len=4138>",
+    "maskBody": "{\"authorization\":\"<masked len=4118>\"}"
+  },
+  {
+    "maskText": "{\"secret\":<masked len=1990>…<truncated len=4138>",
+    "maskConsole": "{\"secret\":<masked len=1990>…<truncated len=4138>",
+    "maskBody": "{\"secret\":<masked len=4127>}"
+  },
+  {
+    "maskText": "{\"token\":<masked len=1991>…<truncated len=4146>",
+    "maskConsole": "{\"token\":<masked len=1991>…<truncated len=4146>",
+    "maskBody": "{\"token\":<masked len=4136>}"
+  },
+  {
+    "maskText": "{\"credentials\":<masked len=1985>…<truncated len=4432>",
+    "maskConsole": "{\"credentials\":<masked len=1985>…<truncated len=4432>",
+    "maskBody": "{\"credentials\":<masked len=4416>}"
+  },
+  {
+    "maskText": "{\"session\":<masked len=1989>…<truncated len=4244>",
+    "maskConsole": "{\"session\":<masked len=1989>…<truncated len=4244>",
+    "maskBody": "{\"session\":<masked len=4232>}"
+  },
+  {
+    "maskText": "token='<masked len=1993>…<truncated len=5021>",
+    "maskConsole": "token='<masked len=1993>…<truncated len=5021>",
+    "maskBody": "token='<masked len=5013>'"
+  },
+  {
+    "maskText": "Authorization: <masked len=5> <masked len=31>",
+    "maskConsole": "Authorization: <masked len=5> <masked len=31>",
+    "maskBody": "Authorization: <masked len=5> <masked len=31>"
+  },
+  {
+    "maskText": "X-Api-Key: <masked len=5> <masked len=6>",
+    "maskConsole": "X-Api-Key: <masked len=5> <masked len=6>",
+    "maskBody": "X-Api-Key: <masked len=5> <masked len=6>"
+  },
+  {
+    "maskText": "Authorization: Bearer\n  <masked len=12>",
+    "maskConsole": "Authorization: Bearer\n  <masked len=12>",
+    "maskBody": "Authorization: Bearer\n  <masked len=12>"
+  },
+  {
+    "maskText": "Authorization: Basic\n  <masked len=12>",
+    "maskConsole": "Authorization: Basic\n  <masked len=12>",
+    "maskBody": "Authorization: Basic\n  <masked len=12>"
+  },
+  {
+    "maskText": "Authorization: Bearer\nX-Request-Id: 42",
+    "maskConsole": "Authorization: Bearer\nX-Request-Id: 42",
+    "maskBody": "Authorization: Bearer\nX-Request-Id: 42"
+  },
+  {
+    "maskText": "password=<masked len=16>",
+    "maskConsole": "password=<masked len=16>",
+    "maskBody": "password=<masked len=16>"
+  },
+  {
+    "maskText": "password: <masked len=16>",
+    "maskConsole": "password: <masked len=16>",
+    "maskBody": "password: <masked len=16>"
+  },
+  {
+    "maskText": "Authorization: Bearer\n  <masked len=16>",
+    "maskConsole": "Authorization: Bearer\n  <masked len=16>",
+    "maskBody": "Authorization: Bearer\n  <masked len=16>"
+  },
+  {
+    "maskText": "Authorization: <masked len=5>\n  <masked len=16>",
+    "maskConsole": "Authorization: <masked len=5>\n  <masked len=16>",
+    "maskBody": "Authorization: <masked len=5>\n  <masked len=16>"
+  },
+  {
+    "maskText": "auth failed: Bearer\n  <masked len=12>",
+    "maskConsole": "auth failed: Bearer\n  <masked len=12>",
+    "maskBody": "auth failed: Bearer\n  <masked len=12>"
+  },
+  {
+    "maskText": "Bearer\n  <masked len=12>",
+    "maskConsole": "Bearer\n  <masked len=12>",
+    "maskBody": "Bearer\n  <masked len=12>"
+  },
+  {
+    "maskText": "password=<masked len=21>",
+    "maskConsole": "password=<masked len=21>",
+    "maskBody": "password=<masked len=21>"
+  },
+  {
+    "maskText": "Authorization: Bearer\n<masked len=9>",
+    "maskConsole": "Authorization: Bearer\n<masked len=9>",
+    "maskBody": "Authorization: Bearer\n<masked len=9>"
+  },
+  {
+    "maskText": "The password field is required",
+    "maskConsole": "The password field is required",
+    "maskBody": "The password field is required"
+  },
+  {
+    "maskText": "{\"authorization\":\"<masked len=21>\", \"id\": 5}",
+    "maskConsole": "{\"authorization\":\"<masked len=21>\", \"id\": 5}",
+    "maskBody": "{\"authorization\":\"<masked len=21>\", \"id\": 5}"
+  },
+  {
+    "maskText": "{\"authorization\":\"<masked len=21>\"}",
+    "maskConsole": "{\"authorization\":\"<masked len=21>\"}",
+    "maskBody": "{\"authorization\":\"<masked len=21>\"}"
+  },
+  {
+    "maskText": "{\n  \"authorization\": \"<masked len=22>\",\n  \"user\": \"qa\"\n}",
+    "maskConsole": "{\n  \"authorization\": \"<masked len=22>\",\n  \"user\": \"qa\"\n}",
+    "maskBody": "{\n  \"authorization\": \"<masked len=22>\",\n  \"user\": \"qa\"\n}"
+  },
+  {
+    "maskText": "{\"authorization\":\"<masked len=21>\", \"id\": 5}",
+    "maskConsole": "{\"authorization\":\"<masked len=21>\", \"id\": 5}",
+    "maskBody": "{\"authorization\":\"<masked len=21>\", \"id\": 5}"
+  },
+  {
+    "maskText": "{\"password\": \"<masked len=12>\"\n  \"next\": \"visible\"}",
+    "maskConsole": "{\"password\": \"<masked len=12>\"\n  \"next\": \"visible\"}",
+    "maskBody": "{\"password\": \"<masked len=12>\"\n  \"next\": \"visible\"}"
+  },
+  {
+    "maskText": "  password: \"<masked len=12>\"\n  username: qa",
+    "maskConsole": "  password: \"<masked len=12>\"\n  username: qa",
+    "maskBody": "  password: \"<masked len=12>\"\n  username: qa"
+  },
+  {
+    "maskText": "password: <masked len=6>\n  password: <masked len=12>",
+    "maskConsole": "password: <masked len=6>\n  password: <masked len=12>",
+    "maskBody": "password: <masked len=6>\n  password: <masked len=12>"
+  },
+  {
+    "maskText": "headers:\n  Authorization: Bearer <masked len=12>\n  Accept: json",
+    "maskConsole": "headers:\n  Authorization: Bearer <masked len=12>\n  Accept: json",
+    "maskBody": "headers:\n  Authorization: Bearer <masked len=12>\n  Accept: json"
+  },
+  {
+    "maskText": "X: 1\n  Authorization: Bearer <masked len=3>\n  Y: 2",
+    "maskConsole": "X: 1\n  Authorization: Bearer <masked len=3>\n  Y: 2",
+    "maskBody": "X: 1\n  Authorization: Bearer <masked len=3>\n  Y: 2"
+  },
+  {
+    "maskText": "Basic <masked len=4> required",
+    "maskConsole": "Basic <masked len=4> required",
+    "maskBody": "Basic <masked len=4> required"
+  },
+  {
+    "maskText": "Bearer <masked len=5> missing",
+    "maskConsole": "Bearer <masked len=5> missing",
+    "maskBody": "Bearer <masked len=5> missing"
+  },
+  {
+    "maskText": "Use Bearer <masked len=4> here",
+    "maskConsole": "Use Bearer <masked len=4> here",
+    "maskBody": "Use Bearer <masked len=4> here"
+  },
+  {
+    "maskText": "Authorization: <masked len=16>\n  <masked len=133>",
+    "maskConsole": "Authorization: <masked len=16>\n  <masked len=133>",
+    "maskBody": "Authorization: <masked len=16>\n  <masked len=133>"
+  },
+  {
+    "maskText": "Authorization: <masked len=9>\n  <masked len=54>",
+    "maskConsole": "Authorization: <masked len=9>\n  <masked len=54>",
+    "maskBody": "Authorization: <masked len=9>\n  <masked len=54>"
+  }
+]
