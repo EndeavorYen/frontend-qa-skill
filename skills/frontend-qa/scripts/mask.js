@@ -103,8 +103,8 @@ function isReadableFoldLine(text, lineStart) {
 const TOKEN68_RE = /[A-Za-z0-9._~+/=-]+/y;
 const VENDOR_RE = /(?<![A-Za-z0-9])(?:AKIA|ASIA)[0-9A-Z]{16}(?![A-Za-z0-9])|(?<![A-Za-z0-9])(?:xox[abposr]-[A-Za-z0-9-]{10,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|[sr]k_(?:live|test)_[A-Za-z0-9]{10,}|AIza[0-9A-Za-z_-]{30,})/g;
 const USERINFO_RE = /(?<![a-z0-9+.-])([a-z][a-z0-9+.-]*:\/\/[^\s/?#@:]*:)([^\s/?#@]+)(@)/gi;
-// `(` anchors a key the same way whitespace, line start, `[`, `{`, and quotes do.
-const ASSIGN_RE = /(^|[\s{[,;?&#(]|(?<![=(])["'`])(\\?["'`]|)([A-Za-z0-9_.%-]+(?::[A-Za-z0-9_.%-]+)*)\2(\s*[:=]\s*)/g;
+// `(` and `>` anchor a key the same way whitespace, line start, `[`, `{`, and quotes do.
+const ASSIGN_RE = /(^|[\s{[,;?&#(>]|(?<![=(])["'`])(\\?["'`]|)([A-Za-z0-9_.%-]+(?::[A-Za-z0-9_.%-]+)*)\2(\s*[:=]\s*)/g;
 const BARE_RE = /[^"'`\s,;&}\])<>]+/y;
 const STRUCT_RE = /["'`{}\[\]\r\n]/g;
 const CSS_PSEUDO = /^:(?:hover|focus|active|checked|disabled|enabled|visited|not|has|is|where|before|after|first-child|last-child|nth-child|root|empty|required|valid|invalid)\b/;
@@ -273,12 +273,19 @@ function clipBeforeNextKey(text, start, end) {
   }
   return end;
 }
-function closerFollowedByBoundary(text, i, endLimit) {
+// stopAtCloser is for a quote that limits the value. A closer followed by another
+// closer does not end the value: `(password: Qw7zx5))RtY` keeps the tail.
+function closerFollowedByBoundary(text, i, endLimit, stopAtCloser) {
   const n = i + 1;
   if (n >= endLimit) return true;
   const ch = text[n];
   if (ch === '\n' || ch === '\r' || ch === ' ' || ch === '\t' || ch === ',' || ch === ';' || ch === '&') return true;
-  return CLOSER_CHARS.has(ch);
+  return stopAtCloser === true && CLOSER_CHARS.has(ch);
+}
+function closingTagAt(text, i, endLimit) {
+  if (i + 1 >= endLimit || text[i] !== '<' || text[i + 1] !== '/') return false;
+  const slice = text.slice(i, Math.min(endLimit, i + 64));
+  return /^<\/[A-Za-z][^<>]*>/.test(slice);
 }
 // `&` ends a value only in query or form context. Form context is a whitespace-free
 // run of k=v pairs joined by `&`. Query context (key preceded by `?`, `&`, or `#`)
@@ -317,9 +324,11 @@ function ampEndsValue(text, amp, query) {
 }
 // Sensitive unquoted value under a key or scheme. Ends at the first of: end of line;
 // whitespace before a key:/key= token; the enclosing closer when the next char is end
-// of line, whitespace, `,`, `;`, `&`, or another closer; `,`/`;` before a key token;
-// `&` in query or form context. Anything else is part of the value. Unsure: mask
-// through end of line. Non-sensitive keys do not use this scan.
+// of line, whitespace, `,`, `;`, or `&`; `,`/`;` before a key token; `&` in query or
+// form context; a closing tag (`</td>`) after the value has started. A closer followed
+// by another closer stays inside the value. The first character is part of the value
+// even when it is `&`, `)`, `,`, `;`, `<`, `>`, `]`, or `}`. Anything else is part of
+// the value. Unsure: mask through end of line. Non-sensitive keys do not use this scan.
 function unquotedValueEnd(text, at, limit, keyStart, keyEnd, query) {
   const endLimit = limit == null ? text.length : limit;
   const origin = keyStart == null ? at : keyStart;
@@ -329,19 +338,23 @@ function unquotedValueEnd(text, at, limit, keyStart, keyEnd, query) {
   while (i < endLimit) {
     const ch = text[i];
     if (ch === '\n' || ch === '\r') break;
+    const started = i > at;
     if (ch === '&') {
-      if (ampEndsValue(text, i, queryAmp)) break;
+      if (started && ampEndsValue(text, i, queryAmp)) break;
       i++;
       continue;
     }
     if (ch === ',' || ch === ';') {
-      let j = i + 1;
-      while (j < endLimit && (text[j] === ' ' || text[j] === '\t')) j++;
-      if (nextKeyAt(text, j, endLimit)) break;
+      if (started) {
+        let j = i + 1;
+        while (j < endLimit && (text[j] === ' ' || text[j] === '\t')) j++;
+        if (nextKeyAt(text, j, endLimit)) break;
+      }
       i++;
       continue;
     }
-    if (closer && ch === closer && closerFollowedByBoundary(text, i, endLimit)) break;
+    if (started && closer && ch === closer && closerFollowedByBoundary(text, i, endLimit)) break;
+    if (started && ch === '<' && closingTagAt(text, i, endLimit)) break;
     if (ch === ' ' || ch === '\t') {
       let j = i;
       while (j < endLimit && (text[j] === ' ' || text[j] === '\t')) j++;
@@ -543,7 +556,7 @@ function valueLimit(text, quotes, keyStart, keyEnd, sepEnd) {
   if (i !== ans.start) return null;
   if (keyEnd != null && text[keyEnd] === ans.quote) return null;
   // A closer that is not followed by a boundary is still inside the value.
-  if (ans.closed && !closerFollowedByBoundary(text, ans.contentEnd, text.length)) return null;
+  if (ans.closed && !closerFollowedByBoundary(text, ans.contentEnd, text.length, true)) return null;
   return ans.contentEnd;
 }
 function markFolds(text, anchor, spanStart, spanEnd, tokens) {
@@ -739,28 +752,47 @@ function scanLines(text, tokens, quotes) {
       consume = folded.end;
       if (!nested.close) markFolds(text, nested.start, nested.start, folded.end, tokens);
     } else {
+      if (PLACEHOLDER.test(text.slice(vStart, endLimit))) {
+        const ph = /^<masked len=\d+>/.exec(text.slice(vStart, endLimit));
+        line.placeholder = true;
+        line.valueKind = 'bare';
+        line.valueStart = vStart;
+        line.valueEnd = vStart + ph[0].length;
+        line.end = line.valueEnd;
+        tokens.push(line);
+        ASSIGN_RE.lastIndex = line.end;
+        continue;
+      }
       const word = readBare(text, vStart, endLimit);
       if (!word) {
+        const full = withFold(text, { start: vStart, end: unquotedValueEnd(text, vStart, endLimit, keyStart, keyEnd, query) }, endLimit);
+        if (full.end <= vStart) {
+          tokens.push(line);
+          continue;
+        }
+        line.valueKind = 'bare';
+        line.valueStart = vStart;
+        line.valueEnd = full.end;
+        line.end = full.end;
+        markFolds(text, vStart, vStart, full.end, tokens);
         tokens.push(line);
+        if (full.end > m.index) ASSIGN_RE.lastIndex = Math.max(ASSIGN_RE.lastIndex, full.end);
         continue;
       }
       const wordEnd = vStart + word.length;
       if (text.startsWith('<masked len=', wordEnd)) {
-        const pairName = word.endsWith('=') ? word.slice(0, -1) : word;
-        // A letter-only cookie name stays readable. A name with a digit is the
-        // start of the secret that the cookie shape pass split on '='.
-        if (!/\d/.test(pairName)) {
-          line.skip = true;
-          line.valueKind = 'bare';
-          line.wordStart = vStart;
-          line.wordEnd = wordEnd;
-          line.valueStart = vStart;
-          line.valueEnd = wordEnd;
-          line.end = wordEnd;
-          tokens.push(line);
-          ASSIGN_RE.lastIndex = wordEnd;
-          continue;
-        }
+        // The shape pass already wrote this placeholder. Masking across it splits
+        // the marker. The pair name stays readable, digits included.
+        line.skip = true;
+        line.valueKind = 'bare';
+        line.wordStart = vStart;
+        line.wordEnd = wordEnd;
+        line.valueStart = vStart;
+        line.valueEnd = wordEnd;
+        line.end = wordEnd;
+        tokens.push(line);
+        ASSIGN_RE.lastIndex = wordEnd;
+        continue;
       }
       const bareScheme = SCHEME_WORD.test(word) && (word.includes('-') || !credentialToken(word));
       const exactBearer = /^(?:Bearer|Basic)$/i.test(word);

@@ -2579,5 +2579,145 @@
     "secrets": ["next"],
     "keep": ["(password:"],
     "output": "(password: <masked len=9>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Cookie: Ab9=zz88QQ",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["zz88QQ"],
+    "keep": ["Cookie", "Ab9="],
+    "output": "Cookie: Ab9=<masked len=6>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Cookie: 123=abcdef",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["abcdef"],
+    "keep": ["Cookie", "123="],
+    "output": "Cookie: 123=<masked len=6>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Set-Cookie: Ab9=zz88QQ; Path=/",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["zz88QQ"],
+    "keep": ["Set-Cookie", "Ab9=", "Path=/"],
+    "output": "Set-Cookie: Ab9=<masked len=6>; Path=/"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: )hunter2",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["hunter2"],
+    "keep": ["password"],
+    "output": "password: <masked len=8>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "pwd: ;hunter2",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["hunter2"],
+    "keep": ["pwd"],
+    "output": "pwd: <masked len=8>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "secret: <hunter2>",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["hunter2"],
+    "keep": ["secret"],
+    "output": "secret: <masked len=9>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: )hunter2\n  continued9",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["hunter2", "continued9"],
+    "keep": ["password"],
+    "output": "password: <masked len=21>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: &hunter2",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["hunter2"],
+    "keep": ["password"],
+    "output": "password: <masked len=8>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: ,hunter2",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["hunter2"],
+    "keep": ["password"],
+    "output": "password: <masked len=8>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: >hunter2",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["hunter2"],
+    "keep": ["password"],
+    "output": "password: <masked len=8>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: ]hunter2",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["hunter2"],
+    "keep": ["password"],
+    "output": "password: <masked len=8>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: }hunter2",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["hunter2"],
+    "keep": ["password"],
+    "output": "password: <masked len=8>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "<td>password: hunter2</td>",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["hunter2"],
+    "keep": ["<td>", "</td>", "password"],
+    "output": "<td>password: <masked len=7></td>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "(password: Qw7zx5))RtY",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["Qw7zx5", "RtY"],
+    "keep": ["(password:"],
+    "output": "(password: <masked len=11>"
   }
 ]

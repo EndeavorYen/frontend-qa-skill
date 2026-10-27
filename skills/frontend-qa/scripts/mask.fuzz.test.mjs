@@ -52,6 +52,15 @@ const EXPLICIT = [
   { input: '(password=Ab9&defGhij)', needle: 'defGhij' },
   { input: '(password: abc).next', needle: 'next' },
   { input: '{ password: Ab}Zq9 Wk7Vt }', needle: 'Zq9' },
+  { input: 'Cookie: Ab9=zz88QQ', needle: 'zz88QQ', expect: 'Cookie: Ab9=<masked len=6>' },
+  { input: 'Cookie: 123=abcdef', needle: 'abcdef', expect: 'Cookie: 123=<masked len=6>' },
+  { input: 'Set-Cookie: Ab9=zz88QQ; Path=/', needle: 'zz88QQ', expect: 'Set-Cookie: Ab9=<masked len=6>; Path=/' },
+  { input: 'password: )hunter2', needle: 'hunter2', expect: 'password: <masked len=8>' },
+  { input: 'pwd: ;hunter2', needle: 'hunter2', expect: 'pwd: <masked len=8>' },
+  { input: 'secret: <hunter2>', needle: 'hunter2', expect: 'secret: <masked len=9>' },
+  { input: 'password: )hunter2\n  continued9', needle: 'continued9', expect: 'password: <masked len=21>' },
+  { input: '<td>password: hunter2</td>', needle: 'hunter2', expect: '<td>password: <masked len=7></td>' },
+  { input: '(password: Qw7zx5))RtY', needle: 'RtY', expect: '(password: <masked len=11>' },
 ];
 
 function prefixCloser(prefix) {
@@ -132,17 +141,20 @@ function scanPrefixes(mod, workers) {
         for (let v = 0; v < values.length; v += 1) {
           const value = values[v];
           const grams = gramsOf(value);
+          const cookieHeader = /^(?:set-)?cookie\s*:/i.test(key);
+          const tailAt = value.length - TAIL.length;
           for (let s = 0; s < suffixes.length; s += 1) {
             const input = prefix + key + value + suffixes[s];
             for (let f = 0; f < SURFACES.length; f += 1) {
               const out = SURFACES[f][1](input);
               calls += 1;
               for (let g = 0; g < grams.length; g += 1) {
-                if (out.includes(grams[g])) {
-                  leaks += 1;
-                  if (examples.length < 8) examples.push(`${SURFACES[f][0]} ${JSON.stringify(input)} => ${JSON.stringify(out)}`);
-                  break;
-                }
+                if (!out.includes(grams[g])) continue;
+                // Cookie: keeps the pair name. A 4-gram that stops before zz88QQ is that name.
+                if (cookieHeader && g + 4 <= tailAt) continue;
+                leaks += 1;
+                if (examples.length < 8) examples.push(`${SURFACES[f][0]} ${JSON.stringify(input)} => ${JSON.stringify(out)}`);
+                break;
               }
             }
           }
@@ -158,10 +170,111 @@ function explicitLeaks() {
   for (const row of EXPLICIT) {
     for (const [name, fn] of SURFACES) {
       const out = fn(row.input);
-      if (out.includes(row.needle)) failed.push(`${name} ${JSON.stringify(row.input)} => ${JSON.stringify(out)}`);
+      if (row.needle && out.includes(row.needle)) failed.push(`${name} ${JSON.stringify(row.input)} => ${JSON.stringify(out)}`);
+      if (row.expect != null && out !== row.expect) failed.push(`${name} expect ${JSON.stringify(row.input)} => ${JSON.stringify(out)}`);
     }
   }
   return failed;
+}
+
+function secretVisible(out, secret) {
+  if (secret.length < 4) return out.includes(secret);
+  for (let i = 0; i + 4 <= secret.length; i += 1) {
+    if (out.includes(secret.slice(i, i + 4))) return true;
+  }
+  return false;
+}
+
+function markerBroken(out) {
+  return /<masked(?! len=\d+>)/.test(out) || /> len=\d+>/.test(out);
+}
+
+function dimensionInputs() {
+  const lead = [];
+  const leadDelims = ['&', ')', ',', ';', '<', '>', ']', '}'];
+  const leadKeys = ['password: ', 'password=', 'pwd: ', 'secret: ', 'token='];
+  const leadTails = ['hunter2', 'zz88QQ'];
+  const leadFolds = ['', '\n  continued9'];
+  const leadPrefixes = ['', '(', '<td>', '>', 'x '];
+  for (const prefix of leadPrefixes) {
+    for (const key of leadKeys) {
+      for (const delim of leadDelims) {
+        for (const tail of leadTails) {
+          for (const fold of leadFolds) {
+            lead.push({
+              kind: 'lead',
+              input: prefix + key + delim + tail + fold,
+              secrets: fold ? [tail, 'continued9'] : [tail],
+            });
+          }
+        }
+      }
+    }
+  }
+  const doubled = [];
+  const closePairs = [['(', ')'], ['[', ']'], ['{', '}']];
+  const doubleKeys = ['password: ', 'token=', 'secret: '];
+  const doubleTails = ['RtYq', 'zz88QQ'];
+  for (const [open, close] of closePairs) {
+    for (const key of doubleKeys) {
+      for (const tail of doubleTails) {
+        doubled.push({ kind: 'double', input: `${open}${key}Qw7zx5${close}${close}${tail}`, secrets: ['Qw7zx5', tail] });
+        doubled.push({ kind: 'double', input: `${open}${key}Qw7zx5${close}${close}${tail}${close}`, secrets: ['Qw7zx5', tail] });
+      }
+    }
+  }
+  doubled.push({ kind: 'double', input: '(password: Qw7zx5))RtY', secrets: ['Qw7zx5', 'RtY'] });
+  const cookies = [];
+  const cookieNames = ['Ab9', '123', 'a1', 'Z9z'];
+  const cookieValues = ['zz88QQ', 'abcdef'];
+  const cookieHeaders = ['Cookie: ', 'Set-Cookie: ', 'cookie: ', 'set-cookie: '];
+  for (const header of cookieHeaders) {
+    for (const name of cookieNames) {
+      for (const value of cookieValues) {
+        cookies.push({ kind: 'cookie', input: `${header}${name}=${value}`, name, value });
+        if (header.toLowerCase().startsWith('set-cookie')) {
+          cookies.push({ kind: 'cookie', input: `${header}${name}=${value}; Path=/`, name, value });
+        }
+      }
+    }
+  }
+  const gt = [];
+  const fronts = ['>', '<td>', '<div>', 'a>'];
+  const gtKeys = ['password', 'secret', 'token', 'pwd'];
+  const seps = [': ', '='];
+  const gtTails = ['hunter2', 'zz88QQ'];
+  for (const front of fronts) {
+    for (const key of gtKeys) {
+      for (const sep of seps) {
+        for (const tail of gtTails) {
+          gt.push({ kind: 'gt', input: `${front}${key}${sep}${tail}`, secrets: [tail] });
+          gt.push({ kind: 'gt', input: `${front}${key}${sep}${tail}</td>`, secrets: [tail] });
+        }
+      }
+    }
+  }
+  return lead.concat(doubled, cookies, gt);
+}
+
+function scanDimensions(rows) {
+  const classes = { lead: 0, double: 0, cookie: 0, gt: 0 };
+  let leaks = 0;
+  let calls = 0;
+  const examples = [];
+  for (const row of rows) {
+    for (const [, fn] of SURFACES) {
+      calls += 1;
+      const out = fn(row.input);
+      let bad = markerBroken(out) || fn(out) !== out;
+      if (row.kind === 'cookie') bad = bad || !out.includes(`${row.name}=`) || secretVisible(out, row.value);
+      else bad = bad || row.secrets.some((secret) => secretVisible(out, secret));
+      if (!bad) continue;
+      leaks += 1;
+      classes[row.kind] += 1;
+      if (examples.length < 8) examples.push(`${row.kind} ${JSON.stringify(row.input)} => ${JSON.stringify(out)}`);
+    }
+  }
+  return { inputs: rows.length, calls, leaks, classes, examples };
 }
 
 if (!isMainThread) {
@@ -188,11 +301,16 @@ if (!isMainThread) {
       }
     }
     const explicit = explicitLeaks();
+    const dim = scanDimensions(dimensionInputs());
     const ms = performance.now() - started;
-    console.log(`fuzz inputs ${INPUTS} calls ${calls} leaks ${leaks} explicit ${explicit.length} ${ms.toFixed(3)}ms`);
+    console.log(`fuzz inputs ${INPUTS} calls ${calls} leaks ${leaks} dimInputs ${dim.inputs} dimCalls ${dim.calls} dimLeaks ${dim.leaks} dimClasses ${JSON.stringify(dim.classes)} explicit ${explicit.length} ${ms.toFixed(3)}ms`);
     for (const line of explicit) console.log(`explicit fail ${line}`);
+    for (const line of dim.examples) console.log(`dim leak ${line}`);
     assert.equal(calls, INPUTS * SURFACES.length);
+    assert.equal(dim.inputs, 1013);
+    assert.equal(dim.calls, dim.inputs * SURFACES.length);
     assert.equal(leaks, 0, examples.join('\n'));
+    assert.equal(dim.leaks, 0, dim.examples.join('\n'));
     assert.equal(explicit.length, 0, explicit.join('\n'));
     assert.ok(ms < 5000, `fuzz ${ms}`);
   });
@@ -200,6 +318,7 @@ if (!isMainThread) {
   test('maskText, maskConsole, and maskBody are idempotent on a fixed fuzz sample', () => {
     const sample = [];
     for (const row of EXPLICIT) sample.push(row.input);
+    for (const row of dimensionInputs()) sample.push(row.input);
     let index = 0;
     const stride = Math.max(1, Math.floor(INPUTS / 2000));
     for (let p = 0; p < PREFIXES.length; p += 1) {
