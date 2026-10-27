@@ -75,7 +75,13 @@ function isReadableHeaderName(name) {
   return false;
 }
 function headerNameAt(text, at) {
-  const m = HEADER_KEY_RE.exec(text.slice(at));
+  const lineEnd = lineContentEnd(text, at);
+  if (at >= lineEnd) return '';
+  // The name and its ':' live on this line. Slicing to the end of the input
+  // copied every later line once per fold line.
+  const line = text.slice(at, lineEnd);
+  if (!line.includes(':')) return '';
+  const m = HEADER_KEY_RE.exec(line);
   return m ? m[1] : '';
 }
 function leadingWs(text, at) {
@@ -97,23 +103,29 @@ function isReadableFoldLine(text, lineStart) {
 const TOKEN68_RE = /[A-Za-z0-9._~+/=-]+/y;
 const VENDOR_RE = /(?<![A-Za-z0-9])(?:AKIA|ASIA)[0-9A-Z]{16}(?![A-Za-z0-9])|(?<![A-Za-z0-9])(?:xox[abposr]-[A-Za-z0-9-]{10,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|[sr]k_(?:live|test)_[A-Za-z0-9]{10,}|AIza[0-9A-Za-z_-]{30,})/g;
 const USERINFO_RE = /(?<![a-z0-9+.-])([a-z][a-z0-9+.-]*:\/\/[^\s/?#@:]*:)([^\s/?#@]+)(@)/gi;
-const ASSIGN_RE = /(^|[\s{[,;?&#]|(?<![=(])["'`])(\\?["'`]|)([A-Za-z0-9_.%-]+(?::[A-Za-z0-9_.%-]+)*)\2(\s*[:=]\s*)/g;
+// `(` anchors a key the same way whitespace, line start, `[`, `{`, and quotes do.
+const ASSIGN_RE = /(^|[\s{[,;?&#(]|(?<![=(])["'`])(\\?["'`]|)([A-Za-z0-9_.%-]+(?::[A-Za-z0-9_.%-]+)*)\2(\s*[:=]\s*)/g;
 const BARE_RE = /[^"'`\s,;&}\])<>]+/y;
+const STRUCT_RE = /["'`{}\[\]\r\n]/g;
 const CSS_PSEUDO = /^:(?:hover|focus|active|checked|disabled|enabled|visited|not|has|is|where|before|after|first-child|last-child|nth-child|root|empty|required|valid|invalid)\b/;
-// A cap is not an emit point. The first window stops at MAX_QUOTED; the same
-// scan then runs to the closing quote. No closer: mask through the end of the input.
+// A cap is not an emit point. The scan runs to the closing quote. No closer:
+// mask through the end of the input. Jumps between quotes and backslashes;
+// the closer index is the same as a per-character walk.
 function scanQuoted(text, at, limit) {
   const q = text[at];
   const endLimit = limit == null ? text.length : limit;
-  const cap = at + 1 + MAX_QUOTED;
   let i = at + 1;
   while (i < endLimit) {
-    const windowEnd = i < cap ? Math.min(endLimit, cap) : endLimit;
-    while (i < windowEnd) {
-      if (text[i] === '\\') i += 2;
-      else if (text[i] === q) return { start: at + 1, end: i, close: q };
-      else i++;
-    }
+    const ch = text[i];
+    if (ch === '\\') { i += 2; continue; }
+    if (ch === q) return { start: at + 1, end: i, close: q };
+    const qAt = text.indexOf(q, i);
+    const bsAt = text.indexOf('\\', i);
+    let next = endLimit;
+    if (qAt >= 0 && qAt < next) next = qAt;
+    if (bsAt >= 0 && bsAt < next) next = bsAt;
+    if (next <= i) break;
+    i = next;
   }
   return { start: at + 1, end: text.length, close: '' };
 }
@@ -207,34 +219,43 @@ function lineBreakEnd(text, at) {
   return j;
 }
 function lineContentEnd(text, at) {
-  let i = at;
-  while (i < text.length && text[i] !== '\n' && text[i] !== '\r') i++;
-  return i;
+  const lf = text.indexOf('\n', at);
+  const end = lf < 0 ? text.length : lf;
+  // A CR before this LF ends the line. Search that span only: indexOf('\r') with
+  // no end would rescan the rest of a LF-only input once per line.
+  if (end - at <= 64) {
+    const cr = text.slice(at, end).indexOf('\r');
+    return cr < 0 ? end : at + cr;
+  }
+  const cr = text.indexOf('\r', at);
+  if (cr < 0 || cr > end) return end;
+  return cr;
 }
 function lineStartAt(text, index) {
   let i = index;
   while (i > 0 && text[i - 1] !== '\n' && text[i - 1] !== '\r') i--;
   return i;
 }
-const CLOSER_OF = { '(': ')', '[': ']', '{': '}', '<': '>', '"': '"', "'": "'", '`': '`' };
 const NEXT_KEY = /^[A-Za-z0-9_.%-]+(?::[A-Za-z0-9_.%-]+)*[ \t]*[:=]/;
-// Openers still unmatched at the value start. A quote that only wraps the key
-// has already closed. A quote or bracket with no matching opener is part of the
-// value. Same line only.
-function openersBeforeKey(text, from, to) {
-  const stack = [];
-  for (let i = from; i < to; i++) {
-    const ch = text[i];
-    if (ch === '"' || ch === "'" || ch === '`') {
-      if (quoteIsEscaped(text, i)) continue;
-      if (stack.length && stack[stack.length - 1] === ch) stack.pop();
-      else stack.push(ch);
-      continue;
-    }
-    if (ch === '(' || ch === '[' || ch === '{' || ch === '<') { stack.push(ch); continue; }
-    if (stack.length && CLOSER_OF[stack[stack.length - 1]] === ch) stack.pop();
+const ENCLOSING_OPEN = { '(': ')', '[': ']', '{': '}', "'": "'", '"': '"', '`': '`' };
+const CLOSER_CHARS = new Set([')', ']', '}', '>', '"', "'", '`']);
+// Opener recorded only when it sits directly before the key. Optional space or tab
+// may sit between them. A quote that wraps the key has already closed. An opener
+// anywhere else on the line is not a value boundary.
+function enclosingCloser(text, keyStart, keyEnd) {
+  let i = keyStart - 1;
+  while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) i--;
+  if (i < 0) return '';
+  let ch = text[i];
+  if ((ch === '"' || ch === "'" || ch === '`') && keyEnd != null && text[keyEnd] === ch) {
+    i--;
+    while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) i--;
+    if (i < 0) return '';
+    ch = text[i];
+    if (ch === '(' || ch === '[' || ch === '{') return ENCLOSING_OPEN[ch];
+    return '';
   }
-  return stack;
+  return ENCLOSING_OPEN[ch] || '';
 }
 function nextKeyAt(text, i, limit) {
   if (i >= limit) return false;
@@ -252,22 +273,67 @@ function clipBeforeNextKey(text, start, end) {
   }
   return end;
 }
-function closerEndsValue(stack, ch) {
-  if (!stack.length || CLOSER_OF[stack[stack.length - 1]] !== ch) return false;
-  stack.pop();
-  return true;
+function closerFollowedByBoundary(text, i, endLimit) {
+  const n = i + 1;
+  if (n >= endLimit) return true;
+  const ch = text[n];
+  if (ch === '\n' || ch === '\r' || ch === ' ' || ch === '\t' || ch === ',' || ch === ';' || ch === '&') return true;
+  return CLOSER_CHARS.has(ch);
 }
-// Sensitive unquoted value. Ends only at end of line, at &, at whitespace before a
-// key:/key= token, or at a closer for an opener seen before the key. "," and ";"
-// end only when a key token follows. Otherwise fail closed through end of line.
-function unquotedValueEnd(text, at, limit, keyStart) {
+// `&` ends a value only in query or form context. Form context is a whitespace-free
+// run of k=v pairs joined by `&`. Query context (key preceded by `?`, `&`, or `#`)
+// also ends when the next part contains `=`.
+function ampEndsValue(text, amp, query) {
+  let a = amp;
+  while (a > 0) {
+    const ch = text[a - 1];
+    if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') break;
+    a--;
+  }
+  let b = amp + 1;
+  while (b < text.length) {
+    const ch = text[b];
+    if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') break;
+    b++;
+  }
+  let allEq = true;
+  let partEq = false;
+  let pairs = 0;
+  for (let i = a; i < b; i++) {
+    const ch = text[i];
+    if (ch === '&') {
+      pairs++;
+      if (!partEq) allEq = false;
+      partEq = false;
+    } else if (ch === '=') partEq = true;
+  }
+  if (!partEq) allEq = false;
+  if (pairs > 0 && allEq) return true;
+  if (!query) return false;
+  for (let i = amp + 1; i < b && text[i] !== '&'; i++) {
+    if (text[i] === '=') return true;
+  }
+  return false;
+}
+// Sensitive unquoted value under a key or scheme. Ends at the first of: end of line;
+// whitespace before a key:/key= token; the enclosing closer when the next char is end
+// of line, whitespace, `,`, `;`, `&`, or another closer; `,`/`;` before a key token;
+// `&` in query or form context. Anything else is part of the value. Unsure: mask
+// through end of line. Non-sensitive keys do not use this scan.
+function unquotedValueEnd(text, at, limit, keyStart, keyEnd, query) {
   const endLimit = limit == null ? text.length : limit;
   const origin = keyStart == null ? at : keyStart;
-  const stack = openersBeforeKey(text, lineStartAt(text, origin), at);
+  const closer = enclosingCloser(text, origin, keyEnd);
+  const queryAmp = query === true;
   let i = at;
   while (i < endLimit) {
     const ch = text[i];
-    if (ch === '\n' || ch === '\r' || ch === '&') break;
+    if (ch === '\n' || ch === '\r') break;
+    if (ch === '&') {
+      if (ampEndsValue(text, i, queryAmp)) break;
+      i++;
+      continue;
+    }
     if (ch === ',' || ch === ';') {
       let j = i + 1;
       while (j < endLimit && (text[j] === ' ' || text[j] === '\t')) j++;
@@ -275,11 +341,7 @@ function unquotedValueEnd(text, at, limit, keyStart) {
       i++;
       continue;
     }
-    if (ch === '"' || ch === "'" || ch === '`' || ch === ')' || ch === ']' || ch === '}' || ch === '>') {
-      if (closerEndsValue(stack, ch)) break;
-      i++;
-      continue;
-    }
+    if (closer && ch === closer && closerFollowedByBoundary(text, i, endLimit)) break;
     if (ch === ' ' || ch === '\t') {
       let j = i;
       while (j < endLimit && (text[j] === ' ' || text[j] === '\t')) j++;
@@ -293,11 +355,21 @@ function unquotedValueEnd(text, at, limit, keyStart) {
 }
 // Authorization prose ("header is missing") keeps the letter tail readable.
 // Any other sensitive key takes the whole phrase, including a short first word such as "my".
-function schemeProseStays(key, token, text, tokenEnd, limit) {
+function schemeProseStays(key, token, text, tokenEnd, limit, keyStart, keyEnd, query) {
   const name = String(key);
   if (token.length < 3) return false;
   if (!/authorization/i.test(name) && !/^auth$/i.test(name)) return false;
-  const tail = text.slice(tokenEnd, unquotedValueEnd(text, tokenEnd, limit));
+  const endLimit = limit == null ? text.length : limit;
+  // Prose is spaces and letters only. Anything else fails before the full scan.
+  for (let i = tokenEnd; i < endLimit; i++) {
+    const c = text.charCodeAt(i);
+    if (c === 10 || c === 13) break;
+    if (c === 32 || c === 9) continue;
+    if (c >= 65 && c <= 90) continue;
+    if (c >= 97 && c <= 122) continue;
+    return false;
+  }
+  const tail = text.slice(tokenEnd, unquotedValueEnd(text, tokenEnd, endLimit, keyStart, keyEnd, query));
   return /^[ \t]+[A-Za-z]+(?:[ \t]+[A-Za-z]+)+[ \t]*$/.test(tail);
 }
 // Folds after an unquoted value. parentIndent is the LINE's first column.
@@ -313,7 +385,8 @@ function extendIndentedFolds(text, end, parentIndent, limit) {
     if (k >= text.length || k >= endLimit || !isDeeperFold(text, k, parentIndent)) break;
     consumed = true;
     i = k;
-    while (i < endLimit && text[i] !== '\n' && text[i] !== '\r') i++;
+    const lineEnd = lineContentEnd(text, i);
+    i = lineEnd > endLimit ? endLimit : lineEnd;
   }
   return consumed ? i : end;
 }
@@ -348,7 +421,30 @@ function loneSchemeTail(text, breakAt, limit) {
 }
 // Auth scheme (Bearer, Basic, Token, …), keyed or keyless. Rest of the line and every
 // indented fold are masked. No letter-tail exception on this path.
-function authSchemeTail(text, schemeEnd, limit) {
+// Auth scheme tail. Same line end as valueEnd, plus the enclosing closer. A comma
+// before another key does not end it: Digest and AWS4 tails stay one span.
+function schemeValueEnd(text, at, limit, keyStart, keyEnd) {
+  const endLimit = limit == null ? text.length : limit;
+  const closer = enclosingCloser(text, keyStart == null ? at : keyStart, keyEnd);
+  const parentIndent = lineIndentAt(text, at);
+  let i = at;
+  while (i < endLimit) {
+    const ch = text[i];
+    if (ch === '\n' || ch === '\r') {
+      let j = i + 1;
+      if (ch === '\r' && text[j] === '\n') j++;
+      if (j < endLimit && isDeeperFold(text, j, parentIndent)) {
+        i = j;
+        continue;
+      }
+      break;
+    }
+    if (closer && ch === closer && closerFollowedByBoundary(text, i, endLimit)) break;
+    i++;
+  }
+  return i;
+}
+function authSchemeTail(text, schemeEnd, limit, keyStart, keyEnd) {
   const endLimit = limit == null ? text.length : limit;
   let start = schemeEnd;
   if (start >= endLimit) return null;
@@ -358,7 +454,7 @@ function authSchemeTail(text, schemeEnd, limit) {
   } else if (text[start] !== '\n' && text[start] !== '\r') return null;
   if (start >= endLimit) return null;
   if (text[start] === '\n' || text[start] === '\r') return loneSchemeTail(text, start, endLimit);
-  const end = valueEnd(text, start, endLimit);
+  const end = schemeValueEnd(text, start, endLimit, keyStart, keyEnd);
   if (end <= start) return null;
   return { start, end };
 }
@@ -411,8 +507,8 @@ function readBare(text, at, limit) {
   return text.slice(at, end);
 }
 function hasEscapes(text, from, to) {
-  for (let i = from; i < to; i++) if (text[i] === '\\') return true;
-  return false;
+  const at = text.indexOf('\\', from);
+  return at >= 0 && at < to;
 }
 // Rightmost quote that starts before pos wins. Quotes do not nest.
 // A quote that closes at or before sepEnd only wraps the key. It is not a value boundary.
@@ -429,6 +525,27 @@ function enclosingContentEnd(quotes, pos, sepEnd) {
   if (sepEnd != null && ans.contentEnd <= sepEnd) return null;
   return ans.contentEnd;
 }
+// A quote limits a sensitive value only when it is the enclosing opener directly
+// before the key. A prose apostrophe or quote earlier on the line does not.
+function valueLimit(text, quotes, keyStart, keyEnd, sepEnd) {
+  let lo = 0;
+  let hi = quotes.length - 1;
+  let ans = null;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (quotes[mid].start < keyStart) { ans = quotes[mid]; lo = mid + 1; }
+    else hi = mid - 1;
+  }
+  if (!ans || keyStart < ans.contentStart || keyStart >= ans.contentEnd) return null;
+  if (sepEnd != null && ans.contentEnd <= sepEnd) return null;
+  let i = keyStart - 1;
+  while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) i--;
+  if (i !== ans.start) return null;
+  if (keyEnd != null && text[keyEnd] === ans.quote) return null;
+  // A closer that is not followed by a boundary is still inside the value.
+  if (ans.closed && !closerFollowedByBoundary(text, ans.contentEnd, text.length)) return null;
+  return ans.contentEnd;
+}
 function markFolds(text, anchor, spanStart, spanEnd, tokens) {
   if (spanEnd <= spanStart) return;
   const parentIndent = lineIndentAt(text, anchor);
@@ -438,13 +555,19 @@ function markFolds(text, anchor, spanStart, spanEnd, tokens) {
       const lineEnd = lineContentEnd(text, i);
       tokens.push({ type: 'FOLD', start: i, end: lineEnd, indent: leadingWs(text, i) });
     }
-    let j = i;
-    while (j < text.length && text[j] !== '\n' && text[j] !== '\r') j++;
+    const j = lineContentEnd(text, i);
     if (j >= text.length) break;
     const next = lineBreakEnd(text, j);
     if (next <= i) break;
     i = next;
   }
+}
+function nextStruct(text, i, n) {
+  if (i >= n) return n;
+  STRUCT_RE.lastIndex = i;
+  const m = STRUCT_RE.exec(text);
+  if (!m || m.index >= n) return n;
+  return m.index;
 }
 function scanStructure(text, tokens, quotes) {
   const n = text.length;
@@ -491,7 +614,8 @@ function scanStructure(text, tokens, quotes) {
       i = j;
       continue;
     }
-    i++;
+    // Letters and other non-structure characters do not change tokens.
+    i = nextStruct(text, i + 1, n);
   }
   if (brackets.length) {
     tokens.push({
@@ -559,7 +683,7 @@ function scanLines(text, tokens, quotes) {
       ASSIGN_RE.lastIndex = m.index + whole.trimEnd().length;
       continue;
     }
-    const limit = enclosingContentEnd(quotes, keyStart, vStart);
+    const limit = valueLimit(text, quotes, keyStart, keyEnd, vStart);
     const endLimit = limit == null ? text.length : limit;
     if (vStart >= text.length || vStart >= endLimit) {
       tokens.push(line);
@@ -622,16 +746,21 @@ function scanLines(text, tokens, quotes) {
       }
       const wordEnd = vStart + word.length;
       if (text.startsWith('<masked len=', wordEnd)) {
-        line.skip = true;
-        line.valueKind = 'bare';
-        line.wordStart = vStart;
-        line.wordEnd = wordEnd;
-        line.valueStart = vStart;
-        line.valueEnd = wordEnd;
-        line.end = wordEnd;
-        tokens.push(line);
-        ASSIGN_RE.lastIndex = wordEnd;
-        continue;
+        const pairName = word.endsWith('=') ? word.slice(0, -1) : word;
+        // A letter-only cookie name stays readable. A name with a digit is the
+        // start of the secret that the cookie shape pass split on '='.
+        if (!/\d/.test(pairName)) {
+          line.skip = true;
+          line.valueKind = 'bare';
+          line.wordStart = vStart;
+          line.wordEnd = wordEnd;
+          line.valueStart = vStart;
+          line.valueEnd = wordEnd;
+          line.end = wordEnd;
+          tokens.push(line);
+          ASSIGN_RE.lastIndex = wordEnd;
+          continue;
+        }
       }
       const bareScheme = SCHEME_WORD.test(word) && (word.includes('-') || !credentialToken(word));
       const exactBearer = /^(?:Bearer|Basic)$/i.test(word);
@@ -641,12 +770,12 @@ function scanLines(text, tokens, quotes) {
       line.valueStart = vStart;
       line.exactBearer = exactBearer;
       line.bareScheme = bareScheme;
-      line.prose = bareScheme && schemeProseStays(key, word, text, wordEnd, endLimit);
+      line.prose = !exactBearer && bareScheme && schemeProseStays(key, word, text, wordEnd, endLimit, keyStart, keyEnd, query);
       const wordFold = withFold(text, { start: vStart, end: wordEnd }, endLimit);
       line.wordMaskStart = wordFold.start;
       line.wordMaskEnd = wordFold.end;
       let cred = null;
-      if (exactBearer || (bareScheme && isAuthScheme(word))) cred = authSchemeTail(text, wordEnd, endLimit);
+      if (exactBearer || (bareScheme && isAuthScheme(word))) cred = authSchemeTail(text, wordEnd, endLimit, keyStart, keyEnd);
       else if (bareScheme) cred = schemeCredential(text, wordEnd, endLimit);
       if (cred) {
         const folded = withFold(text, { start: cred.start, end: cred.end }, endLimit);
@@ -655,7 +784,7 @@ function scanLines(text, tokens, quotes) {
         line.credEnd = folded.end;
         markFolds(text, wordEnd, folded.start, folded.end, tokens);
       }
-      const full = withFold(text, { start: vStart, end: unquotedValueEnd(text, vStart, endLimit, keyStart) }, endLimit);
+      const full = withFold(text, { start: vStart, end: unquotedValueEnd(text, vStart, endLimit, keyStart, keyEnd, query) }, endLimit);
       line.valueEnd = full.end;
       line.end = full.end;
       if (!line.cred) markFolds(text, vStart, vStart, full.end, tokens);
@@ -885,8 +1014,15 @@ function quoteIsEscaped(text, at) {
   return n % 2 === 1;
 }
 function maskBody(text) {
-  const shaped = text.replace(COOKIE_LINE, maskCookieLine).replace(JWT_RE, (j) => marker(j)).replace(VENDOR_RE, (v) => marker(v))
-    .replace(USERINFO_RE, (all, a, v, at) => a + marker(v) + at);
+  let shaped = text;
+  // Skip a shape scan only when its pattern cannot match. The scan itself is unchanged.
+  shaped = shaped.replace(COOKIE_LINE, maskCookieLine);
+  if (text.includes('eyJ')) shaped = shaped.replace(JWT_RE, (j) => marker(j));
+  if (text.includes('AKIA') || text.includes('ASIA') || text.includes('xox') || text.includes('gh') ||
+      text.includes('AIza') || text.includes('sk_') || text.includes('rk_')) {
+    shaped = shaped.replace(VENDOR_RE, (v) => marker(v));
+  }
+  if (text.includes('://')) shaped = shaped.replace(USERINFO_RE, (all, a, v, at) => a + marker(v) + at);
   const masked = emit(shaped, classify(tokenize(shaped)));
   const parts = masked.split(/(<masked len=\d+>)/);
   let out = '';

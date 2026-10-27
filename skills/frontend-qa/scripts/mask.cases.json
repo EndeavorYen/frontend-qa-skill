@@ -2439,5 +2439,145 @@
     "surfaces": "all",
     "secrets": ["abcd1234efgh"],
     "keep": ["proxy-authorization"]
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Can't log in, password: abcd'1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["1234efgh"],
+    "keep": ["Can't", "password"],
+    "output": "Can't log in, password: <masked len=13>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "if a < b then password=abcd>1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["1234efgh"],
+    "keep": ["password", "if a < b"],
+    "output": "if a < b then password=<masked len=13>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "(see note password: abcd)1234efgh",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["1234efgh"],
+    "keep": ["(see note", "password"],
+    "output": "(see note password: <masked len=13>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "(password: hunter2)",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["hunter2"],
+    "keep": ["password", ")"],
+    "output": "(password: <masked len=7>)"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "Login failed (password: hunter2) retry",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["hunter2"],
+    "keep": [") retry", "password"],
+    "output": "Login failed (password: <masked len=7>) retry"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "error(token: abcd1234efgh)",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["abcd1234efgh"],
+    "keep": ["error(", ")"],
+    "output": "error(token: <masked len=12>)"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "(password=Ab9!defGhij)",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["defGhij"],
+    "keep": ["password", ")"],
+    "output": "(password=<masked len=11>)"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "(Authorization: Bearer Ab9!defGhij)",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["defGhij"],
+    "keep": ["Bearer", ")"],
+    "output": "(Authorization: Bearer <masked len=11>)"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password: Ab9&zz88QQ",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["zz88QQ"],
+    "keep": ["password"],
+    "output": "password: <masked len=10>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "token=Ab9&zz88QQ",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["zz88QQ"],
+    "keep": ["token"],
+    "output": "token=<masked len=10>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "(password=Ab9&defGhij)",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["defGhij"],
+    "keep": ["password", ")"],
+    "output": "(password=<masked len=11>)"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "https://h/p?password=abc&id=5",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["abc"],
+    "keep": ["&id=5", "password"],
+    "output": "https://h/p?password=<masked len=3>&id=5"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{ password: Ab}Zq9 Wk7Vt }",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["Zq9"],
+    "keep": ["}"],
+    "output": "{ password: <masked len=13>}"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "(password: abc).next",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": ["next"],
+    "keep": ["(password:"],
+    "output": "(password: <masked len=9>"
   }
 ]
