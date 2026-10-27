@@ -31,7 +31,7 @@ for (const row of cases) {
 const maskSource = readFileSync(new URL('./mask.js', import.meta.url), 'utf8');
 const KEY_SAMPLE = 'kept';
 const TRUNCATE_AT = 2000;
-const GROUP_ORDER = ['old70', 'L', 'O', 'six', 'LH', 'F1', 'F2', 'V', 'E1', 'I1', 'K', 'KA', 'OBJ', 'CK', 'A1', 'F5', 'P1'];
+const GROUP_ORDER = ['old70', 'L', 'O', 'six', 'LH', 'F1', 'F2', 'V', 'E1', 'I1', 'K', 'KA', 'OBJ', 'CK', 'A1', 'F5', 'R3', 'P1'];
 const groupStats = new Map();
 
 test('mask.mjs loads the mask.js installer', () => {
@@ -210,6 +210,30 @@ test('maskResult keeps a Date as ISO and emits [Circular] for a repeated object'
   assert.deepEqual(maskResult(self), { a: 1, self: '[Circular]' });
   assert.deepEqual(maskResult({ when: new Date(0) }), { when: '1970-01-01T00:00:00.000Z' });
   assert.deepEqual(maskResult({ password: new Date(0) }), { password: '<masked len=24>' });
+});
+
+test('maskResult and maskEvaluateResult share cycle and Date handling', () => {
+  const a = {};
+  a.value = a;
+  assert.deepEqual(maskEvaluateResult({ value: a }), { value: '[Circular]' });
+  assert.equal(maskEvaluateResult({ value: new Date(0) }), '1970-01-01T00:00:00.000Z');
+  assert.equal(maskEvaluateResult({ value: new Date(NaN) }), 'Invalid Date');
+  assert.deepEqual(
+    maskEvaluateResult({ value: { password: new Date(0) } }),
+    { password: '<masked len=24>' },
+  );
+  assert.deepEqual(
+    maskEvaluateResult({ value: { password: new Date(NaN) } }),
+    { password: '<masked len=12>' },
+  );
+  assert.equal(maskResult(new Date(NaN)), 'Invalid Date');
+  assert.deepEqual(maskResult({ password: new Date(NaN) }), { password: '<masked len=12>' });
+  const shared = { n: 1 };
+  assert.deepEqual(maskResult({ a: shared, b: shared }), { a: { n: 1 }, b: { n: 1 } });
+  assert.deepEqual(
+    maskEvaluateResult({ value: { a: shared, b: shared } }),
+    { a: { n: 1 }, b: { n: 1 } },
+  );
 });
 
 function medianMs(samples) {

@@ -1396,5 +1396,71 @@
     "secrets": ["my", "secret", "phrase"],
     "surfaces": "all",
     "output": "password: <masked len=16>"
+  },
+  {
+    "group": "R3",
+    "kind": "text",
+    "input": "Authorization: Bearer\n  my secret phrase",
+    "expect": "masked",
+    "secrets": ["my", "secret", "phrase"],
+    "keep": ["Authorization: Bearer"],
+    "surfaces": "all",
+    "output": "Authorization: Bearer\n  <masked len=16>"
+  },
+  {
+    "group": "R3",
+    "kind": "text",
+    "input": "Authorization: Token\n  hunter two words",
+    "expect": "masked",
+    "secrets": ["hunter", "two", "words"],
+    "keep": ["Authorization:"],
+    "surfaces": "all",
+    "output": "Authorization: <masked len=5>\n  <masked len=16>"
+  },
+  {
+    "group": "R3",
+    "kind": "text",
+    "input": "auth failed: Bearer\n  abcd1234efgh",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "keep": ["auth failed:"],
+    "surfaces": "all",
+    "output": "auth failed: Bearer\n  <masked len=12>"
+  },
+  {
+    "group": "R3",
+    "kind": "text",
+    "input": "Bearer\n  abcd1234efgh",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "keep": ["Bearer"],
+    "surfaces": "all",
+    "output": "Bearer\n  <masked len=12>"
+  },
+  {
+    "group": "R3",
+    "kind": "text",
+    "input": "password=hunter2 \n  continued9",
+    "expect": "masked",
+    "secrets": ["hunter2", "continued9"],
+    "keep": ["password="],
+    "surfaces": "all",
+    "output": "password=<masked len=21>"
+  },
+  {
+    "group": "R3",
+    "kind": "text",
+    "input": "Authorization: Bearer\nmy secret",
+    "expect": "masked",
+    "secrets": ["my", "secret"],
+    "keep": ["Authorization: Bearer"],
+    "surfaces": "all",
+    "output": "Authorization: Bearer\n<masked len=9>"
+  },
+  {
+    "group": "R3",
+    "kind": "text",
+    "input": "The password field is required",
+    "expect": "clear"
   }
 ]

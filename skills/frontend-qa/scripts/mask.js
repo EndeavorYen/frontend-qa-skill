@@ -42,10 +42,10 @@ function isSensitiveKey(key, q) {
   return false;
 }
 const JWT_RE = /(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{4,}\.eyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]*/g;
-// Space or tab only, so a non-indented next line stays a new header.
-// A lone Bearer or Basic has no same-line token here; the scheme path masks an indented fold.
-const AUTH_RE = /\b((?:Bearer|Basic)[ \t]+)([A-Za-z0-9._~+/=-]+)/gi;
 const SCHEME_WORD = /^[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*$/;
+const AUTH_SCHEMES = new Set(['bearer', 'basic', 'token', 'digest', 'negotiate', 'ntlm', 'apikey',
+  'sharedkey', 'oauth', 'hoba', 'mutual', 'vk']);
+const HEADER_LINE = /^[A-Za-z0-9-]+:[ \t]/;
 const TOKEN68_RE = /[A-Za-z0-9._~+/=-]+/y;
 const VENDOR_RE = /(?<![A-Za-z0-9])(?:AKIA|ASIA)[0-9A-Z]{16}(?![A-Za-z0-9])|(?<![A-Za-z0-9])(?:xox[abposr]-[A-Za-z0-9-]{10,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|[sr]k_(?:live|test)_[A-Za-z0-9]{10,}|AIza[0-9A-Za-z_-]{30,})/g;
 const USERINFO_RE = /(?<![a-z0-9+.-])([a-z][a-z0-9+.-]*:\/\/[^\s/?#@:]*:)([^\s/?#@]+)(@)/gi;
@@ -88,11 +88,15 @@ function skipBws(text, i) {
   while (text[i] === ' ' || text[i] === '\t') i++;
   return i;
 }
+function isAuthScheme(word) {
+  const name = String(word);
+  if (AUTH_SCHEMES.has(name.toLowerCase())) return true;
+  return name.includes('-') && SCHEME_WORD.test(name);
+}
 function credentialToken(token) {
   return chunkOpaque(token) || /\d/.test(token) || /[^A-Za-z0-9]/.test(token) || token.length >= 20;
 }
-// A single token after a scheme is the credential, any length.
-// A longer letter-and-space tail is prose ("header is missing"). Anything else is the credential.
+// Non-auth scheme words still use this. Auth schemes do not: the tail is always the credential.
 function tailIsCredential(tail) {
   if (/[^A-Za-z\s]/.test(tail)) return true;
   const words = tail.split(/\s+/).filter(Boolean);
@@ -159,8 +163,63 @@ function schemeProseStays(key, token, text, tokenEnd) {
   const tail = text.slice(tokenEnd, unquotedValueEnd(text, tokenEnd));
   return /^[ \t]+[A-Za-z]+(?:[ \t]+[A-Za-z]+)+[ \t]*$/.test(tail);
 }
-// A scheme with nothing after it on the line: the next line is part of the value only when
-// that line is a single credential token. A normal next line stays readable.
+// Indented continuation lines (space or tab) after a value. A non-indented line stops the fold.
+function extendIndentedFolds(text, end) {
+  let j = end;
+  while (text[j] === ' ' || text[j] === '\t') j++;
+  if (text[j] !== '\n' && text[j] !== '\r') return end;
+  let i = j;
+  let consumed = false;
+  while (i < text.length && (text[i] === '\n' || text[i] === '\r')) {
+    const k = lineBreakEnd(text, i);
+    if (k >= text.length || (text[k] !== ' ' && text[k] !== '\t')) break;
+    consumed = true;
+    i = k;
+    while (i < text.length && text[i] !== '\n' && text[i] !== '\r') i++;
+  }
+  return consumed ? i : end;
+}
+function withFold(text, span) {
+  const after = span.close ? span.end + 1 : span.end;
+  const folded = extendIndentedFolds(text, after);
+  if (folded > after) return { start: span.start, end: folded };
+  return span;
+}
+// Lone scheme: the next line is masked, including an indented fold.
+// A non-indented header (`Name:[ \t]`) stays readable.
+function loneSchemeTail(text, breakAt) {
+  const j = lineBreakEnd(text, breakAt);
+  if (j >= text.length) return null;
+  if (text[j] === ' ' || text[j] === '\t') {
+    const end = valueEnd(text, breakAt);
+    if (end <= j) return null;
+    let s = j;
+    while (s < end && (text[s] === ' ' || text[s] === '\t')) s++;
+    if (s >= end || text.startsWith('<masked len=', s)) return null;
+    return { start: s, end };
+  }
+  const lineEnd = lineContentEnd(text, j);
+  if (lineEnd <= j) return null;
+  if (HEADER_LINE.test(text.slice(j, lineEnd))) return null;
+  if (text.startsWith('<masked len=', j)) return null;
+  return { start: j, end: lineEnd };
+}
+// Auth scheme (Bearer, Basic, Token, …), keyed or keyless. Rest of the line and every
+// indented fold are masked. No letter-tail exception on this path.
+function authSchemeTail(text, schemeEnd) {
+  let start = schemeEnd;
+  if (text[start] === ' ' || text[start] === '\t') {
+    start = skipBws(text, start);
+    if (start === schemeEnd || text.startsWith('<masked len=', start)) return null;
+  } else if (text[start] !== '\n' && text[start] !== '\r') return null;
+  if (start >= text.length) return null;
+  if (text[start] === '\n' || text[start] === '\r') return loneSchemeTail(text, start);
+  const end = valueEnd(text, start);
+  if (end <= start) return null;
+  return { start, end };
+}
+// Non-auth scheme words only. A single credential token on the next line is the value.
+// A normal next line stays readable. Auth schemes use authSchemeTail instead.
 function nextLineCredential(text, breakAt) {
   const j = lineBreakEnd(text, breakAt);
   if (j >= text.length) return null;
@@ -232,16 +291,12 @@ function keyAnchored(text, spans) {
     if (PLACEHOLDER.test(text.slice(span.start, span.end + 1))) { ASSIGN_RE.lastIndex = span.end; continue; }
     const token = text.slice(span.start, span.end);
     if (/^(?:Bearer|Basic)$/i.test(token)) {
-      // AUTH_RE owns a same-line credential. A lone scheme still uses this path:
-      // an indented next line is the value; a non-indented next line is a new header.
-      const cred = schemeCredential(text, span.end);
+      // Same-line Bearer/Basic is masked in maskAuthSameLine. A lone scheme uses this path.
+      const cred = authSchemeTail(text, span.end);
       if (!cred) continue;
-      let s = cred.start;
-      while (s < cred.end && (text[s] === ' ' || text[s] === '\t')) s++;
-      if (s >= cred.end || text.startsWith('<masked len=', s)) continue;
-      span = { start: s, end: cred.end };
+      span = cred;
     } else if (bareScheme) {
-      const cred = schemeCredential(text, span.end); // scheme word, then the rest of the value
+      const cred = isAuthScheme(token) ? authSchemeTail(text, span.end) : schemeCredential(text, span.end);
       if (cred) {
         spans.push([span.start, span.end]);
         span = cred;
@@ -252,6 +307,8 @@ function keyAnchored(text, spans) {
       const end = unquotedValueEnd(text, span.start);
       if (end > span.end) span = { start: span.start, end };
     }
+    if (span.end <= span.start) continue;
+    span = withFold(text, span);
     if (span.end <= span.start) continue;
     spans.push([span.start, span.end]);
     ASSIGN_RE.lastIndex = Math.max(span.end, ASSIGN_RE.lastIndex);
@@ -354,12 +411,54 @@ function maskCookieLine(all, lead, name, sep, body) {
   });
   return lead + name + sep + out;
 }
+// Keyless auth scheme at end of line. Keyed schemes are already in the spans from keyAnchored.
+function scanKeylessSchemes(text, spans) {
+  const re = /\b(Bearer|Basic|Token|Digest|Negotiate|NTLM|ApiKey|SharedKey|OAuth|HOBA|Mutual|AWS4-HMAC-SHA256)\b/gi;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const schemeEnd = m.index + m[1].length;
+    let i = schemeEnd;
+    if (text[i] === ' ' || text[i] === '\t') i = skipBws(text, i);
+    if (text[i] !== '\n' && text[i] !== '\r') continue;
+    const tail = authSchemeTail(text, schemeEnd);
+    if (!tail) continue;
+    let covered = false;
+    for (let n = 0; n < spans.length; n++) {
+      if (spans[n][0] <= tail.start && spans[n][1] >= tail.end) { covered = true; break; }
+    }
+    if (covered || text.startsWith('<masked len=', tail.start)) {
+      re.lastIndex = tail.end;
+      continue;
+    }
+    spans.push([tail.start, tail.end]);
+    re.lastIndex = tail.end;
+  }
+}
+// Bearer or Basic on the same line: the rest of that line and any indented fold.
+// A placeholder already in that slot stays, so a pre-masked fixture is unchanged.
+function maskAuthSameLine(text) {
+  const re = /\b(Bearer|Basic)[ \t]+/gi;
+  let out = '';
+  let last = 0;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const content = m.index + m[0].length;
+    if (content >= text.length || text.startsWith('<masked len=', content)) continue;
+    const end = valueEnd(text, content);
+    if (end <= content) continue;
+    out += text.slice(last, content) + marker(text.slice(content, end));
+    last = end;
+    re.lastIndex = end;
+  }
+  return out + text.slice(last);
+}
 function maskBody(text) {
   let s = text.replace(COOKIE_LINE, maskCookieLine).replace(JWT_RE, (j) => marker(j)).replace(VENDOR_RE, (v) => marker(v))
-    .replace(AUTH_RE, (all, p, v) => (PLACEHOLDER.test(v) ? all : p + marker(v)))
     .replace(USERINFO_RE, (all, a, v, at) => a + marker(v) + at);
+  s = maskAuthSameLine(s);
   const spans = [];
   keyAnchored(s, spans);
+  scanKeylessSchemes(s, spans);
   s = applySpans(s, spans);
   return s.split(/(<masked len=\d+>)/).map((part, i) => (i % 2 ? part : tokenPass(part))).join('');
 }
@@ -376,6 +475,11 @@ function mask(key, value) {
 function isDate(value) {
   return Object.prototype.toString.call(value) === '[object Date]';
 }
+const INVALID_DATE = 'Invalid Date';
+function dateText(value) {
+  if (Number.isNaN(value.getTime())) return INVALID_DATE;
+  return value.toISOString();
+}
 function maskResult(value, key, hidden, seen) {
   const keyText = key == null ? '' : String(key);
   const hide = hidden === true || isSensitiveKey(keyText);
@@ -385,30 +489,23 @@ function maskResult(value, key, hidden, seen) {
   if (tag === 'string') return hide ? marker(value) : mask(keyText, value);
   if (tag !== 'object') return hide ? marker(String(value)) : mask(keyText, String(value));
   if (isDate(value)) {
-    const iso = value.toISOString();
+    const iso = dateText(value);
     return hide ? marker(iso) : iso;
   }
   if (seen && seen.has(value)) return '[Circular]';
   const nextSeen = seen || new Set();
   nextSeen.add(value);
-  if (Array.isArray(value)) return value.map((item) => maskResult(item, keyText, hide, nextSeen));
-  const out = new Object();
-  for (const entry of Object.entries(value)) out[entry[0]] = maskResult(entry[1], entry[0], hide, nextSeen);
+  let out;
+  if (Array.isArray(value)) out = value.map((item) => maskResult(item, keyText, hide, nextSeen));
+  else {
+    out = new Object();
+    for (const entry of Object.entries(value)) out[entry[0]] = maskResult(entry[1], entry[0], hide, nextSeen);
+  }
+  nextSeen.delete(value);
   return out;
 }
 function maskSecrets(value, key, hidden) {
-  const keyText = key == null ? '' : String(key);
-  const hide = hidden === true || isSensitiveKey(keyText);
-  if (value == null) return value;
-  if (typeof value === 'number' || typeof value === 'boolean') return hide ? marker(String(value)) : value;
-  if (typeof value === 'string') return hide ? marker(value) : maskText(value);
-  if (Array.isArray(value)) return value.map((item) => maskSecrets(item, keyText, hide));
-  if (typeof value === 'object') {
-    const out = new Object();
-    for (const entry of Object.entries(value)) out[entry[0]] = maskSecrets(entry[1], entry[0], hide);
-    return out;
-  }
-  return hide ? marker(String(value)) : String(value);
+  return maskResult(value, key, hidden);
 }
 function maskControl(type, key, value) {
   const text = value == null ? '' : String(value);
