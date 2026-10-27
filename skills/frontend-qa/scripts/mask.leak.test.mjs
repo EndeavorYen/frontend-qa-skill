@@ -5,9 +5,9 @@ import { mask, maskBody, maskConsole, maskText } from './mask.mjs';
 
 const SECRET = 'abcd1234efgh';
 const LETTER_SECRET = 'mysecretphrase';
-const LENGTHS = [3, 20, 2000, 4095, 4096, 4097, 9000];
+const LENGTHS = [1, 3, 12, 20, 100, 2000, 4095, 4096, 4097, 4100, 5000, 9000];
 const POSITIONS = ['start', 'middle', 'end'];
-const FORMS = ['header', 'single', 'double', 'backtick', 'json', 'nested', 'array', 'folded', 'lone-scheme-folded', 'letters-only-folded', 'no-key-scheme'];
+const FORMS = ['header', 'single', 'double', 'backtick', 'json', 'nested', 'array', 'folded', 'lone-scheme-folded', 'letters-only-folded', 'no-key-scheme', 'indented-nonsensitive-key-after-scheme', 'quoted+fold', 'CRLF-fold', 'AWS4-folded', 'SharedKey'];
 
 function plant(length, position) {
   const pad = 'A'.repeat(length);
@@ -55,6 +55,16 @@ function wrap(form, value, length, position) {
       return `Authorization: Bearer\n  ${plantLetters(length, position)}`;
     case 'no-key-scheme':
       return `Bearer\n  ${value}`;
+    case 'indented-nonsensitive-key-after-scheme':
+      return `Authorization: Bearer\n  X-Foo: ${value}`;
+    case 'quoted+fold':
+      return `password="${value}"\n  continued`;
+    case 'CRLF-fold':
+      return `Authorization: Bearer\r\n  ${value}`;
+    case 'AWS4-folded':
+      return `Authorization: AWS4-HMAC-SHA256\n  Credential=AKIA/20261027/us-east-1/s3/aws4_request,\n  SignedHeaders=host;x-amz-date,\n  Signature=${value}`;
+    case 'SharedKey':
+      return `Authorization: SharedKey acct:${value}`;
     default: {
       const unknown = form;
       throw new Error(`unknown form ${unknown}`);

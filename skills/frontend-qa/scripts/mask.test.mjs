@@ -4,6 +4,7 @@ import { performance } from 'node:perf_hooks';
 import { after, test } from 'node:test';
 import {
   MASK_SOURCE,
+  READABLE_HEADERS,
   isSensitiveKey,
   mask,
   maskBody,
@@ -31,7 +32,9 @@ for (const row of cases) {
 const maskSource = readFileSync(new URL('./mask.js', import.meta.url), 'utf8');
 const KEY_SAMPLE = 'kept';
 const TRUNCATE_AT = 2000;
-const GROUP_ORDER = ['old70', 'L', 'O', 'six', 'LH', 'F1', 'F2', 'V', 'E1', 'I1', 'K', 'KA', 'OBJ', 'CK', 'A1', 'F5', 'R3', 'R3c', 'P1'];
+const GROUP_ORDER = ['old70', 'L', 'O', 'six', 'LH', 'F1', 'F2', 'V', 'E1', 'I1', 'K', 'KA', 'OBJ', 'CK', 'A1', 'F5', 'R3', 'R3c', 'R52', 'P1'];
+const ALLOWED_DIFF = [174, 216];
+const baseline = JSON.parse(readFileSync(new URL('./mask.baseline.json', import.meta.url), 'utf8'));
 const groupStats = new Map();
 
 test('mask.mjs loads the mask.js installer', () => {
@@ -41,6 +44,22 @@ test('mask.mjs loads the mask.js installer', () => {
   assert.equal(typeof maskText, 'function');
   assert.equal(typeof maskBody, 'function');
   assert.equal(typeof isSensitiveKey, 'function');
+});
+
+test('readable header list is exactly the closed list', () => {
+  assert.deepEqual(Array.from(READABLE_HEADERS), [
+    'accept',
+    'accept-*',
+    'content-*',
+    'user-agent',
+    'host',
+    'x-request-id',
+    'cache-control',
+    'connection',
+    'origin',
+    'referer',
+    'date',
+  ]);
 });
 
 function applyRow(row) {
@@ -236,6 +255,41 @@ test('maskResult and maskEvaluateResult share cycle and Date handling', () => {
   );
 });
 
+test('non-R52 rows match the c908bc0 baseline except ALLOWED_DIFF', () => {
+  const allowed = new Set(ALLOWED_DIFF);
+  const diffs = [];
+  const unchanged = [];
+  let seenR52 = false;
+  for (let i = 0; i < cases.length; i++) {
+    if (cases[i].group === 'R52') {
+      seenR52 = true;
+      continue;
+    }
+    assert.equal(seenR52, false, 'R52 rows are appended after the baseline rows');
+    const old = baseline[i];
+    const same = maskText(cases[i].input) === old.maskText
+      && maskConsole(cases[i].input) === old.maskConsole
+      && maskBody(cases[i].input) === old.maskBody;
+    if (!same && !allowed.has(i)) diffs.push(i);
+    if (same && allowed.has(i)) unchanged.push(i);
+  }
+  assert.deepEqual(diffs, []);
+  assert.deepEqual(unchanged, []);
+  assert.equal(baseline.length, cases.filter((row) => row.group !== 'R52').length);
+});
+
+test('maskText, maskConsole, and maskBody are idempotent on every row', () => {
+  let n = 0;
+  for (const row of cases) {
+    for (const fn of [maskText, maskConsole, maskBody]) {
+      const once = fn(row.input);
+      assert.equal(fn(once), once);
+    }
+    n += 1;
+  }
+  console.log(`idempotence ${n}`);
+});
+
 function medianMs(samples) {
   const sorted = samples.slice().sort((a, b) => a - b);
   return sorted[(sorted.length - 1) >> 1];
@@ -249,6 +303,8 @@ test('P1 maskConsole and maskBody stay under 50ms at 20k chars', () => {
     '"'.repeat(20000),
     'a=b&'.repeat(5000),
     'x:'.repeat(10000),
+    `Authorization: Token ${'"'.repeat(20000)}`,
+    `Authorization: Bearer${'\n  x'.repeat(5000)}`,
   ];
   const errors = [];
   for (const input of inputs) {

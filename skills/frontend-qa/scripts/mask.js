@@ -1,5 +1,5 @@
-// maskText pipeline: cut at 2000, then shapes, one key-anchored scan,
-// object/array values masked whole, then a token pass. No raw fallback.
+// maskText pipeline: cut at 2000, then shapes, tokenize (quoted, nested, line,
+// fold, bare), classify, then a token pass. No raw fallback.
 // Every scan fails closed. A cap is not an emit point: past MAX_QUOTED the
 // same scan runs to the end of that value. If that end is not there, the
 // rest of the input is masked. Linear time.
@@ -15,7 +15,7 @@ const KEY_TOKENS = new Set(['pass', 'password', 'passwords', 'passwd', 'passphra
   'secret', 'secrets', 'token', 'apikey', 'privatekey', 'accesskey', 'secretkey', 'sessionkey',
   'authkey', 'credential', 'credentials', 'otp', '2fa', 'mfa', 'auth', 'authorization', 'pin',
   'cvv', 'cvc', 'ssn', 'session', 'sessionid', 'sid', 'sessid', 'cookie', 'jwt', 'csrf', 'xsrf',
-  'bearer', 'passcode', 'pincode', 'cardnumber', 'securitycode']);
+  'bearer', 'passcode', 'pincode', 'cardnumber', 'securitycode', 'signature']);
 const KEY_SUFFIXES = ['token', 'secret', 'password', 'passwd', 'apikey', 'sessionid', 'sessid'];
 const QTY_BEFORE = new Set(['max', 'min', 'num', 'total']);
 const QTY_AFTER = new Set(['count', 'counts', 'limit', 'limits', 'length', 'size', 'usage', 'budget', 'total']);
@@ -44,8 +44,53 @@ function isSensitiveKey(key, q) {
 const JWT_RE = /(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{4,}\.eyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]*/g;
 const SCHEME_WORD = /^[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*$/;
 const AUTH_SCHEMES = new Set(['bearer', 'basic', 'token', 'digest', 'negotiate', 'ntlm', 'apikey',
-  'sharedkey', 'oauth', 'hoba', 'mutual', 'vk']);
-const HEADER_LINE = /^[A-Za-z0-9-]+:[ \t]/;
+  'sharedkey', 'oauth', 'hoba', 'mutual', 'hawk', 'vk']);
+// Closed list. A fold line KEY: VALUE starts a new LINE only when KEY is here.
+// accept-* and content-* are prefix patterns. Extending this list is a design change.
+const READABLE_HEADERS = Object.freeze([
+  'accept',
+  'accept-*',
+  'content-*',
+  'user-agent',
+  'host',
+  'x-request-id',
+  'cache-control',
+  'connection',
+  'origin',
+  'referer',
+  'date',
+]);
+const HEADER_KEY_RE = /^["']?([A-Za-z0-9_.%-]+)["']?[ \t]*:[ \t]/;
+function isReadableHeaderName(name) {
+  const n = String(name).toLowerCase();
+  for (let i = 0; i < READABLE_HEADERS.length; i++) {
+    const item = READABLE_HEADERS[i];
+    if (item.endsWith('*')) {
+      if (n.startsWith(item.slice(0, -1))) return true;
+    } else if (n === item) return true;
+  }
+  return false;
+}
+function headerNameAt(text, at) {
+  const m = HEADER_KEY_RE.exec(text.slice(at));
+  return m ? m[1] : '';
+}
+function leadingWs(text, at) {
+  let n = 0;
+  while (text[at + n] === ' ' || text[at + n] === '\t') n++;
+  return n;
+}
+// Column of the first non-space on the line that holds index. CRLF is one break.
+function lineIndentAt(text, index) {
+  let i = index;
+  while (i > 0 && text[i - 1] !== '\n' && text[i - 1] !== '\r') i--;
+  if (text[i] === '\n') i++;
+  return leadingWs(text, i);
+}
+function isReadableFoldLine(text, lineStart) {
+  const name = headerNameAt(text, lineStart + leadingWs(text, lineStart));
+  return name !== '' && isReadableHeaderName(name);
+}
 const TOKEN68_RE = /[A-Za-z0-9._~+/=-]+/y;
 const VENDOR_RE = /(?<![A-Za-z0-9])(?:AKIA|ASIA)[0-9A-Z]{16}(?![A-Za-z0-9])|(?<![A-Za-z0-9])(?:xox[abposr]-[A-Za-z0-9-]{10,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|[sr]k_(?:live|test)_[A-Za-z0-9]{10,}|AIza[0-9A-Za-z_-]{30,})/g;
 const USERINFO_RE = /(?<![a-z0-9+.-])([a-z][a-z0-9+.-]*:\/\/[^\s/?#@:]*:)([^\s/?#@]+)(@)/gi;
@@ -79,10 +124,10 @@ function scanNested(text, at) {
       if (q) { if (ch === '\\') i++; else if (ch === q) q = ''; continue; }
       if (ch === '"' || ch === "'" || ch === '`') q = ch;
       else if (ch === '{' || ch === '[') depth++;
-      else if ((ch === '}' || ch === ']') && --depth === 0) return { start: at, end: i + 1 };
+      else if ((ch === '}' || ch === ']') && --depth === 0) return { start: at, end: i + 1, close: ch };
     }
   }
-  return { start: at, end: text.length };
+  return { start: at, end: text.length, close: '' };
 }
 function skipBws(text, i) {
   while (text[i] === ' ' || text[i] === '\t') i++;
@@ -106,21 +151,24 @@ function tailIsCredential(tail) {
   }
   return false;
 }
-// An indented key line is not a fold. Colon plus whitespace only: not `=`, not `key:value`.
-const INDENT_KEY_LINE = /^[ \t]+["']?[A-Za-z0-9_-]+["']?[ \t]*:[ \t]/;
-function foldLineIsKey(text, at) {
-  return INDENT_KEY_LINE.test(text.slice(at));
+// FOLD: a following line that starts with space or tab and is indented MORE than the
+// LINE's own first column. A KEY: VALUE fold starts a new LINE only on the readable list.
+function isDeeperFold(text, lineStart, parentIndent) {
+  const indent = leadingWs(text, lineStart);
+  if (indent <= parentIndent) return false;
+  if (isReadableFoldLine(text, lineStart)) return false;
+  return true;
 }
-// End of an unquoted value: end of line, plus folded lines that start with space or tab.
-// A key line is not a fold. Do not stop at ; , : / or quotes. Run past 4096 to that same end.
+// End of an unquoted value: end of line, plus deeper folds. Do not stop at ; , : / or quotes.
 function valueEnd(text, at) {
+  const parentIndent = lineIndentAt(text, at);
   let i = at;
   while (i < text.length) {
     const ch = text[i];
     if (ch === '\n' || ch === '\r') {
       let j = i + 1;
       if (ch === '\r' && text[j] === '\n') j++;
-      if (j < text.length && (text[j] === ' ' || text[j] === '\t') && !foldLineIsKey(text, j)) {
+      if (j < text.length && isDeeperFold(text, j, parentIndent)) {
         i = j;
         continue;
       }
@@ -171,8 +219,8 @@ function schemeProseStays(key, token, text, tokenEnd) {
   const tail = text.slice(tokenEnd, unquotedValueEnd(text, tokenEnd));
   return /^[ \t]+[A-Za-z]+(?:[ \t]+[A-Za-z]+)+[ \t]*$/.test(tail);
 }
-// Indented continuation lines (space or tab) after a value. A non-indented line stops the fold.
-function extendIndentedFolds(text, end) {
+// Folds after an unquoted value. parentIndent is the LINE's first column.
+function extendIndentedFolds(text, end, parentIndent) {
   let j = end;
   while (text[j] === ' ' || text[j] === '\t') j++;
   if (text[j] !== '\n' && text[j] !== '\r') return end;
@@ -180,37 +228,39 @@ function extendIndentedFolds(text, end) {
   let consumed = false;
   while (i < text.length && (text[i] === '\n' || text[i] === '\r')) {
     const k = lineBreakEnd(text, i);
-    if (k >= text.length || (text[k] !== ' ' && text[k] !== '\t') || foldLineIsKey(text, k)) break;
+    if (k >= text.length || !isDeeperFold(text, k, parentIndent)) break;
     consumed = true;
     i = k;
     while (i < text.length && text[i] !== '\n' && text[i] !== '\r') i++;
   }
   return consumed ? i : end;
 }
+// A closed quote or bracket ends the value. Indented lines after that closer are not folds.
 function withFold(text, span) {
-  const after = span.close ? span.end + 1 : span.end;
-  const folded = extendIndentedFolds(text, after);
-  if (folded > after) return { start: span.start, end: folded };
+  if (span.close) return span;
+  const parentIndent = lineIndentAt(text, span.start);
+  const folded = extendIndentedFolds(text, span.end, parentIndent);
+  if (folded > span.end) return { start: span.start, end: folded };
   return span;
 }
-// Lone scheme: the next line is masked, including an indented fold.
-// A non-indented header (`Name:[ \t]`) stays readable.
+// Lone scheme at end of line: the next line is masked (any indent) unless it is a
+// readable header, or a sensitive key that is not itself a deeper fold.
 function loneSchemeTail(text, breakAt) {
   const j = lineBreakEnd(text, breakAt);
   if (j >= text.length) return null;
-  if (text[j] === ' ' || text[j] === '\t') {
-    const end = valueEnd(text, breakAt);
-    if (end <= j) return null;
-    let s = j;
-    while (s < end && (text[s] === ' ' || text[s] === '\t')) s++;
-    if (s >= end || text.startsWith('<masked len=', s)) return null;
-    return { start: s, end };
-  }
-  const lineEnd = lineContentEnd(text, j);
-  if (lineEnd <= j) return null;
-  if (HEADER_LINE.test(text.slice(j, lineEnd))) return null;
-  if (text.startsWith('<masked len=', j)) return null;
-  return { start: j, end: lineEnd };
+  const parentIndent = lineIndentAt(text, breakAt);
+  const indent = leadingWs(text, j);
+  const content = j + indent;
+  if (content >= text.length || text[content] === '\n' || text[content] === '\r') return null;
+  const name = headerNameAt(text, content);
+  if (name && isReadableHeaderName(name)) return null;
+  if (name && isSensitiveKey(name) && indent <= parentIndent) return null;
+  if (text.startsWith('<masked len=', content)) return null;
+  let end = lineContentEnd(text, content);
+  const folded = extendIndentedFolds(text, end, parentIndent);
+  if (folded > end) end = folded;
+  if (end <= content) return null;
+  return { start: content, end };
 }
 // Auth scheme (Bearer, Basic, Token, …), keyed or keyless. Rest of the line and every
 // indented fold are masked. No letter-tail exception on this path.
@@ -522,8 +572,14 @@ function maskBody(text) {
   s = applySpans(s, spans);
   return s.split(/(<masked len=\d+>)/).map((part, i) => (i % 2 ? part : tokenPass(part))).join('');
 }
+const TRUNC_SUFFIX = /…<truncated len=\d+>$/;
 function maskText(text) {
   const t = String(text);
+  const marked = TRUNC_SUFFIX.exec(t);
+  if (marked && t.length - marked[0].length <= TRUNCATE_AT) {
+    const prefix = t.slice(0, t.length - marked[0].length);
+    return maskBody(prefix) + marked[0];
+  }
   return t.length > TRUNCATE_AT ? maskBody(t.slice(0, TRUNCATE_AT)) + '…<truncated len=' + t.length + '>' : maskBody(t);
 }
 function mask(key, value) {
@@ -602,4 +658,5 @@ globalThis.__frontendQaMaskEvaluateResult = maskEvaluateResult;
 globalThis.__frontendQaMaskText = maskText;
 globalThis.__frontendQaMaskBody = maskBody;
 globalThis.__frontendQaIsSensitiveKey = isSensitiveKey;
+globalThis.__frontendQaReadableHeaders = READABLE_HEADERS;
 })();
