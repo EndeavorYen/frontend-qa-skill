@@ -204,6 +204,19 @@ test('maskResult and maskEvaluateResult hide every leaf under a sensitive key', 
   );
 });
 
+test('maskResult keeps a Date as ISO and emits [Circular] for a repeated object', () => {
+  const self = { a: 1 };
+  self.self = self;
+  assert.deepEqual(maskResult(self), { a: 1, self: '[Circular]' });
+  assert.deepEqual(maskResult({ when: new Date(0) }), { when: '1970-01-01T00:00:00.000Z' });
+  assert.deepEqual(maskResult({ password: new Date(0) }), { password: '<masked len=24>' });
+});
+
+function medianMs(samples) {
+  const sorted = samples.slice().sort((a, b) => a - b);
+  return sorted[(sorted.length - 1) >> 1];
+}
+
 test('P1 maskConsole and maskBody stay under 50ms at 20k chars', () => {
   const inputs = [
     '['.repeat(20000),
@@ -216,13 +229,19 @@ test('P1 maskConsole and maskBody stay under 50ms at 20k chars', () => {
   const errors = [];
   for (const input of inputs) {
     const err = tally('P1', () => {
-      const cutStart = performance.now();
-      maskConsole(input);
-      const cutMs = performance.now() - cutStart;
-      const uncutStart = performance.now();
-      maskBody(input);
-      const uncutMs = performance.now() - uncutStart;
-      console.log(`P1 len=${input.length} cut ${cutMs.toFixed(3)} uncut ${uncutMs.toFixed(3)}`);
+      const cutSamples = [];
+      const uncutSamples = [];
+      for (let run = 0; run < 5; run += 1) {
+        const cutStart = performance.now();
+        maskConsole(input);
+        cutSamples.push(performance.now() - cutStart);
+        const uncutStart = performance.now();
+        maskBody(input);
+        uncutSamples.push(performance.now() - uncutStart);
+      }
+      const cutMs = medianMs(cutSamples);
+      const uncutMs = medianMs(uncutSamples);
+      console.log(`P1 len=${input.length} cut median ${cutMs.toFixed(3)} uncut median ${uncutMs.toFixed(3)}`);
       assert.ok(cutMs < 50, `cut ${cutMs}`);
       assert.ok(uncutMs < 50, `uncut ${uncutMs}`);
     });

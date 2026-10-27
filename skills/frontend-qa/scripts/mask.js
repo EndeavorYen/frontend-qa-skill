@@ -42,8 +42,8 @@ function isSensitiveKey(key, q) {
   return false;
 }
 const JWT_RE = /(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{4,}\.eyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]*/g;
-// Space or tab only. A Bearer/Basic scheme with no credential on its line ends at the line end;
-// the next line is a new header, not the credential.
+// Space or tab only, so a non-indented next line stays a new header.
+// A lone Bearer or Basic has no same-line token here; the scheme path masks an indented fold.
 const AUTH_RE = /\b((?:Bearer|Basic)[ \t]+)([A-Za-z0-9._~+/=-]+)/gi;
 const SCHEME_WORD = /^[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*$/;
 const TOKEN68_RE = /[A-Za-z0-9._~+/=-]+/y;
@@ -128,6 +128,37 @@ function lineContentEnd(text, at) {
   while (i < text.length && text[i] !== '\n' && text[i] !== '\r') i++;
   return i;
 }
+// Unquoted assignment value. Spaces stay inside a letter phrase. Stop at end of line,
+// at & ; , or at a quote or bracket. A space before a non-letter token (for example " [200]") ends it.
+function unquotedValueEnd(text, at) {
+  let i = at;
+  while (i < text.length) {
+    const ch = text[i];
+    if (ch === '\n' || ch === '\r' || ch === '&' || ch === ';' || ch === ',' ||
+        ch === '"' || ch === "'" || ch === '`' || ch === '}' || ch === ']' ||
+        ch === ')' || ch === '<' || ch === '>') break;
+    if (ch === ' ' || ch === '\t') {
+      let j = i;
+      while (text[j] === ' ' || text[j] === '\t') j++;
+      if (!/[A-Za-z]/.test(text[j] || '')) break;
+      let k = j;
+      while (k < text.length && /[A-Za-z]/.test(text[k])) k++;
+      i = k;
+      continue;
+    }
+    i++;
+  }
+  return i;
+}
+// Authorization prose ("header is missing") keeps the letter tail readable.
+// Any other sensitive key takes the whole phrase, including a short first word such as "my".
+function schemeProseStays(key, token, text, tokenEnd) {
+  const name = String(key);
+  if (token.length < 3) return false;
+  if (!/authorization/i.test(name) && !/^auth$/i.test(name)) return false;
+  const tail = text.slice(tokenEnd, unquotedValueEnd(text, tokenEnd));
+  return /^[ \t]+[A-Za-z]+(?:[ \t]+[A-Za-z]+)+[ \t]*$/.test(tail);
+}
 // A scheme with nothing after it on the line: the next line is part of the value only when
 // that line is a single credential token. A normal next line stays readable.
 function nextLineCredential(text, breakAt) {
@@ -176,6 +207,7 @@ function keyAnchored(text, spans) {
     const q = eq && !kq && (prefix === '?' || prefix === '&' || prefix === '#');
     if (!isSensitiveKey(key, q)) { ASSIGN_RE.lastIndex = m.index + whole.trimEnd().length; continue; }
     let span;
+    let bare = false;
     let bareScheme = false;
     if (text[vStart] === '"' || text[vStart] === "'" || text[vStart] === '`') span = scanQuoted(text, vStart);
     else if (text[vStart] === '\\' && (text[vStart + 1] === '"' || text[vStart + 1] === "'" || text[vStart + 1] === '`')) {
@@ -187,6 +219,7 @@ function keyAnchored(text, spans) {
     } else if (text[vStart] === '{' || text[vStart] === '[') {
       span = scanNested(text, vStart); // object/array under a secret key: mask it whole
     } else {
+      bare = true;
       BARE_RE.lastIndex = vStart;
       const b = BARE_RE.exec(text);
       if (!b) continue;
@@ -197,14 +230,29 @@ function keyAnchored(text, spans) {
     }
     if (span.end <= span.start) continue;
     if (PLACEHOLDER.test(text.slice(span.start, span.end + 1))) { ASSIGN_RE.lastIndex = span.end; continue; }
-    if (/^(?:Bearer|Basic)$/i.test(text.slice(span.start, span.end))) continue; // the AUTH shape owns it
-    if (bareScheme) {
+    const token = text.slice(span.start, span.end);
+    if (/^(?:Bearer|Basic)$/i.test(token)) {
+      // AUTH_RE owns a same-line credential. A lone scheme still uses this path:
+      // an indented next line is the value; a non-indented next line is a new header.
+      const cred = schemeCredential(text, span.end);
+      if (!cred) continue;
+      let s = cred.start;
+      while (s < cred.end && (text[s] === ' ' || text[s] === '\t')) s++;
+      if (s >= cred.end || text.startsWith('<masked len=', s)) continue;
+      span = { start: s, end: cred.end };
+    } else if (bareScheme) {
       const cred = schemeCredential(text, span.end); // scheme word, then the rest of the value
       if (cred) {
         spans.push([span.start, span.end]);
         span = cred;
+      } else if (!schemeProseStays(key, token, text, span.end)) {
+        span = { start: span.start, end: unquotedValueEnd(text, span.start) };
       }
+    } else if (bare) {
+      const end = unquotedValueEnd(text, span.start);
+      if (end > span.end) span = { start: span.start, end };
     }
+    if (span.end <= span.start) continue;
     spans.push([span.start, span.end]);
     ASSIGN_RE.lastIndex = Math.max(span.end, ASSIGN_RE.lastIndex);
   }
@@ -325,19 +373,28 @@ function mask(key, value) {
   if (isSensitiveKey(keyText)) return marker(text);
   return maskText(text);
 }
-function maskResult(value, key, hidden) {
+function isDate(value) {
+  return Object.prototype.toString.call(value) === '[object Date]';
+}
+function maskResult(value, key, hidden, seen) {
   const keyText = key == null ? '' : String(key);
   const hide = hidden === true || isSensitiveKey(keyText);
   if (value == null) return value;
-  if (typeof value === 'number' || typeof value === 'boolean') return hide ? marker(String(value)) : value;
-  if (typeof value === 'string') return hide ? marker(value) : mask(keyText, value);
-  if (Array.isArray(value)) return value.map((item) => maskResult(item, keyText, hide));
-  if (typeof value === 'object') {
-    const out = new Object();
-    for (const entry of Object.entries(value)) out[entry[0]] = maskResult(entry[1], entry[0], hide);
-    return out;
+  const tag = typeof value;
+  if (tag === 'number' || tag === 'boolean') return hide ? marker(String(value)) : value;
+  if (tag === 'string') return hide ? marker(value) : mask(keyText, value);
+  if (tag !== 'object') return hide ? marker(String(value)) : mask(keyText, String(value));
+  if (isDate(value)) {
+    const iso = value.toISOString();
+    return hide ? marker(iso) : iso;
   }
-  return hide ? marker(String(value)) : mask(keyText, String(value));
+  if (seen && seen.has(value)) return '[Circular]';
+  const nextSeen = seen || new Set();
+  nextSeen.add(value);
+  if (Array.isArray(value)) return value.map((item) => maskResult(item, keyText, hide, nextSeen));
+  const out = new Object();
+  for (const entry of Object.entries(value)) out[entry[0]] = maskResult(entry[1], entry[0], hide, nextSeen);
+  return out;
 }
 function maskSecrets(value, key, hidden) {
   const keyText = key == null ? '' : String(key);

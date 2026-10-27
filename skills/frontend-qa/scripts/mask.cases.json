@@ -1352,5 +1352,49 @@
     ],
     "surfaces": "all",
     "output": "X-Api-Key: <masked len=5> <masked len=6>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "Authorization: Bearer\n  abcd1234efgh",
+    "expect": "masked",
+    "secrets": ["abcd1234efgh"],
+    "surfaces": "all",
+    "output": "Authorization: Bearer\n  <masked len=12>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "Authorization: Basic\n  dXNlcjpwYXNz",
+    "expect": "masked",
+    "secrets": ["dXNlcjpwYXNz"],
+    "surfaces": "all",
+    "output": "Authorization: Basic\n  <masked len=12>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "Authorization: Bearer\nX-Request-Id: 42",
+    "expect": "clear",
+    "keep": ["X-Request-Id: 42"],
+    "surfaces": "all"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "password=my secret phrase",
+    "expect": "masked",
+    "secrets": ["my", "secret", "phrase"],
+    "surfaces": "all",
+    "output": "password=<masked len=16>"
+  },
+  {
+    "group": "A1",
+    "kind": "text",
+    "input": "password: my secret phrase",
+    "expect": "masked",
+    "secrets": ["my", "secret", "phrase"],
+    "surfaces": "all",
+    "output": "password: <masked len=16>"
   }
 ]

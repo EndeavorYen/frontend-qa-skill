@@ -6,7 +6,7 @@ import { mask, maskBody, maskConsole, maskText } from './mask.mjs';
 const SECRET = 'abcd1234efgh';
 const LENGTHS = [3, 20, 2000, 4095, 4096, 4097, 9000];
 const POSITIONS = ['start', 'middle', 'end'];
-const FORMS = ['header', 'single', 'double', 'backtick', 'json', 'nested', 'array'];
+const FORMS = ['header', 'single', 'double', 'backtick', 'json', 'nested', 'array', 'folded'];
 
 function plant(length, position) {
   const pad = 'A'.repeat(length);
@@ -35,6 +35,8 @@ function wrap(form, value) {
       return `{"secret":{"a":"${value}"}}`;
     case 'array':
       return `{"credentials":["${value}"]}`;
+    case 'folded':
+      return `Authorization: Bearer\n  ${value}`;
     default: {
       const unknown = form;
       throw new Error(`unknown form ${unknown}`);
