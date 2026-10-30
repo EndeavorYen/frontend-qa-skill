@@ -3488,5 +3488,144 @@
       "X-Request-Id: 42"
     ],
     "output": "Authorization: Bearer\nX-Request-Id: 42"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "user=bob&password=my secret phrase",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "secret phrase"
+    ],
+    "keep": [
+      "user=bob&"
+    ],
+    "output": "user=bob&password=<masked len=16>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "https://x.test/login?password=my secret",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "secret"
+    ],
+    "keep": [
+      "https://x.test/login?"
+    ],
+    "output": "https://x.test/login?password=<masked len=9>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "a=1&token=abc def ghi",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "def ghi"
+    ],
+    "keep": [
+      "a=1&"
+    ],
+    "output": "a=1&token=<masked len=11>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "#password: hunter two words",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "two words"
+    ],
+    "output": "#password: <masked len=16>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "x&password: hunter two words",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "two words"
+    ],
+    "output": "<masked len=11> <masked len=16>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{\"msg\":\"login failed password: hunter2\"}",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "hunter2"
+    ],
+    "keep": [
+      "login failed"
+    ],
+    "output": "{\"msg\":\"login failed password: <masked len=7>\"}"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{\"level\":\"error\",\"msg\":\"secret: hunter2\"}",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "hunter2"
+    ],
+    "keep": [
+      "\"level\":\"error\""
+    ],
+    "output": "{\"level\":\"error\",\"msg\":\"secret: <masked len=7>\"}"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{\"msg\":\"api_key: k1secretvalue\"}",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "k1secretvalue"
+    ],
+    "output": "{\"msg\":\"api_key: <masked len=13>\"}"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{\"msg\":\"Authorization: Token abcd1234efgh\"}",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "keep": [
+      "Authorization:"
+    ],
+    "output": "{\"msg\":\"Authorization: <masked len=5> <masked len=12>\"}"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "[{\"line\":\"token: abcd1234efgh\"}]",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abcd1234efgh"
+    ],
+    "output": "[{\"line\":\"token: <masked len=12>\"}]"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{\"msg\":\"password=my secret phrase\"}",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "secret phrase"
+    ],
+    "output": "{\"msg\":\"password=<masked len=16>\"}"
   }
 ]

@@ -154,6 +154,21 @@ test('mid-value-delimiter keeps the secret masked for every delim, form, length,
   console.log(`mid-value-delimiter ${inputs.length} ${ms.toFixed(3)}ms`);
 });
 
+test('query tails and JSON-string keys do not leak the trailing secret', () => {
+  const cases = [
+    ['user=bob&password=my secret phrase', 'secret phrase'],
+    ['#password: hunter two words', 'two words'],
+    ['{"msg":"login failed password: hunter2"}', 'hunter2'],
+  ];
+  for (const [input, secret] of cases) {
+    for (const [name, fn] of FUNCTIONS) {
+      const out = fn(input);
+      assert.equal(out.includes(secret), false, `${name} ${input} => ${out}`);
+      assert.equal(fn(out), out, `${name} idem ${input}`);
+    }
+  }
+});
+
 test('maskText, maskConsole, and maskBody are idempotent on property inputs', () => {
   const inputs = propertyInputs().concat(midDelimiterInputs());
   const sample = [];

@@ -149,6 +149,13 @@ const DIM_STARTS = ['', '""', "''", '``', '&', ')', ']', ',', ';', '<', '>', '}'
 const DIM_PREFIXES = ['', '- ', '* ', '<td>'];
 const DIM_SUFFIXES = ['.', '))', '}}', ']]', ' next: v', ' [200]'];
 const DIM_KEYS = ['password', 'token', 'secret', 'api_key'];
+const JSON_WRAPS = [
+  (body) => `{"msg":"${body}"}`,
+  (body) => `{"level":"error","msg":"${body}"}`,
+  (body) => `[{"line":"${body}"}]`,
+];
+const JSON_SEPS = [': ', '='];
+const WORDY = `${TAIL} ${TAIL}`;
 
 function dimensionInputs() {
   const rows = [];
@@ -169,6 +176,20 @@ function dimensionInputs() {
   }
   rows.push({ input: `password: ${TAIL}\nusername: ${TAIL}`, secret: TAIL, sibling: true });
   rows.push({ input: `password: ${TAIL}\n  note: ${TAIL}`, secret: TAIL, sibling: false });
+  for (const key of DIM_KEYS) {
+    for (const sep of JSON_SEPS) {
+      for (const wrap of JSON_WRAPS) {
+        rows.push({ input: wrap(`${key}${sep}${TAIL}`), secret: TAIL, sibling: false });
+      }
+    }
+    rows.push({ input: `user=bob&${key}=${WORDY}`, secret: WORDY, sibling: false });
+    rows.push({ input: `https://x.test/login?${key}=${WORDY}`, secret: WORDY, sibling: false });
+    rows.push({ input: `a=1&${key}=${WORDY}`, secret: WORDY, sibling: false });
+    rows.push({ input: `#${key}: ${WORDY}`, secret: WORDY, sibling: false });
+  }
+  rows.push({ input: 'user=bob&password=my secret phrase', secret: 'secret phrase', phrase: true });
+  rows.push({ input: '#password: hunter two words', secret: 'two words', phrase: true });
+  rows.push({ input: '{"msg":"login failed password: hunter2"}', secret: 'hunter2', phrase: true });
   return rows;
 }
 
@@ -266,7 +287,8 @@ function scanDimensions(mod, workers) {
         markerFails += 1;
         if (examples.length < 8) examples.push(`marker ${JSON.stringify(row.input)} => ${JSON.stringify(out)}`);
       }
-      if (leaked(row.input, out, row.secret)) {
+      const hit = row.phrase ? out.includes(row.secret) : leaked(row.input, out, row.secret);
+      if (hit) {
         leaks += 1;
         if (examples.length < 8) examples.push(`${JSON.stringify(row.input)} => ${JSON.stringify(out)}`);
       }
@@ -284,7 +306,10 @@ if (!isMainThread) {
   test('unquoted sensitive values hide every 4-gram across the fuzz matrix', async () => {
     assert.equal(PUNCT.length, 32);
     assert.equal(PREFIXES.length, 18);
-    assert.equal(DIM_INPUTS.length, DIM_PREFIXES.length * DIM_KEYS.length * DIM_SEPS.length * DIM_STARTS.length * DIM_SUFFIXES.length + 2);
+    const dimGrid = DIM_PREFIXES.length * DIM_KEYS.length * DIM_SEPS.length * DIM_STARTS.length * DIM_SUFFIXES.length;
+    const dimJson = JSON_WRAPS.length * DIM_KEYS.length * JSON_SEPS.length;
+    const dimWordy = DIM_KEYS.length * 4;
+    assert.equal(DIM_INPUTS.length, dimGrid + 2 + dimJson + dimWordy + 3);
     const started = performance.now();
     const workers = 4;
     const parts = await Promise.all(Array.from({ length: workers }, (_, mod) => new Promise((resolve, reject) => {

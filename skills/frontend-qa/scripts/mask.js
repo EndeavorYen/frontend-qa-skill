@@ -1,8 +1,13 @@
 // maskText pipeline: cut at 2000, then JSON, cookie, query/form, and
 // key-anchored values. A sensitive value runs to end of line plus deeper
-// folds, except JSON, query/form, and Cookie/Set-Cookie. Scheme words keep
-// the c908bc0 marker shape. Then JWT, vendor, userinfo, and the token pass.
-// No raw fallback. Linear time.
+// folds, except parsed JSON leaves, a real query/form value, and
+// Cookie/Set-Cookie. A space or tab after a query/form value is not a
+// bound when another word continues on that line; the value then runs to
+// end of line. A space before non-word text, such as " [200]", still ends it.
+// Inside a parsed JSON string under a non-sensitive key, key: value and
+// key=value are masked on the decoded text, bounded by the closing quote.
+// Scheme words keep the c908bc0 marker shape. Then JWT, vendor, userinfo,
+// and the token pass. No raw fallback. Linear time.
 // Key rule, JWT/auth/userinfo regexes, and the token pass adapted from
 // chrome-cdp-ex skills/chrome-cdp-ex/scripts/lib/redaction.mjs (v2.21.0, b928082, MIT).
 (function installFrontendQaMask() {
@@ -259,9 +264,17 @@ function maskJsonSlice(slice) {
     if (slice[i] !== '"') bad();
     const ce = i;
     i++;
-    if (!sens) return;
     const content = slice.slice(cs, ce);
-    if (content.length && !isPassShape(content)) reps.push([cs, ce, marker(content)]);
+    if (!content.length) return;
+    if (sens) {
+      if (!isPassShape(content)) reps.push([cs, ce, marker(content)]);
+      return;
+    }
+    const decoded = jsonUnescape(content);
+    const asJson = maskJsonSlice(decoded);
+    const masked = asJson != null ? asJson : maskAnchoredKeys(decoded, []);
+    if (masked === decoded) return;
+    reps.push([cs, ce, JSON.stringify(masked).slice(1, -1)]);
   }
   function takePrimitive(sens) {
     const mk = readMarkerAt(slice, i);
@@ -500,16 +513,65 @@ function isFormRun(run) {
   for (let i = 0; i < parts.length; i++) if (!parts[i].includes('=')) return false;
   return true;
 }
+function wordContinues(text, at) {
+  if (text[at] !== ' ' && text[at] !== '\t') return false;
+  let k = at + 1;
+  while (text[k] === ' ' || text[k] === '\t') k++;
+  const c = text[k];
+  if (!c || c === '\n' || c === '\r') return false;
+  return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9');
+}
+function lastAmpPairKey(run) {
+  const amp = run.lastIndexOf('&');
+  const pair = amp < 0 ? run : run.slice(amp + 1);
+  const hash = pair.indexOf('#');
+  const eq = pair.indexOf('=');
+  if (eq <= 0 || (hash >= 0 && hash < eq)) return '';
+  return pair.slice(0, eq);
+}
+// Raw space after a sensitive value means the text is not urlencoded.
+function spaceCutSensitive(text, runEnd, run, query) {
+  if (!wordContinues(text, runEnd)) return false;
+  const key = lastAmpPairKey(run);
+  return key !== '' && isSensitiveKey(key, query);
+}
+function pushUrlRanges(text, ranges) {
+  const urls = queryUrlRanges(text);
+  for (let u = 0; u < urls.length; u++) {
+    const s = urls[u][0];
+    const e = urls[u][1];
+    const slice = text.slice(s, e);
+    const q = slice.indexOf('?');
+    if (q < 0) continue;
+    const query = slice.slice(q + 1);
+    if (!spaceCutSensitive(text, e, query, true)) {
+      ranges.push([s, e, 'url']);
+      continue;
+    }
+    const amp = query.lastIndexOf('&');
+    if (amp >= 0) ranges.push([s, s + q + 1 + amp + 1, 'url']);
+  }
+}
+// End index of the form run rule 4 must not own. -1 when the run is not a bounded form.
+// A sensitive value cut by a raw space is excluded so rule 4 can run to end of line.
+function boundedFormEnd(text, i, j) {
+  const run = text.slice(i, j);
+  if (!isFormRun(run)) return -1;
+  if (!spaceCutSensitive(text, j, run, false)) return j;
+  const amp = run.lastIndexOf('&');
+  if (amp < 0) return -1;
+  return i + amp + 1;
+}
 function applyQueryAndForm(text) {
   const ranges = [];
-  const urls = queryUrlRanges(text);
-  for (let u = 0; u < urls.length; u++) ranges.push([urls[u][0], urls[u][1], 'url']);
+  pushUrlRanges(text, ranges);
   let i = 0;
   while (i < text.length) {
     const ch = text[i];
     if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') { i++; continue; }
     const j = nextRunEnd(text, i);
-    if (isFormRun(text.slice(i, j))) ranges.push([i, j, 'form']);
+    const end = boundedFormEnd(text, i, j);
+    if (end > i) ranges.push([i, end, 'form']);
     i = j;
   }
   ranges.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
@@ -553,7 +615,8 @@ function protectedRanges(text) {
     const ch = text[i];
     if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') { i++; continue; }
     const j = nextRunEnd(text, i);
-    if (isFormRun(text.slice(i, j))) ranges.push([i, j]);
+    const end = boundedFormEnd(text, i, j);
+    if (end > i) ranges.push([i, end]);
     i = j;
   }
   return mergeRanges(ranges);
@@ -598,7 +661,7 @@ function matchKey(text, i) {
     start = i;
   }
   const prev = start > 0 ? text[start - 1] : '';
-  return { key: key.text, sep: sep.ch, valueStart: sep.valueStart, query: prev === '?' || prev === '&' || prev === '#' };
+  return { key: key.text, sep: sep.ch, valueStart: sep.valueStart, query: sep.ch === '=' && (prev === '?' || prev === '&' || prev === '#') };
 }
 function classifyScheme(first) {
   const m = /^([A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*)([ \t]*)([\s\S]*)$/.exec(first);
@@ -630,7 +693,11 @@ function queryValueEnd(text, valueStart) {
     const mk = readMarkerAt(text, i);
     if (mk) { i += mk.length; continue; }
     const c = text[i];
-    if (c === '&' || c === '#' || c === ' ' || c === '\t' || c === '\n' || c === '\r') break;
+    if (c === '&' || c === '#' || c === '\n' || c === '\r') break;
+    if (c === ' ' || c === '\t') {
+      if (wordContinues(text, i)) return eol(text, i);
+      break;
+    }
     i++;
   }
   return i;
@@ -661,8 +728,7 @@ function maskKeyedValue(text, valueStart, parentIndent, sep, query) {
   }
   return { end: fullEnd, out: full ? marker(full) : '' };
 }
-function applyKeys(text) {
-  const ranges = protectedRanges(text);
+function maskAnchoredKeys(text, ranges) {
   let ri = 0;
   function covered(i) {
     while (ri < ranges.length && ranges[ri][1] <= i) ri++;
@@ -693,6 +759,9 @@ function applyKeys(text) {
     i = masked.end;
   }
   return out;
+}
+function applyKeys(text) {
+  return maskAnchoredKeys(text, protectedRanges(text));
 }
 function applyKeyless(text) {
   let out = '';
