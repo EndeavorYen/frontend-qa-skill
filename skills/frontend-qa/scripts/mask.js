@@ -2,8 +2,10 @@
 // key-anchored values. A sensitive value runs to end of line plus deeper
 // folds, except parsed JSON leaves, a real query/form value, and
 // Cookie/Set-Cookie. A space or tab after a query/form value is not a
-// bound when another word continues on that line; the value then runs to
-// end of line. A space before non-word text, such as " [200]", still ends it.
+// bound when any text continues on that line; the value then runs to
+// end of line. A bracketed status token that ends the line, such as
+// " [200]", still ends it. A "#" does not end a value when raw whitespace
+// and more text follow later on that line.
 // Inside a parsed JSON string under a non-sensitive key, key: value and
 // key=value are masked on the decoded text, bounded by the closing quote.
 // Scheme words keep the c908bc0 marker shape. Then JWT, vendor, userinfo,
@@ -476,7 +478,10 @@ function maskPair(part, query) {
   const hash = part.indexOf('#');
   const eq = part.indexOf('=');
   if (eq < 0 || (hash >= 0 && hash < eq)) return part;
-  const vend = hash > eq ? hash : part.length;
+  let vend = hash > eq ? hash : part.length;
+  // A finished marker is the whole value. JSON closers after it are not secret text.
+  const mk = readMarkerAt(part, eq + 1);
+  if (mk && eq + 1 + mk.length < vend) vend = eq + 1 + mk.length;
   const key = part.slice(0, eq);
   const value = part.slice(eq + 1, vend);
   const tail = part.slice(vend);
@@ -513,13 +518,42 @@ function isFormRun(run) {
   for (let i = 0; i < parts.length; i++) if (!parts[i].includes('=')) return false;
   return true;
 }
-function wordContinues(text, at) {
-  if (text[at] !== ' ' && text[at] !== '\t') return false;
+function textAfterSpace(text, at) {
+  if (text[at] !== ' ' && text[at] !== '\t') return -1;
   let k = at + 1;
   while (text[k] === ' ' || text[k] === '\t') k++;
-  const c = text[k];
-  if (!c || c === '\n' || c === '\r') return false;
-  return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9');
+  if (!text[k] || text[k] === '\n' || text[k] === '\r') return -1;
+  return k;
+}
+// [200] at end of line is a status token, not more of the secret.
+function statusTokenEndsLine(text, at) {
+  if (text[at] !== '[') return false;
+  let k = at + 1;
+  if (!(text[k] >= '0' && text[k] <= '9')) return false;
+  while (text[k] >= '0' && text[k] <= '9') k++;
+  if (text[k] !== ']') return false;
+  k++;
+  while (text[k] === ' ' || text[k] === '\t') k++;
+  return !text[k] || text[k] === '\n' || text[k] === '\r';
+}
+function wordContinues(text, at) {
+  const k = textAfterSpace(text, at);
+  if (k < 0) return false;
+  return !statusTokenEndsLine(text, k);
+}
+function rawSpaceFollows(text, from) {
+  const lineEnd = eol(text, from);
+  for (let k = from; k < lineEnd; k++) {
+    if (textAfterSpace(text, k) >= 0) return true;
+  }
+  return false;
+}
+function pairHasHash(run) {
+  const amp = run.lastIndexOf('&');
+  const pair = amp < 0 ? run : run.slice(amp + 1);
+  const eq = pair.indexOf('=');
+  if (eq < 0) return false;
+  return pair.indexOf('#', eq + 1) >= 0;
 }
 function lastAmpPairKey(run) {
   const amp = run.lastIndexOf('&');
@@ -530,10 +564,12 @@ function lastAmpPairKey(run) {
   return pair.slice(0, eq);
 }
 // Raw space after a sensitive value means the text is not urlencoded.
+// A hash inside that value is not a fragment bound when more text follows the space.
 function spaceCutSensitive(text, runEnd, run, query) {
-  if (!wordContinues(text, runEnd)) return false;
   const key = lastAmpPairKey(run);
-  return key !== '' && isSensitiveKey(key, query);
+  if (key === '' || !isSensitiveKey(key, query)) return false;
+  if (wordContinues(text, runEnd)) return true;
+  return pairHasHash(run) && textAfterSpace(text, runEnd) >= 0;
 }
 function pushUrlRanges(text, ranges) {
   const urls = queryUrlRanges(text);
@@ -693,7 +729,11 @@ function queryValueEnd(text, valueStart) {
     const mk = readMarkerAt(text, i);
     if (mk) { i += mk.length; continue; }
     const c = text[i];
-    if (c === '&' || c === '#' || c === '\n' || c === '\r') break;
+    if (c === '&' || c === '\n' || c === '\r') break;
+    if (c === '#') {
+      if (rawSpaceFollows(text, i + 1)) return eol(text, i);
+      break;
+    }
     if (c === ' ' || c === '\t') {
       if (wordContinues(text, i)) return eol(text, i);
       break;

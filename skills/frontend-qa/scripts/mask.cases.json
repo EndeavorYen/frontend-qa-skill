@@ -3627,5 +3627,197 @@
       "secret phrase"
     ],
     "output": "{\"msg\":\"password=<masked len=16>\"}"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password=my $ecret phrase",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "$ecret phrase"
+    ],
+    "output": "password=<masked len=16>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password=my 秘密 phrase",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "秘密 phrase"
+    ],
+    "output": "password=<masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password=x [200] secret words",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "secret words"
+    ],
+    "output": "password=<masked len=20>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "password=my#secret phrase",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "secret phrase"
+    ],
+    "output": "password=<masked len=16>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "user=bob&password=my $ecret phrase",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "$ecret phrase"
+    ],
+    "keep": [
+      "user=bob&"
+    ],
+    "output": "user=bob&password=<masked len=16>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "user=bob&password=my 秘密 phrase",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "秘密 phrase"
+    ],
+    "keep": [
+      "user=bob&"
+    ],
+    "output": "user=bob&password=<masked len=12>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "https://x.test/login?a=1&password=my @secret",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "@secret"
+    ],
+    "keep": [
+      "https://x.test/login?a=1&"
+    ],
+    "output": "https://x.test/login?a=1&password=<masked len=10>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "a=1&token=abc \"def ghi\"",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "\"def ghi\""
+    ],
+    "keep": [
+      "a=1&"
+    ],
+    "output": "a=1&token=<masked len=13>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "a=1&password=x [200] secret words",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "[200] secret words"
+    ],
+    "keep": [
+      "a=1&"
+    ],
+    "output": "a=1&password=<masked len=20>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{\"msg\":\"a=1&password=my !secret\"}",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "!secret"
+    ],
+    "keep": [
+      "a=1&"
+    ],
+    "output": "{\"msg\":\"a=1&password=<masked len=10>\"}"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "a=1&password=my#secret phrase",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "secret phrase"
+    ],
+    "keep": [
+      "a=1&"
+    ],
+    "output": "a=1&password=<masked len=16>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "https://x.test/?a=1&password=my#secret phrase",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "secret phrase"
+    ],
+    "keep": [
+      "https://x.test/?a=1&"
+    ],
+    "output": "https://x.test/?a=1&password=<masked len=16>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{\"msg\":\"a=1&password=my#secret phrase\"}",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "secret phrase"
+    ],
+    "keep": [
+      "a=1&"
+    ],
+    "output": "{\"msg\":\"a=1&password=<masked len=16>\"}"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "a=1&password=my#secret",
+    "expect": "masked",
+    "surfaces": "all",
+    "keep": [
+      "#secret"
+    ],
+    "output": "a=1&password=<masked len=2>#secret"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{\"msg\":\"a=1&password=my#secret\"}",
+    "expect": "masked",
+    "surfaces": "all",
+    "keep": [
+      "#secret"
+    ],
+    "output": "{\"msg\":\"a=1&password=<masked len=2>#secret\"}"
   }
 ]

@@ -156,6 +156,27 @@ const JSON_WRAPS = [
 ];
 const JSON_SEPS = [': ', '='];
 const WORDY = `${TAIL} ${TAIL}`;
+const LATER_WORDS = ['$' + TAIL, '秘密' + TAIL, '@' + TAIL, '!' + TAIL, '"' + TAIL, '[200] ' + TAIL];
+const LATER_SHAPES = 4;
+const HASH_SHAPES = 3;
+const PHRASE_ROWS = [
+  { input: 'user=bob&password=my secret phrase', secret: 'secret phrase', phrase: true },
+  { input: '#password: hunter two words', secret: 'two words', phrase: true },
+  { input: '{"msg":"login failed password: hunter2"}', secret: 'hunter2', phrase: true },
+  { input: 'password=my $ecret phrase', secret: '$ecret phrase', phrase: true },
+  { input: 'password=my 秘密 phrase', secret: '秘密 phrase', phrase: true },
+  { input: 'password=x [200] secret words', secret: 'secret words', phrase: true },
+  { input: 'password=my#secret phrase', secret: 'secret phrase', phrase: true },
+  { input: 'user=bob&password=my $ecret phrase', secret: '$ecret phrase', phrase: true },
+  { input: 'user=bob&password=my 秘密 phrase', secret: '秘密 phrase', phrase: true },
+  { input: 'https://x.test/login?a=1&password=my @secret', secret: '@secret', phrase: true },
+  { input: 'a=1&token=abc "def ghi"', secret: '"def ghi"', phrase: true },
+  { input: 'a=1&password=x [200] secret words', secret: 'secret words', phrase: true },
+  { input: '{"msg":"a=1&password=my !secret"}', secret: '!secret', phrase: true },
+  { input: 'a=1&password=my#secret phrase', secret: 'secret phrase', phrase: true },
+  { input: 'https://x.test/?a=1&password=my#secret phrase', secret: 'secret phrase', phrase: true },
+  { input: '{"msg":"a=1&password=my#secret phrase"}', secret: 'secret phrase', phrase: true },
+];
 
 function dimensionInputs() {
   const rows = [];
@@ -186,10 +207,17 @@ function dimensionInputs() {
     rows.push({ input: `https://x.test/login?${key}=${WORDY}`, secret: WORDY, sibling: false });
     rows.push({ input: `a=1&${key}=${WORDY}`, secret: WORDY, sibling: false });
     rows.push({ input: `#${key}: ${WORDY}`, secret: WORDY, sibling: false });
+    for (const later of LATER_WORDS) {
+      rows.push({ input: `user=bob&${key}=my ${later}`, secret: TAIL, sibling: false });
+      rows.push({ input: `https://x.test/login?a=1&${key}=my ${later}`, secret: TAIL, sibling: false });
+      rows.push({ input: `a=1&${key}=x ${later}`, secret: TAIL, sibling: false });
+      rows.push({ input: JSON.stringify({ msg: `a=1&${key}=my ${later}` }), secret: TAIL, sibling: false });
+    }
+    rows.push({ input: `a=1&${key}=my#${TAIL} phrase`, secret: TAIL, sibling: false });
+    rows.push({ input: `https://x.test/?a=1&${key}=my#${TAIL} phrase`, secret: TAIL, sibling: false });
+    rows.push({ input: JSON.stringify({ msg: `a=1&${key}=my#${TAIL} phrase` }), secret: TAIL, sibling: false });
   }
-  rows.push({ input: 'user=bob&password=my secret phrase', secret: 'secret phrase', phrase: true });
-  rows.push({ input: '#password: hunter two words', secret: 'two words', phrase: true });
-  rows.push({ input: '{"msg":"login failed password: hunter2"}', secret: 'hunter2', phrase: true });
+  for (const row of PHRASE_ROWS) rows.push(row);
   return rows;
 }
 
@@ -309,7 +337,12 @@ if (!isMainThread) {
     const dimGrid = DIM_PREFIXES.length * DIM_KEYS.length * DIM_SEPS.length * DIM_STARTS.length * DIM_SUFFIXES.length;
     const dimJson = JSON_WRAPS.length * DIM_KEYS.length * JSON_SEPS.length;
     const dimWordy = DIM_KEYS.length * 4;
-    assert.equal(DIM_INPUTS.length, dimGrid + 2 + dimJson + dimWordy + 3);
+    const dimLater = DIM_KEYS.length * LATER_WORDS.length * LATER_SHAPES;
+    const dimHash = DIM_KEYS.length * HASH_SHAPES;
+    assert.equal(LATER_WORDS.length, 6);
+    assert.equal(LATER_SHAPES, 4);
+    assert.equal(HASH_SHAPES, 3);
+    assert.equal(DIM_INPUTS.length, dimGrid + 2 + dimJson + dimWordy + dimLater + dimHash + PHRASE_ROWS.length);
     const started = performance.now();
     const workers = 4;
     const parts = await Promise.all(Array.from({ length: workers }, (_, mod) => new Promise((resolve, reject) => {
