@@ -4,8 +4,9 @@
 // Cookie/Set-Cookie. A space or tab after a query/form value is not a
 // bound when any text continues on that line; the value then runs to
 // end of line. A bracketed status token that ends the line, such as
-// " [200]", still ends it. A "#" does not end a value when raw whitespace
-// and more text follow later on that line.
+// " [200]", still ends it. A "#" in any pair does not end that value when
+// raw whitespace and more text follow later on that line; "&" still ends it.
+// A sensitive key after "#" is not a bounded form value.
 // Inside a parsed JSON string under a non-sensitive key, key: value and
 // key=value are masked on the decoded text, bounded by the closing quote.
 // Scheme words keep the c908bc0 marker shape. Then JWT, vendor, userinfo,
@@ -474,17 +475,54 @@ function applyCookies(text) {
   }
   return out;
 }
+// True when the bytes after a finished marker are JSON closers or a JSON continuation.
+// Raw text, including a quote and then a word, is still part of the secret.
+function markerTailIsJson(tail) {
+  let i = 0;
+  while (tail[i] === ' ' || tail[i] === '\t' || tail[i] === '\n' || tail[i] === '\r') i++;
+  const rest = tail.slice(i);
+  if (!rest) return true;
+  let closers = true;
+  for (let n = 0; n < rest.length; n++) {
+    const c = rest[n];
+    if (c !== '}' && c !== ']' && c !== ')' && c !== ',' && c !== ' ' && c !== '\t' && c !== '\n' && c !== '\r') {
+      closers = false;
+      break;
+    }
+  }
+  if (closers) return true;
+  if (rest[0] !== '"') return false;
+  const body = '"x' + rest;
+  const wraps = [];
+  let obj = '{"k":';
+  let arr = '[';
+  let depth = 0;
+  while (depth < 6) {
+    wraps.push(obj, arr, arr + obj, obj + arr);
+    obj = '{"k":' + obj;
+    arr = '[' + arr;
+    depth++;
+  }
+  for (let n = 0; n < wraps.length; n++) {
+    try { JSON.parse(wraps[n] + body); return true; } catch (e) { /* next wrapper */ }
+  }
+  return false;
+}
 function maskPair(part, query) {
   const hash = part.indexOf('#');
   const eq = part.indexOf('=');
   if (eq < 0 || (hash >= 0 && hash < eq)) return part;
   let vend = hash > eq ? hash : part.length;
-  // A finished marker is the whole value. JSON closers after it are not secret text.
+  // Stop at a marker only when the rest is JSON structure. Any other byte is secret text.
   const mk = readMarkerAt(part, eq + 1);
-  if (mk && eq + 1 + mk.length < vend) vend = eq + 1 + mk.length;
+  if (mk && eq + 1 + mk.length < vend && markerTailIsJson(part.slice(eq + 1 + mk.length, vend))) {
+    vend = eq + 1 + mk.length;
+  }
   const key = part.slice(0, eq);
   const value = part.slice(eq + 1, vend);
   const tail = part.slice(vend);
+  // A non-sensitive key keeps its "#" tail. A sensitive key in that tail is not masked here;
+  // boundedFormEnd leaves the run unbound so rule 4 can see the key.
   if (!value || !isSensitiveKey(key, query) || isPassShape(value)) return part;
   return key + '=' + marker(value) + tail;
 }
@@ -548,12 +586,39 @@ function rawSpaceFollows(text, from) {
   }
   return false;
 }
-function pairHasHash(run) {
-  const amp = run.lastIndexOf('&');
-  const pair = amp < 0 ? run : run.slice(amp + 1);
+function pairSensitiveHash(pair, query) {
   const eq = pair.indexOf('=');
-  if (eq < 0) return false;
-  return pair.indexOf('#', eq + 1) >= 0;
+  if (eq <= 0) return false;
+  if (pair.indexOf('#', eq + 1) < 0) return false;
+  return isSensitiveKey(pair.slice(0, eq), query);
+}
+// Amp index before the first sensitive pair that contains "#". found is false when none.
+function ampBeforeSensitiveHash(run, query) {
+  let start = 0;
+  let prevAmp = -1;
+  while (start <= run.length) {
+    const amp = run.indexOf('&', start);
+    const end = amp < 0 ? run.length : amp;
+    if (start < end && pairSensitiveHash(run.slice(start, end), query)) return { found: true, amp: prevAmp };
+    if (amp < 0) break;
+    prevAmp = amp;
+    start = amp + 1;
+  }
+  return { found: false, amp: -1 };
+}
+// A form run with a sensitive key after "#" is not urlencoded structure.
+function sensitiveKeyAfterHash(run) {
+  let from = 0;
+  while (from < run.length) {
+    const hash = run.indexOf('#', from);
+    if (hash < 0) return false;
+    const amp = run.indexOf('&', hash + 1);
+    const seg = run.slice(hash + 1, amp < 0 ? run.length : amp);
+    const eq = seg.indexOf('=');
+    if (eq > 0 && isSensitiveKey(seg.slice(0, eq), true)) return true;
+    from = hash + 1;
+  }
+  return false;
 }
 function lastAmpPairKey(run) {
   const amp = run.lastIndexOf('&');
@@ -564,12 +629,12 @@ function lastAmpPairKey(run) {
   return pair.slice(0, eq);
 }
 // Raw space after a sensitive value means the text is not urlencoded.
-// A hash inside that value is not a fragment bound when more text follows the space.
+// A hash inside any sensitive pair is not a fragment bound when more text follows the space.
 function spaceCutSensitive(text, runEnd, run, query) {
   const key = lastAmpPairKey(run);
-  if (key === '' || !isSensitiveKey(key, query)) return false;
-  if (wordContinues(text, runEnd)) return true;
-  return pairHasHash(run) && textAfterSpace(text, runEnd) >= 0;
+  if (key !== '' && isSensitiveKey(key, query) && wordContinues(text, runEnd)) return true;
+  if (textAfterSpace(text, runEnd) < 0) return false;
+  return ampBeforeSensitiveHash(run, query).found;
 }
 function pushUrlRanges(text, ranges) {
   const urls = queryUrlRanges(text);
@@ -584,16 +649,24 @@ function pushUrlRanges(text, ranges) {
       ranges.push([s, e, 'url']);
       continue;
     }
-    const amp = query.lastIndexOf('&');
+    const hashCut = ampBeforeSensitiveHash(query, true);
+    const amp = hashCut.found ? hashCut.amp : query.lastIndexOf('&');
     if (amp >= 0) ranges.push([s, s + q + 1 + amp + 1, 'url']);
   }
 }
 // End index of the form run rule 4 must not own. -1 when the run is not a bounded form.
 // A sensitive value cut by a raw space is excluded so rule 4 can run to end of line.
+// A sensitive key after "#" is excluded so rule 4 masks that key.
 function boundedFormEnd(text, i, j) {
   const run = text.slice(i, j);
   if (!isFormRun(run)) return -1;
+  if (sensitiveKeyAfterHash(run)) return -1;
   if (!spaceCutSensitive(text, j, run, false)) return j;
+  const hashCut = ampBeforeSensitiveHash(run, false);
+  if (hashCut.found) {
+    if (hashCut.amp < 0) return -1;
+    return i + hashCut.amp + 1;
+  }
   const amp = run.lastIndexOf('&');
   if (amp < 0) return -1;
   return i + amp + 1;
@@ -731,7 +804,8 @@ function queryValueEnd(text, valueStart) {
     const c = text[i];
     if (c === '&' || c === '\n' || c === '\r') break;
     if (c === '#') {
-      if (rawSpaceFollows(text, i + 1)) return eol(text, i);
+      // Include the hash text, but "&" still ends the value when it comes before the space.
+      if (rawSpaceFollows(text, i + 1)) { i++; continue; }
       break;
     }
     if (c === ' ' || c === '\t') {

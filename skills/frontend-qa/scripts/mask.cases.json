@@ -3819,5 +3819,125 @@
       "#secret"
     ],
     "output": "{\"msg\":\"a=1&password=<masked len=2>#secret\"}"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "a=1&password=<masked len=3>hunter2",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "hunter2"
+    ],
+    "keep": [
+      "a=1&"
+    ],
+    "output": "a=1&password=<masked len=21>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "a=1&password=<masked len=3>hunter2&b=2",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "hunter2"
+    ],
+    "keep": [
+      "&b=2"
+    ],
+    "output": "a=1&password=<masked len=21>&b=2"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "user=bob&token=<masked len=3>abc",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "abc"
+    ],
+    "keep": [
+      "user=bob&"
+    ],
+    "output": "user=bob&token=<masked len=17>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "a=1&password=<masked len=3>\"tail",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "tail"
+    ],
+    "keep": [
+      "a=1&"
+    ],
+    "output": "a=1&password=<masked len=19>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "{\"msg\":\"a=1&password=<masked len=3>\"}",
+    "expect": "clear",
+    "surfaces": "all",
+    "output": "{\"msg\":\"a=1&password=<masked len=3>\"}"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "a=1&password=my#secret&b=2 phrase",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "#secret"
+    ],
+    "keep": [
+      "&b=2 phrase"
+    ],
+    "output": "a=1&password=<masked len=9>&b=2 phrase"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "a=1&token=abc#def&b=2 next words",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "#def"
+    ],
+    "keep": [
+      "&b=2 next words"
+    ],
+    "output": "a=1&token=<masked len=7>&b=2 next words"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "a=1&b=2#password=hunter2",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "hunter2"
+    ],
+    "keep": [
+      "a=1&b=2#"
+    ],
+    "output": "a=1&b=2#password=<masked len=7>"
+  },
+  {
+    "group": "R52",
+    "kind": "text",
+    "input": "a=1&b=2#password=my secret phrase",
+    "expect": "masked",
+    "surfaces": "all",
+    "secrets": [
+      "secret phrase"
+    ],
+    "keep": [
+      "a=1&b=2#"
+    ],
+    "output": "a=1&b=2#password=<masked len=16>"
   }
 ]

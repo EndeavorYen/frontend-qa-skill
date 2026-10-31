@@ -159,6 +159,9 @@ const WORDY = `${TAIL} ${TAIL}`;
 const LATER_WORDS = ['$' + TAIL, '秘密' + TAIL, '@' + TAIL, '!' + TAIL, '"' + TAIL, '[200] ' + TAIL];
 const LATER_SHAPES = 4;
 const HASH_SHAPES = 3;
+const MARKER_SHAPES = 3;
+const EARLIER_HASH_SHAPES = 2;
+const HASH_KEY_SHAPES = 2;
 const PHRASE_ROWS = [
   { input: 'user=bob&password=my secret phrase', secret: 'secret phrase', phrase: true },
   { input: '#password: hunter two words', secret: 'two words', phrase: true },
@@ -176,6 +179,14 @@ const PHRASE_ROWS = [
   { input: 'a=1&password=my#secret phrase', secret: 'secret phrase', phrase: true },
   { input: 'https://x.test/?a=1&password=my#secret phrase', secret: 'secret phrase', phrase: true },
   { input: '{"msg":"a=1&password=my#secret phrase"}', secret: 'secret phrase', phrase: true },
+  { input: 'a=1&password=<masked len=3>hunter2', secret: 'hunter2', phrase: true },
+  { input: 'a=1&password=<masked len=3>hunter2&b=2', secret: 'hunter2', phrase: true },
+  { input: 'user=bob&token=<masked len=3>abc', secret: 'abc', phrase: true },
+  { input: 'a=1&password=<masked len=3>"tail', secret: 'tail', phrase: true },
+  { input: 'a=1&password=my#secret&b=2 phrase', secret: '#secret', phrase: true },
+  { input: 'a=1&token=abc#def&b=2 next words', secret: '#def', phrase: true },
+  { input: 'a=1&b=2#password=hunter2', secret: 'hunter2', phrase: true },
+  { input: 'a=1&b=2#password=my secret phrase', secret: 'secret phrase', phrase: true },
 ];
 
 function dimensionInputs() {
@@ -216,6 +227,13 @@ function dimensionInputs() {
     rows.push({ input: `a=1&${key}=my#${TAIL} phrase`, secret: TAIL, sibling: false });
     rows.push({ input: `https://x.test/?a=1&${key}=my#${TAIL} phrase`, secret: TAIL, sibling: false });
     rows.push({ input: JSON.stringify({ msg: `a=1&${key}=my#${TAIL} phrase` }), secret: TAIL, sibling: false });
+    rows.push({ input: `a=1&${key}=<masked len=3>${TAIL}`, secret: TAIL, sibling: false });
+    rows.push({ input: `a=1&${key}=<masked len=3>${TAIL}&b=2`, secret: TAIL, sibling: false });
+    rows.push({ input: `a=1&${key}=<masked len=3>"${TAIL}`, secret: TAIL, sibling: false });
+    rows.push({ input: `a=1&${key}=my#${TAIL}&b=2 phrase`, secret: TAIL, sibling: false });
+    rows.push({ input: `https://x.test/?a=1&${key}=my#${TAIL}&b=2 phrase`, secret: TAIL, sibling: false });
+    rows.push({ input: `a=1&b=2#${key}=${TAIL}`, secret: TAIL, sibling: false });
+    rows.push({ input: `a=1&b=2#${key}=my ${TAIL}`, secret: TAIL, sibling: false });
   }
   for (const row of PHRASE_ROWS) rows.push(row);
   return rows;
@@ -339,10 +357,16 @@ if (!isMainThread) {
     const dimWordy = DIM_KEYS.length * 4;
     const dimLater = DIM_KEYS.length * LATER_WORDS.length * LATER_SHAPES;
     const dimHash = DIM_KEYS.length * HASH_SHAPES;
+    const dimMarker = DIM_KEYS.length * MARKER_SHAPES;
+    const dimEarlier = DIM_KEYS.length * EARLIER_HASH_SHAPES;
+    const dimHashKey = DIM_KEYS.length * HASH_KEY_SHAPES;
     assert.equal(LATER_WORDS.length, 6);
     assert.equal(LATER_SHAPES, 4);
     assert.equal(HASH_SHAPES, 3);
-    assert.equal(DIM_INPUTS.length, dimGrid + 2 + dimJson + dimWordy + dimLater + dimHash + PHRASE_ROWS.length);
+    assert.equal(MARKER_SHAPES, 3);
+    assert.equal(EARLIER_HASH_SHAPES, 2);
+    assert.equal(HASH_KEY_SHAPES, 2);
+    assert.equal(DIM_INPUTS.length, dimGrid + 2 + dimJson + dimWordy + dimLater + dimHash + dimMarker + dimEarlier + dimHashKey + PHRASE_ROWS.length);
     const started = performance.now();
     const workers = 4;
     const parts = await Promise.all(Array.from({ length: workers }, (_, mod) => new Promise((resolve, reject) => {
